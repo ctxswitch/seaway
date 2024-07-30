@@ -1,0 +1,18 @@
+name: seaway
+version: 0.1.0
+description: Simplified development and deployment workflows for Kubernetes applications.
+
+seaway:
+  endpoint: s3.weasel-squeaker.ts.net
+  bucket: development
+  useSSL: true
+  image: docker.io/golang:latest
+  include:
+  - manifest.yaml
+  - go.*
+  - pkg/
+  command:
+  - go
+  - run
+  - pkg/cmd/seactl/*.go
+  - listener
