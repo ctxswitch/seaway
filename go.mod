@@ -3,9 +3,7 @@ module ctx.sh/seaway
 go 1.22.2
 
 require (
-	github.com/evanphx/json-patch v4.12.0+incompatible
 	github.com/minio/minio-go/v7 v7.0.74
-	github.com/r3labs/diff/v3 v3.0.1
 	github.com/spf13/cobra v1.8.1
 	github.com/ttacon/chalk v0.0.0-20160626202418-22c06c80ed31
 	go.uber.org/zap v1.27.0
@@ -30,6 +28,7 @@ require (
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/emicklei/go-restful/v3 v3.11.0 // indirect
+	github.com/evanphx/json-patch v4.12.0+incompatible // indirect
 	github.com/evanphx/json-patch/v5 v5.9.0 // indirect
 	github.com/exponent-io/jsonpath v0.0.0-20151013193312-d6023ce2651d // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
@@ -79,8 +78,6 @@ require (
 	github.com/rs/xid v1.5.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
-	github.com/vmihailenco/msgpack/v5 v5.3.5 // indirect
-	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	github.com/xlab/treeprint v1.2.0 // indirect
 	go.starlark.net v0.0.0-20230525235612-a134d8f9ddca // indirect
 	go.uber.org/multierr v1.11.0 // indirect
