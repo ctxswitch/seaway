@@ -1,12 +1,15 @@
 package storage
 
 import (
+	"context"
 	"errors"
-	"log"
 	"os"
+	"strings"
 
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
+	corev1 "k8s.io/api/core/v1"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 type Client struct {
@@ -18,28 +21,59 @@ func NewClient(endpoint string, useSSL bool) *Client {
 	return &Client{
 		Endpoint: endpoint,
 		UseSSL:   useSSL,
+		// TODO: Move creds to here and don't process them in the connect functions.
 	}
 }
 
-func (c *Client) Connect() (*minio.Client, error) {
-	id := os.Getenv("SEAWAY_ACCESS_KEY")
-	if id == "" {
-		return nil, errors.New("SEAWAY_ACCESS_KEY not set")
+func (c *Client) Connect(ctx context.Context, secret *corev1.Secret) (*minio.Client, error) {
+	logger := log.FromContext(ctx)
+
+	if secret != nil {
+		// TODO: Fall back to env vars if there is an error getting the secret?
+		return c.connectWithSecret(secret)
 	}
 
-	key := os.Getenv("SEAWAY_SECRET_KEY")
+	logger.Info("using env vars for s3 credentials")
+	return c.connectWithEnv()
+}
+
+func (c *Client) connectWithEnv() (*minio.Client, error) {
+	id := os.Getenv("AWS_ACCESS_KEY_ID")
+	if id == "" {
+		return nil, errors.New("AWS_ACCESS_KEY_ID not set")
+	}
+
+	key := os.Getenv("AWS_SECRET_ACCESS_KEY")
 	if key == "" {
-		return nil, errors.New("SEAWAY_SECRET_KEY not set")
+		return nil, errors.New("AWS_SECRET_ACCESS_KEY not set")
 	}
 
 	// Initialize minio client object.
-	mc, err := minio.New(c.Endpoint, &minio.Options{
+	return minio.New(c.Endpoint, &minio.Options{
 		Creds:  credentials.NewStaticV4(id, key, ""),
 		Secure: c.UseSSL,
 	})
-	if err != nil {
-		log.Fatalln(err)
+}
+
+// TODO: I have the data fields differently named here, so update env to match.  I'm using those
+// because that is what minio expects.  Need to look at this more.
+func (c *Client) connectWithSecret(secret *corev1.Secret) (*minio.Client, error) {
+	id, ok := secret.Data["AWS_ACCESS_KEY_ID"]
+	if !ok {
+		return nil, errors.New("AWS_ACCESS_KEY_ID not found in secret")
 	}
 
-	return mc, nil
+	key, ok := secret.Data["AWS_SECRET_ACCESS_KEY"]
+	if !ok {
+		return nil, errors.New("AWS_SECRET_ACCESS_KEY not found in secret")
+	}
+
+	idText := strings.Trim(string(id), "\n")
+	keyText := strings.Trim(string(key), "\n")
+
+	// Initialize minio client object.
+	return minio.New(c.Endpoint, &minio.Options{
+		Creds:  credentials.NewStaticV4(idText, keyText, ""),
+		Secure: c.UseSSL,
+	})
 }

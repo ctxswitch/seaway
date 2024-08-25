@@ -1,0 +1,29 @@
+# Do something different with the example registry PVC and PV:
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: shared-registry
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 10Gi
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteMany
+  hostPath:
+    path: /app/tmp/data/registry
+---
+apiVersion: seaway.ctx.sh/v1beta1
+kind: Registry
+metadata:
+  name: registry
+  namespace: default
+spec:
+  volumeClaimTemplate:
+    spec:
+      accessModes:
+        - ReadWriteMany
+      resources:
+        requests:
+          storage: 10Gi
+      storageClassName: manual

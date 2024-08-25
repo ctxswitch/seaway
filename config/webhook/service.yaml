@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: seaway
+  name: seaway-webhook-service
+  namespace: seaway-system
+spec:
+  type: NodePort
+  ports:
+    - port: 443
+      protocol: TCP
+      targetPort: 9443
+      nodePort: 30100
+  selector:
+    app: seaway-controller

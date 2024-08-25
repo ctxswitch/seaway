@@ -1,0 +1,39 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: seaway-system
+commonAnnotations:
+  stvz.io/authors: "Seaway Authors"
+  stvz.io/license: "Apache"
+  stvz.io/support: "https://github.com/ctxswitch/seaway/issues"
+  cert-manager.io/inject-ca-from: seaway-system/seaway-webhook-cert
+patches:
+  - target:
+      kind: ValidatingWebhookConfiguration
+      name: validating-webhook-configuration
+    patch: |-
+      - op: replace
+        path: /metadata/name
+        value: seaway-webhook
+      - op: replace
+        path: /webhooks/0/clientConfig/service/name
+        value: seaway-webhook-service
+      - op: replace
+        path: /webhooks/0/clientConfig/service/namespace
+        value: seaway-system
+  - target:
+      kind: MutatingWebhookConfiguration
+      name: mutating-webhook-configuration
+    patch: |-
+      - op: replace
+        path: /metadata/name
+        value: seaway-webhook
+      - op: replace
+        path: /webhooks/0/clientConfig/service/name
+        value: seaway-webhook-service
+      - op: replace
+        path: /webhooks/0/clientConfig/service/namespace
+        value: seaway-system
+resources:
+  - certs.yaml
+  - manifests.yaml
+  - service.yaml

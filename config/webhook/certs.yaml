@@ -1,0 +1,28 @@
+---
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: seaway-selfsigned-issuer
+  namespace: seaway-system
+  labels:
+    app.kubernetes.io/name: seaway
+spec:
+  selfSigned: {}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: seaway-webhook-cert
+  namespace: seaway-system
+  labels:
+    app.kubernetes.io/name: seaway
+spec:
+  dnsNames:
+    - seaway-webhook-service.seaway-system.svc
+    - seaway-webhook-service.seaway-system.svc.cluster.local
+  issuerRef:
+    kind: Issuer
+    name: seaway-selfsigned-issuer
+  secretName: seaway-webhook-cert
+  privateKey:
+    rotationPolicy: Never
