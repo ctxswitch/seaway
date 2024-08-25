@@ -5,6 +5,8 @@
 * I think I want to go to a single build job that is deleted before starting if it exists, but that's lower priority.
 * Container builds and install instructions via kustomize and remote directories
 * Initial tests.
+* Move to ctxswitch
+* Service creation for apps if ports are defined.
 
 ## TODO
 

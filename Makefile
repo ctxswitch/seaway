@@ -6,24 +6,20 @@ LOCALDEV_CLUSTER ?= "seaway"
 
 CONTROLLER_TOOLS_VERSION ?= v0.14.0
 KUSTOMIZE_VERSION ?= v5.4.2
+GOLANGCI_LINT_VERSION ?= v1.57.2
+ADDLICENSE_VERSION ?= v1.0.0
 
 KUBECTL ?= kubectl
 LOCALBIN ?= $(shell pwd)/bin
 KUSTOMIZE ?= $(LOCALBIN)/kustomize
 CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen
+GOLANGCI_LINT = $(LOCALBIN)/golangci-lint
+ADDLICENSE = $(LOCALBIN)/addlicense
 
 CRD_OPTIONS ?= "crd:maxDescLen=0,generateEmbeddedObjectMeta=true"
 RBAC_OPTIONS ?= "rbac:roleName=seaway-system-role"
 WEBHOOK_OPTIONS ?= "webhook"
 OUTPUT_OPTIONS ?= "output:artifacts:config=config/base/crd"
-
-
-# kube::codegen::gen_client \
-#     --with-watch \
-#     --output-dir "${SCRIPT_ROOT}/pkg/generated" \
-#     --output-pkg "${THIS_PKG}/pkg/generated" \
-#     --boilerplate "${SCRIPT_ROOT}/hack/boilerplate.go.txt" \
-#     "${SCRIPT_ROOT}/pkg/apis"
 
 COVERAGE ?= 1
 ifeq ($(COVERAGE), 1)
@@ -50,16 +46,8 @@ codegen: $(CONTROLLER_GEN)
 manifests: $(CONTROLLER_GEN)
 	$(CONTROLLER_GEN) $(CRD_OPTIONS) $(RBAC_OPTIONS) $(WEBHOOK_OPTIONS) paths="./pkg/..."
 
-.PHONY: clients
-clients: $(CONTROLLER_GEN)
-	$(CONTROLLER_GEN) $(CLIENT_OPTIONS) paths="./pkg/..."
-
 .PHONY: generate
 generate: codegen manifests
-
-.PHONY: test
-test:
-	go test ./... $(GO_VERBOSE) $(GO_COVERPROFILE)
 
 ###
 ### Set up a local development environment
@@ -83,6 +71,25 @@ local-cert-manager:
 local-minio:
 	@$(KUSTOMIZE) build config/minio | envsubst | kubectl apply -f -
 	kubectl wait --for=condition=available --timeout=120s deploy/minio-operator -n minio-operator 
+
+###
+### Tests/Utils
+###
+.PHONY: test
+test:
+	go test ./... $(GO_VERBOSE) $(GO_COVERPROFILE)
+
+.PHONY: lint
+lint: golangci-lint
+	@$(GOLANGCI_LINT) run
+
+.PHONY: lint-fix
+lint-fix: golangci-lint
+	@$(GOLANGCI_LINT) run --fix
+
+.PHONY: license
+license: $(ADDLICENSE)
+	@find . -name '*.go' | xargs $(ADDLICENSE) -c "Seaway Authors" -y 2024 -l apache
 
 ###
 ### Build, install, run, and clean
@@ -113,7 +120,7 @@ exec:
 ###
 ### Individual dep installs were copied out of kubebuilder testdata makefiles.
 ###
-deps: $(CONTROLLER_GEN) $(KUSTOMIZE)
+deps: $(CONTROLLER_GEN) $(KUSTOMIZE) $(GOLANGCI_LINT) $(ADDLICENSE)
 
 $(LOCALBIN):
 	@mkdir -p $(LOCALBIN)
@@ -125,6 +132,14 @@ $(CONTROLLER_GEN): $(LOCALBIN)
 $(KUSTOMIZE):
 	@test -s $(KUSTOMIZE) || \
 	GOBIN=$(LOCALBIN) go install sigs.k8s.io/kustomize/kustomize/v5@$(KUSTOMIZE_VERSION)
+
+$(GOLANGCI_LINT): $(LOCALBIN)
+	@test -s $(GOLANGCI_LINT) || \
+	GOBIN=$(LOCALBIN) go install github.com/golangci/golangci-lint/cmd/golangci-lint@${GOLANGCI_LINT_VERSION}
+
+$(ADDLICENSE): $(LOCALBIN)
+	@test -s $(ADDLICENSE) || \
+  GOBIN=$(LOCALBIN) go install github.com/google/addlicense@$(ADDLICENSE_VERSION)
 
 .PHONY: clean
 clean:
