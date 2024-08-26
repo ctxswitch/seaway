@@ -4,6 +4,7 @@
 bin/
 tmp/
 vendor/
+dist/
 
 cover.out
 seaway.sum
