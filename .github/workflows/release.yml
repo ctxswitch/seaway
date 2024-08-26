@@ -42,7 +42,7 @@ jobs:
           tag_name: ${{ github.ref }}
           body_path: RELEASE.md
           files: |
-            sea*.tar.gz
+            ./dist/sea*.tar.gz
         env:
           GITHUB_TOKEN: ${{ github.token }}
       # - name: upload linux/amd64 release artifact
