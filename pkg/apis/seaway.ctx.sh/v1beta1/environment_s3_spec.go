@@ -20,7 +20,7 @@ import (
 )
 
 // UseSSL parses the endpoint URI and returns true if the endpoint is
-// using SSL
+// using SSL.
 func (e *EnvironmentS3Spec) UseSSL() bool {
 	url, err := url.Parse(*e.Endpoint)
 	if err != nil {

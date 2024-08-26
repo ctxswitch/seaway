@@ -38,7 +38,7 @@ func NewClean() *Clean {
 
 // RunE is the main function for the clean command which removes all artifacts
 // and objects associated with a development environment.
-// TODO: Implement the clean command
+// TODO: Implement the clean command.
 func (c Clean) RunE(cmd *cobra.Command, args []string) error {
 	// ctx := ctrl.SetupSignalHandler()
 

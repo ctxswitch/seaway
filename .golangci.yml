@@ -95,3 +95,9 @@ issues:
     - path: "injector.go"
       linters:
         - lll
+    - path: "pkg/console/output.go"
+      linters:
+        - forbidigo
+    - path: "pkg/apis/seaway.ctx.sh/v1beta1/webhooks.go"
+      linters:
+        - lll

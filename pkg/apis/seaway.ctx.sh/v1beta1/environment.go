@@ -16,22 +16,22 @@ package v1beta1
 
 import "fmt"
 
-// GetKey returns the key for the archive object in the S3 bucket
+// GetKey returns the key for the archive object in the S3 bucket.
 func (e *Environment) GetKey() string {
 	return fmt.Sprintf("%s/%s-%s.tar.gz", *e.Spec.Source.S3.Prefix, e.GetName(), e.GetNamespace())
 }
 
-// GetBucket returns the bucket where the archive object is stored
+// GetBucket returns the bucket where the archive object is stored.
 func (e *Environment) GetBucket() string {
 	return *e.Spec.Source.S3.Bucket
 }
 
-// GetRevision returns the configured revision of the environment
+// GetRevision returns the configured revision of the environment.
 func (e *Environment) GetRevision() string {
 	return e.Spec.Revision
 }
 
-// HasFailed returns true if the environment has failed to build or deploy
+// HasFailed returns true if the environment has failed to build or deploy.
 func (e *Environment) HasFailed() bool {
 	return e.Status.Stage == EnvironmentBuildJobFailed || e.Status.Stage == EnvironmentDeploymentFailed
 }

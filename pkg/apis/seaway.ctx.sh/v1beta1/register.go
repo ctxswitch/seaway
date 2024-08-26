@@ -25,21 +25,21 @@ import (
 
 // +kubebuilder:docs-gen:collapse=Go imports
 
-// Version specifies the API version
+// Version specifies the API version.
 const Version = "v1beta1"
 
-// SchemaGroupVersion is the group version that wil be used to register the objects
+// SchemaGroupVersion is the group version that wil be used to register the objects.
 var SchemeGroupVersion = schema.GroupVersion{
 	Group:   seawayv1beta1.GroupName,
 	Version: Version,
 }
 
-// Kind takes an unqualified kind and returns back a Group and qualified GroupKind
+// Kind takes an unqualified kind and returns back a Group and qualified GroupKind.
 func Kind(kind string) schema.GroupKind {
 	return SchemeGroupVersion.WithKind(kind).GroupKind()
 }
 
-// Resource takes an unqualified resource and returns back a Group and qualified GroupResource
+// Resource takes an unqualified resource and returns back a Group and qualified GroupResource.
 func Resource(resource string) schema.GroupResource {
 	return SchemeGroupVersion.WithResource(resource).GroupResource()
 }
@@ -49,7 +49,7 @@ var (
 	AddToScheme   = SchemeBuilder.AddToScheme
 )
 
-// addKnownTypes adds a list of known types to the scheme
+// addKnownTypes adds a list of known types to the scheme.
 func addKnownTypes(scheme *runtime.Scheme) error {
 	scheme.AddKnownTypes(SchemeGroupVersion,
 		&Environment{},

@@ -22,19 +22,19 @@ import (
 )
 
 const (
-	DefaultBucket         = "seaway"
-	DefaultRegion         = "us-east-1"
-	DefaultEndpoint       = "http://localhost:80"
-	DefaultForcePathStyle = true
-	DefaultPrefix         = "contexts"
-	DefaultBuildImage     = "gcr.io/kaniko-project/executor:latest"
-	DefaultDockerfile     = "Dockerfile"
-	DefaultPlatform       = runtime.GOOS + "/" + runtime.GOARCH
-	DefaultCredentials    = "seaway-s3-credentials"
+	DefaultBucket            = "seaway"
+	DefaultRegion            = "us-east-1"
+	DefaultEndpoint          = "http://localhost:80"
+	DefaultForcePathStyle    = true
+	DefaultPrefix            = "contexts"
+	DefaultBuildImage        = "gcr.io/kaniko-project/executor:latest"
+	DefaultDockerfile        = "Dockerfile"
+	DefaultPlatform          = runtime.GOOS + "/" + runtime.GOARCH
+	DefaultCredentialsSecret = "seaway-s3-credentials" //nolint:gosec
 )
 
 func Defaulted(obj client.Object) {
-	switch v := obj.(type) {
+	switch v := obj.(type) { //nolint:gocritic
 	case *Environment:
 		defaultEnvironment(v)
 	}
@@ -136,7 +136,7 @@ func defaultEnvironmentS3Spec(obj *EnvironmentS3Spec) {
 	// kiam or other SA based access.
 	if obj.Credentials == nil {
 		obj.Credentials = new(corev1.LocalObjectReference)
-		obj.Credentials.Name = DefaultCredentials
+		obj.Credentials.Name = DefaultCredentialsSecret
 	}
 
 	if obj.Prefix == nil {

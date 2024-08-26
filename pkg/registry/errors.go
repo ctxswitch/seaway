@@ -45,7 +45,7 @@ func (e ClientError) Error() string {
 
 // IsNotFound returns true if the error is a 404.
 func IsNotFound(err error) bool {
-	switch e := err.(type) {
+	switch e := err.(type) { //nolint:gocritic
 	case *ClientError:
 		return e.StatusCode == http.StatusNotFound
 	}

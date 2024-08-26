@@ -123,7 +123,7 @@ type EnvironmentSource struct {
 // clunky in a manifest that you'd expect to be managed extensively by a human.
 type EnvironmentResources map[corev1.ResourceName]resource.Quantity
 
-// EnvironmentSpec defines the desired state of Environment
+// EnvironmentSpec defines the desired state of Environment.
 type EnvironmentSpec struct {
 	// Args is a list of arguments that will be used for the deplyed application.
 	// +optional

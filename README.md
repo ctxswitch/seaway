@@ -10,7 +10,6 @@
 * Job build command/argument overrides.
 
 ## TODO
-
 * We should potentially create a temporary namespace to keep other users from clobbering environments.
 * Add deps directory config.
 * Potentially change `source` to `target` or something else a bit more descriptive.  Source is confusing as source is what you are actually working on.

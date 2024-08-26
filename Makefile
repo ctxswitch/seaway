@@ -80,11 +80,11 @@ test:
 	go test ./... $(GO_VERBOSE) $(GO_COVERPROFILE)
 
 .PHONY: lint
-lint: golangci-lint
+lint: $(GOLANGCI_LINT)
 	@$(GOLANGCI_LINT) run
 
 .PHONY: lint-fix
-lint-fix: golangci-lint
+lint-fix: $(GOLANGCI_LINT)
 	@$(GOLANGCI_LINT) run --fix
 
 .PHONY: license
