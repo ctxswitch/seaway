@@ -25,26 +25,26 @@ jobs:
           prerelease: false
           release_name: ${{ steps.version.outputs.version }}
           tag_name: ${{ github.ref }}
-          body_path: CHANGELOG.md
+          body_path: RELEASE.md
         env:
           GITHUB_TOKEN: ${{ github.token }}
       - name: build linux/amd64 release artifact
-        run: make build-seactl
+        run: build-seactl-release
         env:
           SYSTEM: linux
           ARCH: amd64
       - name: build linux/arm64 release artifact
-        run: make build-seactl
+        run: build-seactl-release
         env:
           SYSTEM: linux
           ARCH: arm64
       - name: build darwin/arm64 release artifact
-        run: make build-seactl
+        run: build-seactl-release
         env:
           SYSTEM: darwin
           ARCH: arm64
       - name: build darwin/amd64 release artifact
-        run: make build-seactl
+        run: build-seactl-release
         env:
           SYSTEM: darwin
           ARCH: amd64
