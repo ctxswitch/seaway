@@ -191,9 +191,7 @@ func (s *Sync) create(name string, env *v1beta1.ManifestEnvironmentSpec) (string
 		exclude := excludes.MatchString(f)
 		if include && !exclude {
 			console.ListItem(f)
-			if aerr := s.add(tw, f); aerr != nil {
-				return aerr
-			}
+			_ = s.add(tw, f)
 		}
 
 		return nil
