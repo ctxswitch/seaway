@@ -12,15 +12,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package controller
 
-import "os"
+import (
+	"ctx.sh/seaway/pkg/controller/environment"
+	ctrl "sigs.k8s.io/controller-runtime"
+)
 
-func main() {
-	root := NewRoot()
-	if err := root.Execute(); err != nil {
-		os.Exit(1)
+type Options struct {
+	RegistryURL      string
+	RegistryNodePort int32
+}
+
+type Controller struct{}
+
+// SetupWithManager sets up any known controllers.
+func SetupWithManager(mgr ctrl.Manager, opts *Options) (err error) {
+	if err = environment.SetupWithManager(mgr, opts.RegistryURL, opts.RegistryNodePort); err != nil {
+		return
 	}
 
-	os.Exit(0)
+	return
 }

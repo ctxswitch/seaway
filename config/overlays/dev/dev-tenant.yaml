@@ -1,0 +1,54 @@
+apiVersion: minio.min.io/v2
+kind: Tenant
+metadata:
+  name: dev
+  namespace: default
+spec:
+  exposeServices:
+    minio: true
+    console: true
+  certConfig:
+    commonName: '*.dev-hl.default.svc.cluster.local'
+    dnsNames:
+    - dev-ss-0-{0...2}.dev-hl.default.svc.cluster.local
+    organizationName:
+    - system:nodes
+  configuration:
+    name: storage-configuration
+  features:
+    enableSFTP: false
+  credsSecret:
+    name: root
+  image: quay.io/minio/minio:RELEASE.2024-05-01T01-11-10Z
+  imagePullPolicy: IfNotPresent
+  mountPath: /export
+  podManagementPolicy: Parallel
+  pools:
+  - affinity:
+      podAntiAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchExpressions:
+            - key: v1.min.io/tenant
+              operator: In
+              values:
+              - dev
+          topologyKey: kubernetes.io/hostname
+    name: ss-0
+    servers: 3
+    volumeClaimTemplate:
+      apiVersion: v1
+      kind: persistentvolumeclaims
+      spec:
+        accessModes:
+        - ReadWriteOnce
+        resources:
+          requests:
+            storage: "1789569706"
+    volumesPerServer: 2
+  requestAutoCert: false
+  serviceAccountName: dev-sa
+  users:
+  - name: storage-user
+  buckets:
+  - name: seaway

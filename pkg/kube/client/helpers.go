@@ -12,15 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package client
 
-import "os"
-
-func main() {
-	root := NewRoot()
-	if err := root.Execute(); err != nil {
-		os.Exit(1)
+// ObjectKeyFromObject is a helper that returns an ObjectKey for the given
+// Object.
+func ObjectKeyFromObject(obj Object) ObjectKey {
+	return ObjectKey{
+		Namespace: obj.GetNamespace(),
+		Name:      obj.GetName(),
 	}
-
-	os.Exit(0)
 }

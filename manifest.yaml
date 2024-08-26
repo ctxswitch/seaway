@@ -2,17 +2,46 @@ name: seaway
 version: 0.1.0
 description: Simplified development and deployment workflows for Kubernetes applications.
 
-seaway:
-  endpoint: s3.weasel-squeaker.ts.net
-  bucket: development
-  useSSL: true
-  image: docker.io/golang:latest
-  include:
-  - manifest.yaml
-  - go.*
-  - pkg/
-  command:
-  - go
-  - run
-  - pkg/cmd/seactl/*.go
-  - listener
+environments:
+  - name: local
+    namespace: default
+    vars:
+      env:
+        - name: MY_CUSTOM_ENV_VAR
+          value: local
+    build:
+      dockerfile: docker/Dockerfile.test
+      include:
+      - ^manifest.yaml
+      - ^go.*
+      - ^pkg/
+      - ^docker/
+      - ^config/
+      - ^Readme.md$
+    source:
+      s3:
+        endpoint: minio.default.svc.cluster.local:80
+        localPort: 8080
+        credentials:
+          name: storage-user
+    ports:
+      - name: http
+        port: 8080
+    command:
+      - sleep
+      - infinity
+    resources:
+      memory: 128Mi
+      cpu: 100m
+    # We're going to end up in situations where some of the dependencies are cluster-wide
+    # like crds.  We're just going to ignore that for now, but it's a problem when teams
+    # use remote clusters.  I think we just suggest that the operators just use permissions
+    # to limit the scope of service accounts that the deployers are using so it will error
+    # if they try to deploy over a cluster-wide resource.  We could also create the service
+    # account ourselves and limit the scope of the service account to the namespace.
+    # 
+    # Recommendation that you use seperate environments for local versus remote deployments.
+    dependencies:
+      - name: all
+        type: kustomize
+        base: config/base

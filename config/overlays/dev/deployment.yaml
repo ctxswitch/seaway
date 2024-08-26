@@ -1,0 +1,45 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: seaway-controller
+  namespace: seaway-controller
+  labels:
+    app: seaway-controller
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: seaway-controller
+  template:
+    metadata:
+      labels:
+        app: seaway-controller
+    spec:
+      serviceAccountName: seaway-system
+      containers:
+        - name: controller
+          image: docker.io/golang:latest
+          imagePullPolicy: IfNotPresent
+          workingDir: /usr/src/app
+          command:
+            - sleep
+            - infinity
+          securityContext:
+            runAsUser: 0
+            runAsGroup: 0
+            runAsNonRoot: false
+            capabilities:
+              add: ["SETFCAP"]
+          ports:
+            - containerPort: 9443
+              name: webhook
+              protocol: TCP
+          volumeMounts:
+            - name: app
+              mountPath: /usr/src/app
+              readOnly: true
+      volumes:
+        - name: app
+          hostPath:
+            path: /app

@@ -12,15 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package deps
 
-import "os"
-
-func main() {
-	root := NewRoot()
-	if err := root.Execute(); err != nil {
-		os.Exit(1)
-	}
-
-	os.Exit(0)
-}
+const (
+	DefaultLogLevel = 0
+)

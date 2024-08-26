@@ -1,5 +1,8 @@
+.creds
+.vscode/
+
+bin/
+tmp/
 vendor/
 
 seaway.sum
-
-.creds

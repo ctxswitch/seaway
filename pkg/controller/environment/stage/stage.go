@@ -12,15 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package stage
 
-import "os"
+import (
+	"context"
 
-func main() {
-	root := NewRoot()
-	if err := root.Execute(); err != nil {
-		os.Exit(1)
-	}
+	"ctx.sh/seaway/pkg/apis/seaway.ctx.sh/v1beta1"
+)
 
-	os.Exit(0)
+// Reconciler is the interface that defines the methods for reconciling an environment stage.
+type Reconciler interface {
+	Do(context.Context, *v1beta1.Environment, *v1beta1.EnvironmentStatus) (v1beta1.EnvironmentStage, error)
 }

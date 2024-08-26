@@ -12,15 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package v1beta1
 
-import "os"
+import corev1 "k8s.io/api/core/v1"
 
-func main() {
-	root := NewRoot()
-	if err := root.Execute(); err != nil {
-		os.Exit(1)
+// ContainerPort creates the corev1.ContainerPort object that can be used in
+// a corev1.Container object.
+func (e *EnvironmentSpec) ContainerPorts() []corev1.ContainerPort {
+	ports := []corev1.ContainerPort{}
+	for _, p := range e.Ports {
+		ports = append(ports, corev1.ContainerPort{
+			Name:          p.Name,
+			ContainerPort: p.Port,
+			Protocol:      p.Protocol,
+		})
 	}
 
-	os.Exit(0)
+	return ports
 }

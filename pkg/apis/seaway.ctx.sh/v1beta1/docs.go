@@ -12,15 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+// +kubebuilder:docs-gen:collapse=Apache License
 
-import "os"
+// +k8s:deepcopy-gen=package,register
+// go:generate controller-gen crd:trivialVersions=true paths=. output:dir=.
 
-func main() {
-	root := NewRoot()
-	if err := root.Execute(); err != nil {
-		os.Exit(1)
-	}
-
-	os.Exit(0)
-}
+// +groupName=seaway.ctx.sh
+// +versionName=v1beta1
+package v1beta1

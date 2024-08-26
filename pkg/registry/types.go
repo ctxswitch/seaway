@@ -12,15 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package registry
 
-import "os"
-
-func main() {
-	root := NewRoot()
-	if err := root.Execute(); err != nil {
-		os.Exit(1)
-	}
-
-	os.Exit(0)
+// TagsList is a struct that contains the name of the image and the tags
+// associated with it.
+type TagsList struct {
+	Name string   `json:"name"`
+	Tags []string `json:"tags"`
 }

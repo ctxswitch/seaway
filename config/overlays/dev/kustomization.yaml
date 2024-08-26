@@ -1,0 +1,17 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+commonAnnotations:
+  ctx.sh/authors: "StrataViz"
+  ctx.sh/license: "Apache"
+  ctx.sh/support: "https://github.com/strataviz/seaway/issues"
+resources: 
+ - ../../base
+ - dev-creds.yaml
+ - dev-tenant.yaml
+ - ingress.yaml
+patches:
+  - path: deployment.yaml
+    target:
+      kind: Deployment
+      name: seaway-controller
+      namespace: seaway-system

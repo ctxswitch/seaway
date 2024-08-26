@@ -12,15 +12,29 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package stage
 
-import "os"
+import (
+	"context"
 
-func main() {
-	root := NewRoot()
-	if err := root.Execute(); err != nil {
-		os.Exit(1)
+	"ctx.sh/seaway/pkg/apis/seaway.ctx.sh/v1beta1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+)
+
+type Deployed struct {
+	Scheme *runtime.Scheme
+	client.Client
+}
+
+func NewDeployed(client client.Client, scheme *runtime.Scheme) *Deployed {
+	return &Deployed{
+		Client: client,
+		Scheme: scheme,
 	}
+}
 
-	os.Exit(0)
+func (d *Deployed) Do(ctx context.Context, env *v1beta1.Environment, status *v1beta1.EnvironmentStatus) (v1beta1.EnvironmentStage, error) {
+	status.DeployedRevision = env.Spec.Revision
+	return v1beta1.EnvironmentRevisionDeployed, nil
 }

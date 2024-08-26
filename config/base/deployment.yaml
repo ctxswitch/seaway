@@ -1,0 +1,37 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: seaway-controller
+  namespace: seaway-system
+  labels:
+    app: seaway-controller 
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: seaway-controller
+  template:
+    metadata:
+      labels:
+        app: seaway-controller
+    spec:
+      serviceAccountName: seaway-system
+      containers:
+        - name: controller
+          image: docker.io/strataviz/seaway:latest
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
+            runAsNonRoot: true
+          ports:
+            - containerPort: 9090
+          volumeMounts:
+            - name: tls
+              mountPath: "/etc/webhook/tls"
+              readOnly: true
+      volumes:
+        - name: tls
+          secret:
+            secretName: seaway-webhook-cert
