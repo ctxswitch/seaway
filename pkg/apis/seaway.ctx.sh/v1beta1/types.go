@@ -220,8 +220,6 @@ const (
 	EnvironmentRevisionDeployed               EnvironmentStage = "Revision deployed"
 )
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
 type EnvironmentStatus struct {
 	// +optional
 	Stage EnvironmentStage `json:"stage,omitempty"`
