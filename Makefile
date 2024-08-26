@@ -134,6 +134,7 @@ $(TARGETDIR):
 .PHONY: build
 build: $(TARGETDIR)
 	CGO_ENABLED=0 go build -trimpath --ldflags "-s -w -X ctx.sh/seaway/pkg/build.Version=$(VERSION)" -o $(TARGETDIR)/seactl ./pkg/cmd/seactl
+	CGO_ENABLED=0 go build -trimpath --ldflags "-s -w -X ctx.sh/seaway/pkg/build.Version=$(VERSION)" -o $(TARGETDIR)/seaway ./pkg/cmd/seaway
 
 .PHONY: build-seactl-release
 build-seactl-release: $(TARGETDIR) $(SEACTL_RELEASE_TARGET)
