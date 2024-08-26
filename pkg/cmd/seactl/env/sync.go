@@ -218,6 +218,10 @@ func (s *Sync) add(tw *tar.Writer, filename string) error {
 		return err
 	}
 
+	if info.IsDir() {
+		return nil
+	}
+
 	header, err := tar.FileInfoHeader(info, info.Name())
 	if err != nil {
 		return err
