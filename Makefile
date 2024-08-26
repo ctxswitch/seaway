@@ -1,6 +1,9 @@
 ENV ?= "dev"
 SYSTEM ?= $(shell uname -s | tr '[:upper:]' '[:lower:]' )
 ARCH ?= $(shell uname -m)
+ifeq ($(ARCH), "aarch64")
+	ARCH = "arm64"
+endif
 
 LOCALDEV_CLUSTER ?= "seaway"
 
@@ -11,6 +14,9 @@ ADDLICENSE_VERSION ?= v1.0.0
 
 KUBECTL ?= kubectl
 LOCALBIN ?= $(shell pwd)/bin
+TARGETDIR ?= $(shell pwd)/dist
+SEACTL_RELEASE_TARGET ?= $(TARGETDIR)/seactl-$(SYSTEM)-$(ARCH).tar.gz
+SEACTL_BIN ?= seactl
 KUSTOMIZE ?= $(LOCALBIN)/kustomize
 CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen
 GOLANGCI_LINT = $(LOCALBIN)/golangci-lint
@@ -20,6 +26,8 @@ CRD_OPTIONS ?= "crd:maxDescLen=0,generateEmbeddedObjectMeta=true"
 RBAC_OPTIONS ?= "rbac:roleName=seaway-system-role"
 WEBHOOK_OPTIONS ?= "webhook"
 OUTPUT_OPTIONS ?= "output:artifacts:config=config/base/crd"
+
+VERSION ?= $(shell git describe --tags --always --dirty)
 
 COVERAGE ?= 1
 ifeq ($(COVERAGE), 1)
@@ -116,6 +124,24 @@ run-sync:
 exec:
 	$(eval POD := $(shell kubectl get pods -n seaway-system -l app=seaway-controller -o=custom-columns=:metadata.name --no-headers))
 	kubectl exec -n seaway-system -it pod/$(POD) -- bash
+
+###
+### Builds
+###
+$(TARGETDIR):
+	mkdir -p $(TARGETDIR)
+
+.PHONY: build
+build: $(TARGETDIR)
+	CGO_ENABLED=0 go build -trimpath --ldflags "-s -w -X ctx.sh/seaway/pkg/build.Version=$(VERSION)" -o $(TARGETDIR)/seactl ./pkg/cmd/seactl
+
+.PHONY: build-seactl-release
+build-seactl-release: $(TARGETDIR) $(SEACTL_RELEASE_TARGET)
+
+$(SEACTL_RELEASE_TARGET):
+	GOOS=$(SYSTEM) GOARCH=$(ARCH) CGO_ENABLED=0 go build -trimpath --ldflags "-s -w -X ctx.sh/seaway/pkg/build.Version=$(VERSION)" -o $(TARGETDIR)/$(SEACTL_BIN) ./pkg/cmd/seactl && \
+		tar -C $(TARGETDIR) -zcvf $@ $(SEACTL_BIN) && \
+		rm -f $(TARGETDIR)/$(SEACTL_BIN)
 
 ###
 ### Individual dep installs were copied out of kubebuilder testdata makefiles.
