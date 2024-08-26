@@ -4,7 +4,6 @@ COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
 RUN CGO_ENABLED=0 make build
-RUN pwd && find ./dist
 
 FROM debian:bookworm-slim AS base
 RUN apt-get update && apt-get install -y ca-certificates
