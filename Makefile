@@ -32,7 +32,7 @@ VERBOSE ?= 0
 ifeq ($(VERBOSE), 1)
 	GO_VERBOSE = "-v"
 else
-	GO_VERBOSE = ""
+	GO_VERBOSE =
 endif
 
 ###
