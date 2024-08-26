@@ -9,39 +9,39 @@
 # the `language` matrix defined below to confirm you have the correct set of
 # supported CodeQL languages.
 
-name: "CodeQL"
+# name: "CodeQL"
 
-on:
-  push:
-    branches: [ main ]
-  pull_request:
-    # The branches below must be a subset of the branches above
-    branches: [ main ]
-  schedule:
-    - cron: '29 2 * * 1'
+# on:
+#   push:
+#     branches: [ main ]
+#   pull_request:
+#     # The branches below must be a subset of the branches above
+#     branches: [ main ]
+#   schedule:
+#     - cron: '29 2 * * 1'
 
-jobs:
-  analyze:
-    name: Analyze
-    runs-on: ubuntu-latest
-    permissions:
-      actions: read
-      contents: read
-      security-events: write
+# jobs:
+#   analyze:
+#     name: Analyze
+#     runs-on: ubuntu-latest
+#     permissions:
+#       actions: read
+#       contents: read
+#       security-events: write
 
-    strategy:
-      fail-fast: false
-      matrix:
-        language: [ 'go' ]
+#     strategy:
+#       fail-fast: false
+#       matrix:
+#         language: [ 'go' ]
 
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v2
-    - name: Initialize CodeQL
-      uses: github/codeql-action/init@v1
-      with:
-        languages: ${{ matrix.language }}
-    - name: Autobuild
-      uses: github/codeql-action/autobuild@v1
-    - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v1
+#     steps:
+#     - name: Checkout repository
+#       uses: actions/checkout@v2
+#     - name: Initialize CodeQL
+#       uses: github/codeql-action/init@v1
+#       with:
+#         languages: ${{ matrix.language }}
+#     - name: Autobuild
+#       uses: github/codeql-action/autobuild@v1
+#     - name: Perform CodeQL Analysis
+#       uses: github/codeql-action/analyze@v1
