@@ -21,6 +21,18 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+const (
+	DefaultBucket         = "seaway"
+	DefaultRegion         = "us-east-1"
+	DefaultEndpoint       = "http://localhost:80"
+	DefaultForcePathStyle = true
+	DefaultPrefix         = "contexts"
+	DefaultBuildImage     = "gcr.io/kaniko-project/executor:latest"
+	DefaultDockerfile     = "Dockerfile"
+	DefaultPlatform       = runtime.GOOS + "/" + runtime.GOARCH
+	DefaultCredentials    = "seaway-s3-credentials"
+)
+
 func Defaulted(obj client.Object) {
 	switch v := obj.(type) {
 	case *Environment:
@@ -73,17 +85,17 @@ func defaultEnvironmentBuild(obj *EnvironmentBuildSpec) {
 	// RegistryRef is required.
 	if obj.Image == nil {
 		obj.Image = new(string)
-		*obj.Image = "gcr.io/kaniko-project/executor:latest"
+		*obj.Image = DefaultBuildImage
 	}
 
 	if obj.Dockerfile == nil {
 		obj.Dockerfile = new(string)
-		*obj.Dockerfile = "Dockerfile"
+		*obj.Dockerfile = DefaultDockerfile
 	}
 
 	if obj.Platform == nil {
 		obj.Platform = new(string)
-		*obj.Platform = runtime.GOOS + "/" + runtime.GOARCH
+		*obj.Platform = DefaultPlatform
 	}
 
 	if obj.Include == nil {
@@ -102,33 +114,33 @@ func defaultEnvironmentS3Spec(obj *EnvironmentS3Spec) {
 
 	if obj.Bucket == nil {
 		obj.Bucket = new(string)
-		*obj.Bucket = "seaway"
+		*obj.Bucket = DefaultBucket
 	}
 
 	if obj.Region == nil {
 		obj.Region = new(string)
-		*obj.Region = "us-east-1"
+		*obj.Region = DefaultRegion
 	}
 
 	if obj.Endpoint == nil {
 		obj.Endpoint = new(string)
-		*obj.Endpoint = "http://localhost:80"
+		*obj.Endpoint = DefaultEndpoint
 	}
 
 	if obj.ForcePathStyle == nil {
 		obj.ForcePathStyle = new(bool)
-		*obj.ForcePathStyle = true
+		*obj.ForcePathStyle = DefaultForcePathStyle
 	}
 
 	// TODO: don't default credentials.  Allow access without them for cases of
 	// kiam or other SA based access.
 	if obj.Credentials == nil {
 		obj.Credentials = new(corev1.LocalObjectReference)
-		obj.Credentials.Name = "seaway-credentials"
+		obj.Credentials.Name = DefaultCredentials
 	}
 
 	if obj.Prefix == nil {
 		obj.Prefix = new(string)
-		*obj.Prefix = "contexts"
+		*obj.Prefix = DefaultPrefix
 	}
 }

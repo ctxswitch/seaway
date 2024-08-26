@@ -34,7 +34,7 @@ func NewDeployed(client client.Client, scheme *runtime.Scheme) *Deployed {
 	}
 }
 
-func (d *Deployed) Do(ctx context.Context, env *v1beta1.Environment, status *v1beta1.EnvironmentStatus) (v1beta1.EnvironmentCondition, error) {
+func (d *Deployed) Do(ctx context.Context, env *v1beta1.Environment, status *v1beta1.EnvironmentStatus) (v1beta1.EnvironmentStage, error) {
 	status.DeployedRevision = env.Spec.Revision
 	return v1beta1.EnvironmentRevisionDeployed, nil
 }

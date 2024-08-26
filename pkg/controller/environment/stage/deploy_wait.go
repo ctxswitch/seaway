@@ -23,11 +23,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
+// DeployWait waits for the revision's deployment to complete.
 type DeployWait struct {
 	Scheme *runtime.Scheme
 	client.Client
 }
 
+// NewDeployWait creates a new DeployWait stage.
 func NewDeployWait(client client.Client, scheme *runtime.Scheme) *DeployWait {
 	return &DeployWait{
 		Client: client,
@@ -35,7 +37,10 @@ func NewDeployWait(client client.Client, scheme *runtime.Scheme) *DeployWait {
 	}
 }
 
-func (d *DeployWait) Do(ctx context.Context, env *v1beta1.Environment, status *v1beta1.EnvironmentStatus) (v1beta1.EnvironmentCondition, error) {
+// Do reconciles the deploy wait stage and returns the next stage that will need to be
+// reconciled.  It checks if the deployment has completed successfully by checking the
+// number of ready replicas against the replicas configured in the spec.
+func (d *DeployWait) Do(ctx context.Context, env *v1beta1.Environment, status *v1beta1.EnvironmentStatus) (v1beta1.EnvironmentStage, error) {
 	logger := log.FromContext(ctx)
 	logger.Info("waiting for deployment to complete")
 

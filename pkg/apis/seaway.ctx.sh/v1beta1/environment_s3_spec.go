@@ -19,6 +19,8 @@ import (
 	"net/url"
 )
 
+// UseSSL parses the endpoint URI and returns true if the endpoint is
+// using SSL
 func (e *EnvironmentS3Spec) UseSSL() bool {
 	url, err := url.Parse(*e.Endpoint)
 	if err != nil {
@@ -27,6 +29,14 @@ func (e *EnvironmentS3Spec) UseSSL() bool {
 	return url.Scheme == "https"
 }
 
+// GetEndpoint returns the endpoint for the S3 service.  Because seaway can
+// run against local clusters with a port-forwarded service (either through
+// kubectl or ingresses), if the LocalPort field is set, it will return a
+// localhost endpoint with the port number.  Otherwise, it will return the
+// endpoint as-is.
+// TODO: Setting the LocalPort and Endpoint should be mutually exclusive
+// as to avoid confusion in a configuration.  Add this validation to the API
+// when we have a chance.
 func (e *EnvironmentS3Spec) GetEndpoint() string {
 	if e.LocalPort != nil {
 		return fmt.Sprintf("localhost:%d", *e.LocalPort)

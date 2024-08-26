@@ -25,12 +25,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
+// BuildWait is the stage that waits for the build job to complete.
 type BuildWait struct {
 	Scheme      *runtime.Scheme
 	RegistryURL string
 	client.Client
 }
 
+// NewBuildWait creates a new BuildWait stage.
 func NewBuildWait(client client.Client, scheme *runtime.Scheme, registryURL string) *BuildWait {
 	return &BuildWait{
 		Client:      client,
@@ -39,7 +41,10 @@ func NewBuildWait(client client.Client, scheme *runtime.Scheme, registryURL stri
 	}
 }
 
-func (b *BuildWait) Do(ctx context.Context, env *v1beta1.Environment, status *v1beta1.EnvironmentStatus) (v1beta1.EnvironmentCondition, error) {
+// Do reconciles the build wait stage and returns the next stage that will need to be
+// reconciled.  It checks if the build job has completed and if the image is available
+// in the registry.
+func (b *BuildWait) Do(ctx context.Context, env *v1beta1.Environment, status *v1beta1.EnvironmentStatus) (v1beta1.EnvironmentStage, error) {
 	logger := log.FromContext(ctx).WithValues("revision", env.Spec.Revision)
 	logger.Info("waiting for build job to complete")
 
@@ -86,6 +91,7 @@ func (b *BuildWait) Do(ctx context.Context, env *v1beta1.Environment, status *v1
 	return v1beta1.EnvironmentDeployingRevision, nil
 }
 
+// isImageAvailable checks if the image is available in the registry.
 func (b *BuildWait) isImageAvailable(ctx context.Context, env *v1beta1.Environment) bool {
 	logger := log.FromContext(ctx)
 	c := registry.NewClient(registry.NewHTTPClient())

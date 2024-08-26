@@ -51,6 +51,8 @@ func NewSync() *Sync {
 	return &Sync{}
 }
 
+// RunE is the main function for the sync command which syncs the code to the target
+// object storage and creates or updates the development environment.
 func (s *Sync) RunE(cmd *cobra.Command, args []string) error {
 	ctx := ctrl.SetupSignalHandler()
 
@@ -152,6 +154,23 @@ func (s *Sync) RunE(cmd *cobra.Command, args []string) error {
 	}
 }
 
+// GetEnvironment returns a new environment object.
+func GetEnvironment(name, namespace string) *v1beta1.Environment {
+	env := &v1beta1.Environment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+	}
+	// TODO: We actually need this with the client at this point because we use
+	// the gvk to get the resource interface. Revisit this later and refactor it
+	// out.  It's not horrible but it's not great either.
+	env.SetGroupVersionKind(v1beta1.SchemeGroupVersion.WithKind("Environment"))
+
+	return env
+}
+
+// create builds the tar/gzip archive that will be uploaded to the object storage.
 func (s *Sync) create(name string, env *v1beta1.ManifestEnvironmentSpec) (string, error) {
 	out, err := os.CreateTemp("", name+"-*.tar.gz")
 	if err != nil {
@@ -181,6 +200,7 @@ func (s *Sync) create(name string, env *v1beta1.ManifestEnvironmentSpec) (string
 	return out.Name(), nil
 }
 
+// add adds a file to the archive.
 func (s *Sync) add(tw *tar.Writer, filename string) error {
 	file, err := os.Open(filename)
 	if err != nil {
@@ -212,6 +232,7 @@ func (s *Sync) add(tw *tar.Writer, filename string) error {
 	return nil
 }
 
+// Command creates the sync command.
 func (s *Sync) Command() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   SyncUsage,
@@ -223,19 +244,4 @@ func (s *Sync) Command() *cobra.Command {
 	cmd.PersistentFlags().Int8VarP(&s.logLevel, "log-level", "", DefaultLogLevel, "set the log level (integer value)")
 
 	return cmd
-}
-
-func GetEnvironment(name, namespace string) *v1beta1.Environment {
-	env := &v1beta1.Environment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
-		},
-	}
-	// TODO: We actually need this with the client at this point because we use
-	// the gvk to get the resource interface. Revisit this later and refactor it
-	// out.  It's not horrible but it's not great either.
-	env.SetGroupVersionKind(v1beta1.SchemeGroupVersion.WithKind("Environment"))
-
-	return env
 }

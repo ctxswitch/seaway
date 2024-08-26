@@ -7,6 +7,7 @@
 * Initial tests.
 * Move to ctxswitch
 * Service creation for apps if ports are defined.
+* Job build command/argument overrides.
 
 ## TODO
 

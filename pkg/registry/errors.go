@@ -25,6 +25,7 @@ type ClientError struct {
 	Message    string
 }
 
+// NewClientError creates a new ClientError from an http.Response.
 func NewClientError(resp *http.Response) *ClientError {
 	msg, error := io.ReadAll(resp.Body)
 	if error != nil {
@@ -37,10 +38,12 @@ func NewClientError(resp *http.Response) *ClientError {
 	}
 }
 
+// Error returns a string representation of the error message.
 func (e ClientError) Error() string {
 	return e.Message
 }
 
+// IsNotFound returns true if the error is a 404.
 func IsNotFound(err error) bool {
 	switch e := err.(type) {
 	case *ClientError:

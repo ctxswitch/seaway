@@ -25,16 +25,19 @@ const (
 	DefaultHTTPTimeout = 3 * time.Second
 )
 
+// Connector is an interface for making HTTP requests to a registry.
 type Connector interface {
-	Post(url string, data interface{}, v interface{}) error
-	Get(url string, v interface{}) error
-	Patch(url string, v interface{}) error
+	Post(url string, data any, v any) error
+	Get(url string, v any) error
+	Patch(url string, data any, v any) error
 }
 
+// HTTPClient is a simple HTTP client that implements the Connector interface.
 type HTTPClient struct {
 	client http.Client
 }
 
+// NewHTTPClient creates a new HTTPClient.
 func NewHTTPClient() *HTTPClient {
 	client := http.Client{
 		// TODO: pull these out as constants
@@ -51,18 +54,26 @@ func NewHTTPClient() *HTTPClient {
 	}
 }
 
-func (h *HTTPClient) Post(url string, data interface{}, v interface{}) error {
+// Post makes a POST request to the given URL with the given data and decodes the response
+// into the interface that is passed in.
+func (h *HTTPClient) Post(url string, data any, v any) error {
 	return h.Do(http.MethodPost, url, data, v)
 }
 
-func (h *HTTPClient) Get(url string, v interface{}) error {
+// Get makes a GET request to the given URL and decodes the response into the interface
+// that is passed in.
+func (h *HTTPClient) Get(url string, v any) error {
 	return h.Do(http.MethodGet, url, nil, v)
 }
 
-func (h *HTTPClient) Patch(url string, v interface{}) error {
-	return h.Do(http.MethodPatch, url, nil, v)
+// Patch makes a PATCH request to the given URL with the given data and decodes the response
+// into the interface that is passed in.
+func (h *HTTPClient) Patch(url string, data any, v any) error {
+	return h.Do(http.MethodPatch, url, data, v)
 }
 
+// Do makes an HTTP request to the given URL with the given method and data and decodes the
+// response into the interface that is passed in.
 func (h *HTTPClient) Do(method string, url string, data any, out any) error {
 	// TODO: clean me up
 	var body []byte
@@ -94,11 +105,11 @@ func (h *HTTPClient) Do(method string, url string, data any, out any) error {
 	return decodeBody(resp, out)
 }
 
-func decodeBody(resp *http.Response, v interface{}) error {
+func decodeBody(resp *http.Response, v any) error {
 	return json.NewDecoder(resp.Body).Decode(v)
 }
 
-func encodeBody(data interface{}) ([]byte, error) {
+func encodeBody(data any) ([]byte, error) {
 	b := new(bytes.Buffer)
 	err := json.NewEncoder(b).Encode(data)
 	return b.Bytes(), err

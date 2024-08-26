@@ -36,6 +36,8 @@ func NewDelete() *Delete {
 	return &Delete{}
 }
 
+// RunE deletes the dependencies for a development environment.
+// TODO: Implement the delete command.
 func (d *Delete) RunE(cmd *cobra.Command, args []string) error {
 	_, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
@@ -43,6 +45,7 @@ func (d *Delete) RunE(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
+// Command creates the delete command.
 func (d *Delete) Command() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   DeleteUsage,

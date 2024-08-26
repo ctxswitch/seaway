@@ -119,7 +119,7 @@ func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 }
 
-func (c *Controller) reconcileStage(ctx context.Context, env *v1beta1.Environment, status *v1beta1.EnvironmentStatus, condition v1beta1.EnvironmentCondition) (v1beta1.EnvironmentCondition, error) {
+func (c *Controller) reconcileStage(ctx context.Context, env *v1beta1.Environment, status *v1beta1.EnvironmentStatus, condition v1beta1.EnvironmentStage) (v1beta1.EnvironmentStage, error) {
 	reconciler := c.getReconciler(condition)
 	next, err := reconciler.Do(ctx, env, status)
 	if err != nil {
@@ -129,7 +129,7 @@ func (c *Controller) reconcileStage(ctx context.Context, env *v1beta1.Environmen
 	return next, nil
 }
 
-func (c *Controller) getReconciler(current v1beta1.EnvironmentCondition) stage.Reconciler {
+func (c *Controller) getReconciler(current v1beta1.EnvironmentStage) stage.Reconciler {
 	switch current {
 	case v1beta1.EnvironmentCreateBuildJob:
 		return stage.NewBuild(c.Client, c.Scheme, c.RegistryURL)

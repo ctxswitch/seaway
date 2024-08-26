@@ -20,16 +20,19 @@ type API interface {
 	HasTag(string, string, string) (bool, error)
 }
 
+// Client is a client for the registry API.
 type Client struct {
 	Connector
 }
 
+// NewClient creates a new registry client.
 func NewClient(connector Connector) *Client {
 	return &Client{
 		Connector: connector,
 	}
 }
 
+// HasTag checks if a tag exists in a registry.
 func (c *Client) HasTag(reg, name, tag string) (bool, error) {
 	url := fmt.Sprintf("%s/v2/%s/tags/list", reg, name)
 	var items TagsList

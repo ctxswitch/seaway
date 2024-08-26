@@ -56,6 +56,7 @@ func NewController() *Controller {
 	return &Controller{}
 }
 
+// RunE configures and starts the seaway controller.
 func (c *Controller) RunE(cmd *cobra.Command, args []string) error {
 	scheme := runtime.NewScheme()
 
@@ -75,7 +76,7 @@ func (c *Controller) RunE(cmd *cobra.Command, args []string) error {
 	hookServer := webhook.NewServer(webhook.Options{
 		Port:    9443,
 		CertDir: c.certs,
-		// Weird.  One of these causes an error about 'client didn't provide a certificate'
+		// TODO: One of these causes an error about 'client didn't provide a certificate'
 		// Look at these settings in more detail later.
 		// CertName:     DefaultCertName,
 		// KeyName:      DefaultKeyName,
@@ -86,10 +87,6 @@ func (c *Controller) RunE(cmd *cobra.Command, args []string) error {
 			},
 		},
 	})
-
-	// Register client endpoints for job interactions.
-	// hookServer.Register("/status", &client.StatusHandler{})
-	// TODO: add more endpoints.
 
 	// Initialize the manager.
 	log.Info("initializing manager")
@@ -104,12 +101,6 @@ func (c *Controller) RunE(cmd *cobra.Command, args []string) error {
 		log.Error(err, "unable to initialize manager")
 		os.Exit(1)
 	}
-
-	// // Register webhooks.
-	// if err = (&v1beta1.Registry{}).SetupWebhookWithManager(mgr); err != nil {
-	// 	log.Error(err, "unable to create webhook", "webhook", "Registry")
-	// 	os.Exit(1)
-	// }
 
 	if err = (&v1beta1.Environment{}).SetupWebhookWithManager(mgr); err != nil {
 		log.Error(err, "unable to create webhook", "webhook", "Environment")
@@ -137,6 +128,7 @@ func (c *Controller) RunE(cmd *cobra.Command, args []string) error {
 	return err
 }
 
+// Command returns the cobra command for the controller.
 func (c *Controller) Command() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   ControllerUsage,

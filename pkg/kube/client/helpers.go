@@ -14,6 +14,8 @@
 
 package client
 
+// ObjectKeyFromObject is a helper that returns an ObjectKey for the given
+// Object.
 func ObjectKeyFromObject(obj Object) ObjectKey {
 	return ObjectKey{
 		Namespace: obj.GetNamespace(),

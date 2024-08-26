@@ -42,3 +42,5 @@ const (
 	OperationResultUpdated OperationResult = "updated"
 	OperationResultNone    OperationResult = "none"
 )
+
+type MutateFn func() error

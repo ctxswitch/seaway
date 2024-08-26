@@ -14,6 +14,8 @@
 
 package registry
 
+// TagsList is a struct that contains the name of the image and the tags
+// associated with it.
 type TagsList struct {
 	Name string   `json:"name"`
 	Tags []string `json:"tags"`

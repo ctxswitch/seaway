@@ -20,6 +20,7 @@ import (
 	"ctx.sh/seaway/pkg/apis/seaway.ctx.sh/v1beta1"
 )
 
+// Reconciler is the interface that defines the methods for reconciling an environment stage.
 type Reconciler interface {
-	Do(context.Context, *v1beta1.Environment, *v1beta1.EnvironmentStatus) (v1beta1.EnvironmentCondition, error)
+	Do(context.Context, *v1beta1.Environment, *v1beta1.EnvironmentStatus) (v1beta1.EnvironmentStage, error)
 }

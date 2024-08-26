@@ -22,6 +22,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// UnmarshalYAML implements the yaml.Unmarshaler interface.
 func (m *Manifest) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	type ManifestDefaulted Manifest
 	var defaults = ManifestDefaulted{
@@ -29,11 +30,13 @@ func (m *Manifest) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		Description: "Application managed by Seaway",
 	}
 
-	// TODO: Validate name is present...
-
 	out := defaults
 	if err := unmarshal(&out); err != nil {
 		return err
+	}
+
+	if out.Name == "" {
+		return errors.New("name is a required field")
 	}
 
 	tmpl := Manifest(out)
@@ -41,6 +44,7 @@ func (m *Manifest) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	return nil
 }
 
+// Load reads the manifest file and unmarshals it into the Manifest struct.
 func (m *Manifest) Load(file string) error {
 	manifest, err := os.ReadFile("manifest.yaml")
 	if err != nil {
@@ -55,6 +59,7 @@ func (m *Manifest) Load(file string) error {
 	return nil
 }
 
+// GetEnvironment returns the development environment identified by name.
 func (m *Manifest) GetEnvironment(name string) (ManifestEnvironmentSpec, error) {
 	for _, e := range m.Environments {
 		if e.Name == name {

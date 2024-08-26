@@ -43,6 +43,7 @@ func NewApply() *Apply {
 	return &Apply{}
 }
 
+// RunE generates and applies the dependencies for a development environment.
 func (a *Apply) RunE(cmd *cobra.Command, args []string) error {
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
@@ -120,6 +121,9 @@ func (a *Apply) RunE(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
+// GetObject returns a new unstructured object from the provided object.  Because our client
+// utilizes the dynamic client interface we need to ensure that the GVK is also set so we
+// can properly set up the resource interface.
 func GetObject(u *unstructured.Unstructured) *unstructured.Unstructured {
 	obj := &unstructured.Unstructured{}
 	obj.SetName(u.GetName())
@@ -129,6 +133,7 @@ func GetObject(u *unstructured.Unstructured) *unstructured.Unstructured {
 	return obj
 }
 
+// Command returns the cobra command for the apply subcommand.
 func (a *Apply) Command() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   ApplyUsage,

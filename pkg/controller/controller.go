@@ -26,11 +26,8 @@ type Options struct {
 
 type Controller struct{}
 
+// SetupWithManager sets up any known controllers.
 func SetupWithManager(mgr ctrl.Manager, opts *Options) (err error) {
-	// if err = registry.SetupWithManager(mgr); err != nil {
-	// 	return
-	// }
-
 	if err = environment.SetupWithManager(mgr, opts.RegistryURL, opts.RegistryNodePort); err != nil {
 		return
 	}

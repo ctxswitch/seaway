@@ -28,12 +28,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
+// Deploy is a stage that deploys a new revision into the development environment.
 type Deploy struct {
 	NodePort int32
 	Scheme   *runtime.Scheme
 	client.Client
 }
 
+// NewDeploy creates a new Deploy stage.
 func NewDeploy(client client.Client, scheme *runtime.Scheme, nodePort int32) *Deploy {
 	return &Deploy{
 		Client:   client,
@@ -42,13 +44,12 @@ func NewDeploy(client client.Client, scheme *runtime.Scheme, nodePort int32) *De
 	}
 }
 
-func (d *Deploy) Do(ctx context.Context, env *v1beta1.Environment, status *v1beta1.EnvironmentStatus) (v1beta1.EnvironmentCondition, error) {
+// Do reconciles the deploy stage and returns the next stage that will need to be
+// reconciled.  It creates or updates a revision deployment based on the environment.
+func (d *Deploy) Do(ctx context.Context, env *v1beta1.Environment, status *v1beta1.EnvironmentStatus) (v1beta1.EnvironmentStage, error) {
 	logger := log.FromContext(ctx)
 
 	deploy := GetEnvironmentDeployment(env, d.Scheme)
-
-	// TODO: Get and check the deployment annotations for the revision and stop if the revision
-	// is already deployed?
 
 	_, err := controllerutil.CreateOrUpdate(ctx, d.Client, &deploy, func() error {
 		return d.buildDeployment(&deploy, env)
@@ -61,6 +62,7 @@ func (d *Deploy) Do(ctx context.Context, env *v1beta1.Environment, status *v1bet
 	return v1beta1.EnvironmentWaitingForDeploymentToComplete, nil
 }
 
+// buildDeployment builds the deployment for the environment.
 func (d *Deploy) buildDeployment(deploy *appsv1.Deployment, env *v1beta1.Environment) error {
 	container := corev1.Container{
 		Name:           "app",

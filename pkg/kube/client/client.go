@@ -20,11 +20,9 @@ import (
 	"os/user"
 	"path/filepath"
 
-	"ctx.sh/seaway/pkg/apis/seaway.ctx.sh/v1beta1"
 	"ctx.sh/seaway/pkg/console"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/discovery/cached/memory"
 	"k8s.io/client-go/dynamic"
@@ -35,10 +33,17 @@ import (
 )
 
 // Client defines a new kubernetes client which impletments the RESTClientGetter interface
+// Originally the controller-runtime clients were used but as kustomize was introduced, more
+// control was needed to handle the unstructured objects and interact with the API server.
+// To make things consistent, all of the seactl clients will utilize this client.
 type Client struct {
 	config clientcmd.ClientConfig
 }
 
+// NewClient creates a new kubernetes client.  It takes a kubeconfig file and a kubeconfig
+// named context as arguments.  Both valudes can be empty strings in which case the os
+// default paths will be checked for the kubeconfig file and the default context will be
+// used.
 func NewClient(kubeconfig string, context string) (*Client, error) {
 	config, err := loadConfig(kubeconfig, context)
 	if err != nil {
@@ -55,10 +60,13 @@ func NewClient(kubeconfig string, context string) (*Client, error) {
 	return &Client{config}, nil
 }
 
+// Factory returns a new factory interface for the client.
 func (c *Client) Factory() cmdutil.Factory {
 	return cmdutil.NewFactory(c)
 }
 
+// ToDiscoveryClient returns a new discovery client interface for the client.
+// Required for the RESTClientGetter interface.
 func (c *Client) ToDiscoveryClient() (discovery.CachedDiscoveryInterface, error) {
 	restconfig, err := c.config.ClientConfig()
 	if err != nil {
@@ -71,6 +79,8 @@ func (c *Client) ToDiscoveryClient() (discovery.CachedDiscoveryInterface, error)
 	return memory.NewMemCacheClient(dc), nil
 }
 
+// ToRESTMapper returns a new RESTMapper interface for the client. Required for the
+// RESTClientGetter interface.
 func (c *Client) ToRESTMapper() (meta.RESTMapper, error) {
 	dc, err := c.ToDiscoveryClient()
 	if err != nil {
@@ -79,44 +89,23 @@ func (c *Client) ToRESTMapper() (meta.RESTMapper, error) {
 	return restmapper.NewDeferredDiscoveryRESTMapper(dc), nil
 }
 
+// ToRawKubeConfigLoader returns a new clientcmd.ClientConfig interface for the client.
+// Required for the RESTClientGetter interface.
 func (c *Client) ToRawKubeConfigLoader() clientcmd.ClientConfig {
 	return c.config
 }
 
+// ToRESTConfig returns a new rest.Config interface for the client. Required for the
+// RESTClientGetter interface.
 func (c *Client) ToRESTConfig() (*rest.Config, error) {
 	return c.config.ClientConfig()
 }
 
-func (c *Client) EnvironmentInterface(ns string) (dynamic.ResourceInterface, error) {
-	dyn, err := c.Factory().DynamicClient()
-	if err != nil {
-		console.Fatal(err.Error())
-	}
-
-	return dyn.Resource(schema.GroupVersionResource{
-		Group:    v1beta1.SchemeGroupVersion.Group,
-		Version:  v1beta1.SchemeGroupVersion.Version,
-		Resource: "environments",
-	}).Namespace(ns), nil
-}
-
-// func (c *Client) ResourceFor(obj runtime.Object) (schema.GroupVersionResource, error) {
-// 	gvk := obj.GetObjectKind().GroupVersionKind()
-
-// 	dc, err := c.ToDiscoveryClient()
-// 	if err != nil {
-// 		return schema.GroupVersionResource{}, err
-// 	}
-// 	mapper := restmapper.NewDeferredDiscoveryRESTMapper(memory.NewMemCacheClient(dc))
-
-// 	mapping, err := mapper.RESTMapping(gvk.GroupKind(), gvk.Version)
-// 	if err != nil {
-// 		return schema.GroupVersionResource{}, err
-// 	}
-
-// 	return mapping.Resource, nil
-// }
-
+// ResourceInterfaceFor returns a new dynamic.ResourceInterface for the client.  It takes a
+// namespace (can be an empty string) and a runtime.Object as arguments.  The runtime.Object
+// is used to determine the group, version, and kind of the object which is then used to
+// configure the resource interface.  We use the mapping to determine the scope of the object
+// and if it is namespaced we create a namespaced resource interface.
 func (c *Client) ResourceInterfaceFor(ns string, obj runtime.Object) (dynamic.ResourceInterface, error) {
 	gvk := obj.GetObjectKind().GroupVersionKind()
 
@@ -146,6 +135,8 @@ func (c *Client) ResourceInterfaceFor(ns string, obj runtime.Object) (dynamic.Re
 	return dr, nil
 }
 
+// loadConfig loads the kubernetes configuration from the provided kubeconfig file, Borrowed
+// heavily from the controller-runtime loader.
 func loadConfig(kubeconfig, context string) (clientcmd.ClientConfig, error) {
 	if kubeconfig != "" {
 		return loadConfigWithContext(
@@ -174,6 +165,8 @@ func loadConfig(kubeconfig, context string) (clientcmd.ClientConfig, error) {
 	return loadConfigWithContext(rules, context)
 }
 
+// loadConfigWithContext loads the kubernetes configuration from the provided loader and
+// context.  Borrowed heavily from the controller-runtime loader.
 func loadConfigWithContext(loader clientcmd.ClientConfigLoader, context string) (clientcmd.ClientConfig, error) {
 	return clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
 		loader,

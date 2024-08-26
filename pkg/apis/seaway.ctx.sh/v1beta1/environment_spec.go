@@ -16,6 +16,8 @@ package v1beta1
 
 import corev1 "k8s.io/api/core/v1"
 
+// ContainerPort creates the corev1.ContainerPort object that can be used in
+// a corev1.Container object.
 func (e *EnvironmentSpec) ContainerPorts() []corev1.ContainerPort {
 	ports := []corev1.ContainerPort{}
 	for _, p := range e.Ports {

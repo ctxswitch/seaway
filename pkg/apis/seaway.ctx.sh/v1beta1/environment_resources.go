@@ -19,6 +19,8 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 )
 
+// CoreV1ResourceRequirements returns a corev1.ResourceRequirements for use when building
+// container objects.
 func (r EnvironmentResources) CoreV1ResourceRequirements() corev1.ResourceRequirements {
 	req := corev1.ResourceRequirements{
 		Requests: make(corev1.ResourceList),
@@ -35,7 +37,8 @@ func (r EnvironmentResources) CoreV1ResourceRequirements() corev1.ResourceRequir
 
 // UnmarshalYAML implements the yaml.Unmarshaler interface.  The normal yaml parser does
 // not support the conversion of strings into the resource.Quantity type.  This function
-// allows for the conversion and validation.
+// allows for the conversion and validation. This is used exclusively for the manifest
+// loading process in the client.
 func (r *EnvironmentResources) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	type EnvironmentResourcesRaw map[corev1.ResourceName]string
 

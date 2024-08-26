@@ -23,6 +23,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
+// GetEnvironmentJob returns a new Job object for the given environment.
 func GetEnvironmentJob(env *v1beta1.Environment, scheme *runtime.Scheme) batchv1.Job {
 	job := batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
@@ -36,6 +37,7 @@ func GetEnvironmentJob(env *v1beta1.Environment, scheme *runtime.Scheme) batchv1
 	return job
 }
 
+// GetEnvironmentDeployment returns a new Deployment object for the given environment.
 func GetEnvironmentDeployment(env *v1beta1.Environment, scheme *runtime.Scheme) appsv1.Deployment {
 	deploy := appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{

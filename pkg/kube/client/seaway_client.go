@@ -27,8 +27,7 @@ import (
 	"k8s.io/client-go/dynamic"
 )
 
-type MutateFn func() error
-
+// SeawayClient is the kubernetes client that is used by the seactl tool.
 type SeawayClient struct {
 	dc     dynamic.Interface
 	client *Client

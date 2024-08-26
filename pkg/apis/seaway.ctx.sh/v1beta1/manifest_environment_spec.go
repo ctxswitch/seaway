@@ -36,6 +36,8 @@ var (
 	}
 )
 
+// UnmarshalYAML implements the yaml.Unmarshaler interface.  This is used exclusively
+// for the manifest loading process in the client.
 func (me *ManifestEnvironmentSpec) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	type ManifestEnvironmentSpecDefaulted ManifestEnvironmentSpec
 	var defaults = ManifestEnvironmentSpecDefaulted{
@@ -50,6 +52,7 @@ func (me *ManifestEnvironmentSpec) UnmarshalYAML(unmarshal func(interface{}) err
 	// When we use the manifest for syncing we only need the source information to
 	// be defaulted.  Other fields such as the build.platform need to be defaulted
 	// in the k8s environment that they will be built in to get the correct values.
+	// TODO: Default everything and take it out of the env.sync command (CreateOrUpdate)
 	defaultEnvironmentSource(out.Source)
 
 	tmpl := ManifestEnvironmentSpec(out)
@@ -57,13 +60,20 @@ func (me *ManifestEnvironmentSpec) UnmarshalYAML(unmarshal func(interface{}) err
 	return nil
 }
 
-// TODO: redo this..
+// Includes returns a regular expression that matches the files that should be included
+// in the build context.  It is used while when we walk the file system to build the
+// archive that will be uploaded to the object storage.
 func (me *ManifestEnvironmentSpec) Includes() *regexp.Regexp {
 	include := append(DefaultIncludes, me.Build.Include...)
 	r := strings.Join(include, "|")
 	return regexp.MustCompile(r)
 }
 
+// Excludes returns a regular expression that matches the files that should be excluded
+// from the build context.  Like includes, it is used when we walk the file system to
+// build the archive that will be uploaded to the object storage.  Currently, excludes
+// are processed after includes so if there are files in included directories that match
+// the exclude pattern they will be excluded.
 func (me *ManifestEnvironmentSpec) Excludes() *regexp.Regexp {
 	exclude := append(DefaultExcludes, me.Build.Exclude...)
 	r := strings.Join(exclude, "|")

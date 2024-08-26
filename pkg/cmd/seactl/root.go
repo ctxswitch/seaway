@@ -29,6 +29,7 @@ provides components for watching source repositories for changes and building co
 when changes and conditions are detected.  It also provides a tool for syncrhonizing the
 new images to nodes in a cluster based off of node labels bypassing the need for external
 registries.`
+	// TODO: Make these descriptions more informational.
 	DepsUsage     = "deps [subcommand] [context]"
 	DepsShortDesc = "Utility to manage application dependencies"
 	DepsLongDesc  = `Utility to manage application dependencies`

@@ -33,6 +33,11 @@ const (
 	CheckMark  = "✔ "
 )
 
+//
+// TODO: I'm not going to bother with documenting this one.  It needs to change and was just
+// a quick hack to get something working.
+//
+
 func Info(format string, a ...any) {
 	format = chalk.Dim.TextStyle(Square) + chalk.Bold.TextStyle(chalk.Blue.String()+format+"\n"+chalk.Reset.String())
 	fmt.Printf(format, a...)

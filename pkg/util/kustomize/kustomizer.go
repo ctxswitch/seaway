@@ -28,19 +28,27 @@ import (
 	utilyaml "k8s.io/apimachinery/pkg/util/yaml"
 )
 
+// KustomizerResource is a struct that contains an unstructured object and its
+// GroupVersionKind.
 type KustomizerResource struct {
 	Resource *unstructured.Unstructured
 	GVK      *schema.GroupVersionKind
 }
 
+// KustomizerOptions contains the configuration options for the Kustomizer.
+// TODO: There are several more options that may be useful to add here.
 type KustomizerOptions struct {
 	BaseDir string
 }
 
+// Kustomizer processes a kustomize directory and returns the generated
+// resources.
 type Kustomizer struct {
 	docs *utilyaml.YAMLReader
 }
 
+// NewKustomizer creates, configures, and runs kustomize on the specified
+// directory.
 func NewKustomizer(opts *KustomizerOptions) (*Kustomizer, error) {
 	kustomizer := krusty.MakeKustomizer(&krusty.Options{
 		Reorder:           "none",
@@ -66,6 +74,9 @@ func NewKustomizer(opts *KustomizerOptions) (*Kustomizer, error) {
 	}, nil
 }
 
+// Resources reads through all of the generated documents and decodes them into
+// unstructured objects.  It returns a list of KustomizerResource objects containing
+// the unstructured object and its GroupVersionKind.
 // TODO: Add the envsubst capability where we can substitute after reading the
 // doc.
 func (k *Kustomizer) Resources() ([]KustomizerResource, error) {
@@ -94,23 +105,4 @@ func (k *Kustomizer) Resources() ([]KustomizerResource, error) {
 	}
 
 	return resources, nil
-}
-
-func (k *Kustomizer) Next() (KustomizerResource, bool, error) {
-	doc, err := k.docs.Read()
-	if err != nil {
-		if err.Error() == "EOF" {
-			return KustomizerResource{}, true, nil
-		}
-		return KustomizerResource{}, true, err
-	}
-
-	decoder := yaml.NewDecodingSerializer(unstructured.UnstructuredJSONScheme)
-	decoded := &unstructured.Unstructured{}
-
-	_, gvk, err := decoder.Decode(doc, nil, decoded)
-	return KustomizerResource{
-		Resource: decoded,
-		GVK:      gvk,
-	}, false, err
 }

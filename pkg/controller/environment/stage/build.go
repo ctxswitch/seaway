@@ -30,12 +30,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
+// Build is a stage that reconciles a new build job for the incoming revision.
 type Build struct {
 	Scheme      *runtime.Scheme
 	RegistryURL string
 	client.Client
 }
 
+// NewBuild creates a new Build stage.
 func NewBuild(client client.Client, scheme *runtime.Scheme, registryURL string) *Build {
 	return &Build{
 		Client:      client,
@@ -44,7 +46,9 @@ func NewBuild(client client.Client, scheme *runtime.Scheme, registryURL string) 
 	}
 }
 
-func (b *Build) Do(ctx context.Context, env *v1beta1.Environment, status *v1beta1.EnvironmentStatus) (v1beta1.EnvironmentCondition, error) {
+// Do reconciles the build stage and returns the next stage that will need to be
+// reconciled.  It creates a new build job based on the environment.
+func (b *Build) Do(ctx context.Context, env *v1beta1.Environment, status *v1beta1.EnvironmentStatus) (v1beta1.EnvironmentStage, error) {
 	logger := log.FromContext(ctx).WithValues("revision", env.Spec.Revision)
 	logger.Info("building revision")
 

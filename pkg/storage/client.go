@@ -26,11 +26,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
+// Client is a wrapper around the minio client.
 type Client struct {
 	Endpoint string
 	UseSSL   bool
 }
 
+// NewClient creates a new client.
 func NewClient(endpoint string, useSSL bool) *Client {
 	return &Client{
 		Endpoint: endpoint,
@@ -39,6 +41,9 @@ func NewClient(endpoint string, useSSL bool) *Client {
 	}
 }
 
+// Connect creates a connection to the S3 storage service.  It's only really
+// been tested against Minio, but in theory should work with any S3-compatible
+// service as long as the configuration is correct.
 func (c *Client) Connect(ctx context.Context, secret *corev1.Secret) (*minio.Client, error) {
 	logger := log.FromContext(ctx)
 
@@ -51,6 +56,10 @@ func (c *Client) Connect(ctx context.Context, secret *corev1.Secret) (*minio.Cli
 	return c.connectWithEnv()
 }
 
+// TODO: Refactor and merge the duplicate parts of the connect functions.
+
+// connectWithEnv creates a connection to the S3 storage service using the
+// environment variables.
 func (c *Client) connectWithEnv() (*minio.Client, error) {
 	id := os.Getenv("AWS_ACCESS_KEY_ID")
 	if id == "" {
@@ -66,9 +75,16 @@ func (c *Client) connectWithEnv() (*minio.Client, error) {
 	return minio.New(c.Endpoint, &minio.Options{
 		Creds:  credentials.NewStaticV4(id, key, ""),
 		Secure: c.UseSSL,
+		// TODO: Add region support.
+		// TODO: Add secure session support.
+		// TODO: Potentially add trace client support.
+		// TODO: Add bucket lookup support.
+		// TODO: Add trailing headers support.
 	})
 }
 
+// connectWithSecret creates a connection to the S3 storage service using the
+// provided secret.
 // TODO: I have the data fields differently named here, so update env to match.  I'm using those
 // because that is what minio expects.  Need to look at this more.
 func (c *Client) connectWithSecret(secret *corev1.Secret) (*minio.Client, error) {
@@ -89,5 +105,10 @@ func (c *Client) connectWithSecret(secret *corev1.Secret) (*minio.Client, error)
 	return minio.New(c.Endpoint, &minio.Options{
 		Creds:  credentials.NewStaticV4(idText, keyText, ""),
 		Secure: c.UseSSL,
+		// TODO: Add region support.
+		// TODO: Add secure session support.
+		// TODO: Potentially add trace client support.
+		// TODO: Add bucket lookup support.
+		// TODO: Add trailing headers support.
 	})
 }
