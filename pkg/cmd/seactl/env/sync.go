@@ -191,7 +191,9 @@ func (s *Sync) create(name string, env *v1beta1.ManifestEnvironmentSpec) (string
 		exclude := excludes.MatchString(f)
 		if include && !exclude {
 			console.ListItem(f)
-			_ = s.add(tw, f)
+			if aerr := s.add(tw, f); aerr != nil {
+				return aerr
+			}
 		}
 
 		return nil
@@ -214,6 +216,10 @@ func (s *Sync) add(tw *tar.Writer, filename string) error {
 	info, err := file.Stat()
 	if err != nil {
 		return err
+	}
+
+	if info.IsDir() {
+		return nil
 	}
 
 	header, err := tar.FileInfoHeader(info, info.Name())
