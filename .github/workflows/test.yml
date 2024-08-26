@@ -1,0 +1,25 @@
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches: [ '**' ]
+name: unit tests
+jobs:
+  test:
+    strategy:
+      matrix:
+        go-version: [1.22.x]
+        os: [ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+    - name: Setup
+      uses: actions/setup-go@v5
+      with:
+        go-version: ${{ matrix.go-version }}
+    - name: Download Modules
+      run: go mod download
+    - name: Test
+      run: make test
