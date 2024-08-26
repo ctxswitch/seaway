@@ -91,7 +91,10 @@ func (a *Apply) RunE(cmd *cobra.Command, args []string) error {
 			// TODO: Ugly. Fix this.  We need to save the initial state of the
 			// object so we can preserve the managed fields after copying the
 			// values from the expected object.
-			existing := obj.DeepCopyObject().(kube.Object)
+			existing, can := obj.DeepCopyObject().(kube.Object)
+			if !can {
+				return fmt.Errorf("could not cast existing object")
+			}
 			expected.DeepCopyInto(obj)
 			kube.PreserveManagedFields(existing, obj)
 			return nil

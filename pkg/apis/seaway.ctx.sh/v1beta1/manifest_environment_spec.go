@@ -64,7 +64,7 @@ func (me *ManifestEnvironmentSpec) UnmarshalYAML(unmarshal func(interface{}) err
 // in the build context.  It is used while when we walk the file system to build the
 // archive that will be uploaded to the object storage.
 func (me *ManifestEnvironmentSpec) Includes() *regexp.Regexp {
-	include := append(DefaultIncludes, me.Build.Include...)
+	include := append(DefaultIncludes, me.Build.Include...) //nolint:gocritic
 	r := strings.Join(include, "|")
 	return regexp.MustCompile(r)
 }
@@ -75,7 +75,7 @@ func (me *ManifestEnvironmentSpec) Includes() *regexp.Regexp {
 // are processed after includes so if there are files in included directories that match
 // the exclude pattern they will be excluded.
 func (me *ManifestEnvironmentSpec) Excludes() *regexp.Regexp {
-	exclude := append(DefaultExcludes, me.Build.Exclude...)
+	exclude := append(DefaultExcludes, me.Build.Exclude...) //nolint:gocritic
 	r := strings.Join(exclude, "|")
 	return regexp.MustCompile(r)
 }

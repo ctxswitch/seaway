@@ -186,16 +186,21 @@ func (s *Sync) create(name string, env *v1beta1.ManifestEnvironmentSpec) (string
 	includes := env.Includes()
 	excludes := env.Excludes()
 
-	filepath.WalkDir(".", func(f string, d fs.DirEntry, e error) error {
+	err = filepath.WalkDir(".", func(f string, d fs.DirEntry, e error) error {
 		include := includes.MatchString(f)
 		exclude := excludes.MatchString(f)
 		if include && !exclude {
 			console.ListItem(f)
-			s.add(tw, f)
+			if aerr := s.add(tw, f); aerr != nil {
+				return aerr
+			}
 		}
 
 		return nil
 	})
+	if err != nil {
+		return "", err
+	}
 
 	return out.Name(), nil
 }

@@ -89,7 +89,8 @@ func (c *SeawayClient) Create(ctx context.Context, obj Object, opts metav1.Creat
 		return err
 	}
 
-	if err := fromUnstructured(o, obj); err != nil {
+	err = fromUnstructured(o, obj)
+	if err != nil {
 		return err
 	}
 
@@ -98,7 +99,8 @@ func (c *SeawayClient) Create(ctx context.Context, obj Object, opts metav1.Creat
 
 func (c *SeawayClient) Update(ctx context.Context, obj Object, opts metav1.UpdateOptions) error {
 	u := &unstructured.Unstructured{}
-	if err := toUnstructured(obj, u); err != nil {
+	err := toUnstructured(obj, u)
+	if err != nil {
 		return err
 	}
 
@@ -112,7 +114,8 @@ func (c *SeawayClient) Update(ctx context.Context, obj Object, opts metav1.Updat
 		return err
 	}
 
-	if err := fromUnstructured(o, obj); err != nil {
+	err = fromUnstructured(o, obj)
+	if err != nil {
 		return err
 	}
 
@@ -140,7 +143,10 @@ func (c *SeawayClient) CreateOrUpdate(ctx context.Context, obj Object, f MutateF
 		return OperationResultCreated, nil
 	}
 
-	existing := obj.DeepCopyObject().(Object)
+	existing, can := obj.DeepCopyObject().(Object)
+	if !can {
+		return OperationResultNone, fmt.Errorf("unable to cast object")
+	}
 
 	err := mutate(f, ObjectKeyFromObject(existing), obj)
 	if err != nil {
@@ -189,8 +195,12 @@ func PreserveManagedFields(source, target Object) {
 }
 
 func toUnstructured(obj Object, u *unstructured.Unstructured) error {
-	switch o := obj.(type) {
+	switch o := obj.(type) { //nolint:gocritic
 	case *unstructured.Unstructured:
+		// TODO: I was thinking that the deepcopy was more performant than
+		// the JSON marshaller and need to research whether that is true or
+		// not.  To be honest, I don't think it matters if this is just used
+		// for the client.
 		o.DeepCopyInto(u)
 		return nil
 	}
@@ -205,9 +215,8 @@ func toUnstructured(obj Object, u *unstructured.Unstructured) error {
 }
 
 func fromUnstructured(u *unstructured.Unstructured, obj Object) error {
-	switch o := obj.(type) {
+	switch o := obj.(type) { //nolint:gocritic
 	case *unstructured.Unstructured:
-		// TODO: this is not what I want here, but it works for now.
 		u.DeepCopyInto(o)
 		return nil
 	}
