@@ -12,17 +12,6 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: "1.22.x"
-      - name: release
-        uses: actions/create-release@v1
-        id: create_release
-        with:
-          draft: false
-          prerelease: false
-          release_name: ${{ github.ref }}
-          tag_name: ${{ github.ref }}
-          body_path: RELEASE.md
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
       - name: build linux/amd64 release artifact
         run: make build-seactl-release
         env:
@@ -43,39 +32,52 @@ jobs:
         env:
           SYSTEM: darwin
           ARCH: amd64
-      - name: upload linux/amd64 release artifact
-        uses: actions/upload-release-asset@v1
+      - name: release
+        uses: softprops/action-gh-release@v2
+        id: create_release
+        with:
+          draft: false
+          prerelease: false
+          release_name: ${{ github.ref }}
+          tag_name: ${{ github.ref }}
+          body_path: RELEASE.md
+          files: |
+            sea*.tar.gz
         env:
           GITHUB_TOKEN: ${{ github.token }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./dist/seactl-linux-amd64.tar.gz
-          asset_name: seactl-linux-amd64.tar.gz
-          asset_content_type: application/gzip
-      - name: upload linux/arm64 release artifact
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./dist/seactl-linux-arm64.tar.gz
-          asset_name: seactl-linux-arm64.tar.gz
-          asset_content_type: application/gzip
-      - name: upload darwin/amd64 release artifact
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./dist/seactl-darwin-amd64.tar.gz
-          asset_name: seactl-darwin-amd64.tar.gz
-          asset_content_type: application/gzip
-      - name: upload darwin/arm64 release artifact
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./dist/seactl-darwin-arm64.tar.gz
-          asset_name: seactl-darwin-arm64.tar.gz
-          asset_content_type: application/gzip
+      # - name: upload linux/amd64 release artifact
+      #   uses: actions/upload-release-asset@v1
+      #   env:
+      #     GITHUB_TOKEN: ${{ github.token }}
+      #   with:
+      #     upload_url: ${{ steps.create_release.outputs.upload_url }}
+      #     asset_path: ./dist/seactl-linux-amd64.tar.gz
+      #     asset_name: seactl-linux-amd64.tar.gz
+      #     asset_content_type: application/gzip
+      # - name: upload linux/arm64 release artifact
+      #   uses: actions/upload-release-asset@v1
+      #   env:
+      #     GITHUB_TOKEN: ${{ github.token }}
+      #   with:
+      #     upload_url: ${{ steps.create_release.outputs.upload_url }}
+      #     asset_path: ./dist/seactl-linux-arm64.tar.gz
+      #     asset_name: seactl-linux-arm64.tar.gz
+      #     asset_content_type: application/gzip
+      # - name: upload darwin/amd64 release artifact
+      #   uses: actions/upload-release-asset@v1
+      #   env:
+      #     GITHUB_TOKEN: ${{ github.token }}
+      #   with:
+      #     upload_url: ${{ steps.create_release.outputs.upload_url }}
+      #     asset_path: ./dist/seactl-darwin-amd64.tar.gz
+      #     asset_name: seactl-darwin-amd64.tar.gz
+      #     asset_content_type: application/gzip
+      # - name: upload darwin/arm64 release artifact
+      #   uses: actions/upload-release-asset@v1
+      #   env:
+      #     GITHUB_TOKEN: ${{ github.token }}
+      #   with:
+      #     upload_url: ${{ steps.create_release.outputs.upload_url }}
+      #     asset_path: ./dist/seactl-darwin-arm64.tar.gz
+      #     asset_name: seactl-darwin-arm64.tar.gz
+      #     asset_content_type: application/gzip
