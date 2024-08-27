@@ -1,7 +1,7 @@
 on:
   push:
     tags:
-      - 'v[0-9]+.[0-9]+.[0-9]+'
+      - 'v[0-9]+.[0-9]+.[0-9]+-*'
 name: Build and Release
 jobs:
   build-and-create-release:
@@ -28,41 +28,41 @@ jobs:
       ###
       ### Build release packages
       ###
-      - name: build linux/amd64 release artifact
-        run: make build-seactl-release
-        env:
-          SYSTEM: linux
-          ARCH: amd64
-      - name: build linux/arm64 release artifact
-        run: make build-seactl-release
-        env:
-          SYSTEM: linux
-          ARCH: arm64
-      - name: build darwin/arm64 release artifact
-        run: make build-seactl-release
-        env:
-          SYSTEM: darwin
-          ARCH: arm64
-      - name: build darwin/amd64 release artifact
-        run: make build-seactl-release
-        env:
-          SYSTEM: darwin
-          ARCH: amd64
+      # - name: build linux/amd64 release artifact
+      #   run: make build-seactl-release
+      #   env:
+      #     SYSTEM: linux
+      #     ARCH: amd64
+      # - name: build linux/arm64 release artifact
+      #   run: make build-seactl-release
+      #   env:
+      #     SYSTEM: linux
+      #     ARCH: arm64
+      # - name: build darwin/arm64 release artifact
+      #   run: make build-seactl-release
+      #   env:
+      #     SYSTEM: darwin
+      #     ARCH: arm64
+      # - name: build darwin/amd64 release artifact
+      #   run: make build-seactl-release
+      #   env:
+      #     SYSTEM: darwin
+      #     ARCH: amd64
 
       ###
       ### Release seactl and seaway binaries
       ###
-      - name: release
-        uses: softprops/action-gh-release@v2
-        id: create_release
-        with:
-          draft: false
-          prerelease: false
-          name: ${{ github.ref.name }}
-          tag_name: ${{ github.ref.name }}
-          body_path: RELEASE.md
-          files: |
-            ./dist/sea*.tar.gz
+      # - name: release
+      #   uses: softprops/action-gh-release@v2
+      #   id: create_release
+      #   with:
+      #     draft: false
+      #     prerelease: false
+      #     name: ${{ github.ref.name }}
+      #     tag_name: ${{ github.ref.name }}
+      #     body_path: RELEASE.md
+      #     files: |
+      #       ./dist/sea*.tar.gz
 
       ###
       ### Release the seaway controller container
@@ -75,8 +75,6 @@ jobs:
             ctxsh/seaway
           tags: |
             type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=semver,pattern={{major}}
       - name: build and push to dockerhub
         uses: docker/build-push-action@v6
         with:
@@ -84,3 +82,5 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            VERSION=${{ steps.meta.outputs.version }}
