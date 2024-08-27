@@ -30,6 +30,6 @@ const (
 
 	// We need the registry wrapper so we can set up the node ports for the registry.  By default,
 	// the install manifests will create a default registry called seaway-registry.
-	DefaultRegistryURL      string = "http://registry.seaway-system.svc.cluster.local:5000"
+	DefaultRegistryURL      string = "http://seaway.registries.svc.cluster.local:5000"
 	DefaultRegistryNodePort int32  = 31555
 )

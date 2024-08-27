@@ -1,4 +1,4 @@
-ENV ?= "dev"
+ENV ?= "local"
 SYSTEM ?= $(shell uname -s | tr '[:upper:]' '[:lower:]' )
 ARCH ?= $(shell uname -m)
 ifeq ($(ARCH), "aarch64")
@@ -7,7 +7,7 @@ endif
 
 LOCALDEV_CLUSTER ?= "seaway"
 
-CONTROLLER_TOOLS_VERSION ?= v0.14.0
+CONTROLLER_TOOLS_VERSION ?= v0.16.1
 KUSTOMIZE_VERSION ?= v5.4.2
 GOLANGCI_LINT_VERSION ?= v1.57.2
 ADDLICENSE_VERSION ?= v1.0.0
@@ -25,8 +25,7 @@ ADDLICENSE = $(LOCALBIN)/addlicense
 CRD_OPTIONS ?= "crd:maxDescLen=0,generateEmbeddedObjectMeta=true"
 RBAC_OPTIONS ?= "rbac:roleName=seaway-system-role"
 WEBHOOK_OPTIONS ?= "webhook"
-OUTPUT_OPTIONS ?= "output:artifacts:config=config/base/crd"
-
+OUTPUT_OPTIONS ?= output:crd:dir=config/seaway/crd output:webhook:dir=config/seaway/webhook output:rbac:dir=config/seaway/rbac
 VERSION ?= $(shell git describe --tags --always --dirty)
 
 COVERAGE ?= 1
@@ -52,7 +51,7 @@ codegen: $(CONTROLLER_GEN)
 
 .PHONY: manifests
 manifests: $(CONTROLLER_GEN)
-	$(CONTROLLER_GEN) $(CRD_OPTIONS) $(RBAC_OPTIONS) $(WEBHOOK_OPTIONS) paths="./pkg/..."
+	$(CONTROLLER_GEN) paths="./pkg/..." $(CRD_OPTIONS) $(RBAC_OPTIONS) $(WEBHOOK_OPTIONS) $(OUTPUT_OPTIONS)
 
 .PHONY: generate
 generate: codegen manifests
@@ -61,24 +60,37 @@ generate: codegen manifests
 ### Set up a local development environment
 ###
 .PHONY: localdev
-localdev: local-cluster local-cert-manager local-minio install
+localdev: localdev-cluster localdev-shared
 
-.PHONY: local-cluster
-local-cluster:
+.PHONY: localdev-cluster
+localdev-cluster:
 	@if k3d cluster get $(LOCALDEV_CLUSTER) --no-headers >/dev/null 2>&1;  \
 		then echo "Cluster exists, skipping creation"; \
-		else k3d cluster create --config config/cluster/config.yaml --volume $(PWD):/app; \
+		else k3d cluster create --config config/k3d/config.yaml --volume $(PWD):/app; \
 		fi
 
-.PHONY: local-cert-manager
-local-cert-manager:
-	@$(KUSTOMIZE) build config/cert-manager | envsubst | kubectl apply -f -
-	@kubectl wait --for=condition=available --timeout=120s deploy -l app.kubernetes.io/group=cert-manager -n cert-manager
+.PHONY: localdev-shared
+localdev-shared:
+	@$(KUSTOMIZE) build config/shared/cert-manager | envsubst | $(KUBECTL) apply -f -
+	@$(KUBECTL) wait --for=condition=available --timeout=120s deploy -l app.kubernetes.io/group=cert-manager -n cert-manager
+	@$(KUSTOMIZE) build config/shared/minio | envsubst | $(KUBECTL) apply -f -
+	@$(KUBECTL) wait --for=condition=available --timeout=120s deploy/minio-operator -n minio-operator
+	@$(KUSTOMIZE) build config/shared/overlays/$(ENV) | envsubst | $(KUBECTL) apply -f -
 
-.PHONY: local-minio
-local-minio:
-	@$(KUSTOMIZE) build config/minio | envsubst | kubectl apply -f -
-	kubectl wait --for=condition=available --timeout=120s deploy/minio-operator -n minio-operator 
+.PHONY: clean-localdev-shared
+clean-localdev-shared:
+	@$(KUBECTL) delete -k config/shared/overlays/$(ENV)
+
+###
+### Build, install, run, and clean
+###
+.PHONY: install
+install: $(KUSTOMIZE) generate
+	@$(KUSTOMIZE) build config/seaway/overlays/$(ENV) | envsubst | kubectl apply -f -
+
+.PHONY: uninstall
+uninstall:
+	kubectl delete -k config/overlays/$(ENV)
 
 ###
 ### Tests/Utils
@@ -99,26 +111,10 @@ lint-fix: $(GOLANGCI_LINT)
 license: $(ADDLICENSE)
 	@find . -name '*.go' | xargs $(ADDLICENSE) -c "Seaway Authors" -y 2024 -l apache
 
-###
-### Build, install, run, and clean
-###
-.PHONY: install
-install: $(KUSTOMIZE) generate
-	@$(KUSTOMIZE) build config/overlays/$(ENV) | envsubst | kubectl apply -f -
-
-.PHONY: uninstall
-uninstall:
-	kubectl delete -k config/overlays/$(ENV)
-
 .PHONY: run
 run:
 	$(eval POD := $(shell kubectl get pods -n seaway-system -l app=seaway-controller -o=custom-columns=:metadata.name --no-headers))
-	kubectl exec -n seaway-system -it pod/$(POD) -- bash -c "go run pkg/cmd/controller/*.go controller --log-level=5"
-
-.PHONY: run-sync
-run-sync:
-	$(eval POD := $(shell kubectl get pods -n seaway-system -l app=seaway-controller -o=custom-columns=:metadata.name --no-headers))
-	go run pkg/cmd/seactl/*.go sync
+	kubectl exec -it -n seaway-system pod/$(POD) -- bash -c "go run pkg/cmd/seaway/*.go controller --log-level=5"
 
 .PHONY: exec
 exec:

@@ -1,16 +1,16 @@
 apiVersion: minio.min.io/v2
 kind: Tenant
 metadata:
-  name: dev
-  namespace: default
+  name: seaway
+  namespace: minio
 spec:
   exposeServices:
     minio: true
     console: true
   certConfig:
-    commonName: '*.dev-hl.default.svc.cluster.local'
+    commonName: '*.seaway-hl.default.svc.cluster.local'
     dnsNames:
-    - dev-ss-0-{0...2}.dev-hl.default.svc.cluster.local
+    - seaway-ss-0-{0...2}.seaway-hl.default.svc.cluster.local
     organizationName:
     - system:nodes
   configuration:
@@ -32,7 +32,7 @@ spec:
             - key: v1.min.io/tenant
               operator: In
               values:
-              - dev
+              - seaway
           topologyKey: kubernetes.io/hostname
     name: ss-0
     servers: 3
@@ -47,8 +47,8 @@ spec:
             storage: "1789569706"
     volumesPerServer: 2
   requestAutoCert: false
-  serviceAccountName: dev-sa
+  serviceAccountName: seaway-sa
   users:
-  - name: storage-user
+  - name: seaway-user
   buckets:
   - name: seaway

@@ -19,7 +19,8 @@ spec:
       serviceAccountName: seaway-system
       containers:
         - name: controller
-          image: docker.io/strataviz/seaway:latest
+          # TODO: Automatic update of version to the latest version during release?
+          image: docker.io/ctxsh/seaway:0.1.0-pre.9
           imagePullPolicy: IfNotPresent
           securityContext:
             runAsUser: 1000
