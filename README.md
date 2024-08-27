@@ -29,4 +29,4 @@
 * I've turned off cobra errors so there's no feedback
 * Unable to create archive: read config/base: is a directory
 
-1
+2
