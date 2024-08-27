@@ -6,7 +6,6 @@ name: Build and Release
 jobs:
   build-and-create-release:
     name: release
-    environment: global
     runs-on: ubuntu-latest
     steps:
       ###
