@@ -1,0 +1,63 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: seaway-hl
+  namespace: registries
+spec:
+  ports:
+  - name: api
+    port: 5000
+  clusterIP: None
+  selector:
+    app: seaway
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: seaway
+  namespace: registries
+spec:
+  type: NodePort
+  ports:
+  - name: api
+    port: 5000
+    targetPort: 5000
+    nodePort: 31555
+  selector:
+    app: seaway
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: seaway
+  namespace: registries
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: seaway
+  serviceName: seaway
+  template:
+    metadata:
+      labels:
+        app: seaway
+    spec:
+      containers:
+      - name: registry
+        image: registry:2
+        ports:
+        - containerPort: 5000
+        volumeMounts:
+        - mountPath: /var/lib/registry
+          name: seaway-claim
+  persistentVolumeClaimRetentionPolicy:
+    whenDeleted: Delete
+    whenScaled: Retain
+  volumeClaimTemplates:
+  - metadata:
+      name: seaway-claim
+    spec:
+      accessModes: [ReadWriteOnce]
+      resources:
+        requests:
+          storage: 10Gi

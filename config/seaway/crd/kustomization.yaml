@@ -1,9 +1,8 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 commonAnnotations:
-  ctx.sh/authors: "StrataViz"
+  ctx.sh/authors: "Seaway Authors"
   ctx.sh/license: "Apache"
-  ctx.sh/support: "https://github.com/strataviz/seaway/issues"
+  ctx.sh/support: "https://github.com/ctxswitch/seaway/issues"
 resources:
-  - seaway.ctx.sh_registries.yaml
   - seaway.ctx.sh_environments.yaml
