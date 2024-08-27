@@ -4,7 +4,7 @@ WORKDIR /usr/src/app
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
-RUN CGO_ENABLED=0 go build -trimpath --ldflags "-s -w -X ctx.sh/seaway/pkg/build.Version=$(VERSION)" -o ./dist/seaway ./pkg/cmd/seaway
+RUN CGO_ENABLED=0 go build -trimpath --ldflags "-s -w -X ctx.sh/seaway/pkg/build.Version=${VERSION}" -o ./dist/seaway ./pkg/cmd/seaway
 
 FROM debian:bookworm-slim AS base
 RUN apt-get update && apt-get install -y ca-certificates
