@@ -1,7 +1,7 @@
 on:
   push:
     tags:
-      - 'v[0-9]+.[0-9]+.[0-9]+'
+      - 'v*.*.*'
 name: Build and Release
 jobs:
   build-and-create-release:
@@ -84,3 +84,5 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            VERSION_OVERRIDE=${{ steps.meta.outputs.version }}
