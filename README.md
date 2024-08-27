@@ -28,3 +28,5 @@
 * If there is an error with the job, we aren't failing correctly.  Doesn't update the status and the gives a successful "Revision has been deployed".  I can simulate a failure by setting the platform to `amd64/darwin`
 * I've turned off cobra errors so there's no feedback
 * Unable to create archive: read config/base: is a directory
+
+2
