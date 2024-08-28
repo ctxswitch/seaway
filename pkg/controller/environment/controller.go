@@ -84,15 +84,16 @@ func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	ctx = log.IntoContext(ctx, logger)
 
 	// There's probably a cleaner way to handle the initial checks here.
-	if env.IsDeployed() {
-		return ctrl.Result{}, nil
-	} else if env.HasDeviated() {
-		logger.Info("environment has deviated, resetting", "revision", env.Spec.Revision)
-		env.Status.Stage = v1beta1.EnvironmentStageInitialize
-	} else if env.HasFailed() {
-		// If the job has failed, don't try to do anything with it.
+	switch {
+	case env.HasFailed():
 		logger.Info("environment has failed, skipping", "stage", env.Status.Stage)
 		return ctrl.Result{}, nil
+	case env.IsDeployed():
+		logger.Info("environment is deployed", "revision", env.Spec.Revision)
+		return ctrl.Result{}, nil
+	case env.Status.Stage == v1beta1.EnvironmentStageInitialize:
+		logger.Info("environment is initializing", "revision", env.Spec.Revision)
+		env.Status.Stage = v1beta1.EnvironmentCheckBuildJob
 	}
 
 	status := env.Status.DeepCopy()
@@ -121,7 +122,7 @@ func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 func (c *Controller) getReconciler(current v1beta1.EnvironmentStage) stage.Reconciler {
 	switch current {
 	case v1beta1.EnvironmentStageInitialize:
-		return stage.NewIntialize(c.Client, c.Scheme)
+		return stage.NewInitialize(c.Client, c.Scheme)
 	case v1beta1.EnvironmentCheckBuildJob:
 		return stage.NewBuildCheck(c.Client, c.Scheme)
 	case v1beta1.EnvironmentDeletingBuildJob:
@@ -139,7 +140,7 @@ func (c *Controller) getReconciler(current v1beta1.EnvironmentStage) stage.Recon
 	case v1beta1.EnvironmentRevisionDeployed:
 		return stage.NewDeployed(c.Client, c.Scheme)
 	default:
-		return stage.NewIntialize(c.Client, c.Scheme)
+		return stage.NewInitialize(c.Client, c.Scheme)
 	}
 }
 

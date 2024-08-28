@@ -84,7 +84,7 @@ func (b *BuildWait) Do(ctx context.Context, env *v1beta1.Environment, status *v1
 	// If we have some pods that are failing, then we go into a failing state
 	// and requeue. (also if not completion timestamp)
 
-	if job.Status.Active > 0 {
+	if job.Status.Active > 0 { //nolint:nestif
 		if job.Status.Failed > 0 {
 			logger.V(5).Info("build job is failing")
 			return v1beta1.EnvironmentStageBuildFailing, nil

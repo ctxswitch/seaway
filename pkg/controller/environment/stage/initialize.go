@@ -22,14 +22,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-type Intialize struct {
+type Initialize struct {
 	Scheme *runtime.Scheme
 	client.Client
 }
 
-// NewIntialize returns a new initialize stage
-func NewIntialize(client client.Client, scheme *runtime.Scheme) *Intialize {
-	return &Intialize{
+// NewInitialize returns a new initialize stage.
+func NewInitialize(client client.Client, scheme *runtime.Scheme) *Initialize {
+	return &Initialize{
 		Client: client,
 		Scheme: scheme,
 	}
@@ -37,9 +37,9 @@ func NewIntialize(client client.Client, scheme *runtime.Scheme) *Intialize {
 
 // Do initializes the environment and prepares it for processing.  Initialize also provides
 // a consistent entrypoint into the processing workflow.
-func (b *Intialize) Do(ctx context.Context, env *v1beta1.Environment, status *v1beta1.EnvironmentStatus) (v1beta1.EnvironmentStage, error) {
+func (b *Initialize) Do(ctx context.Context, env *v1beta1.Environment, status *v1beta1.EnvironmentStatus) (v1beta1.EnvironmentStage, error) {
 	// TODO: Check to see if the expected revison already exists in the registry and if it does, then
-	// short circut the process.  This is probably an edge case if somehow the processing is interrupted
+	// short circuit the process.  This is probably an edge case if somehow the processing is interrupted
 	// before the currentRevision is updated.
 	status.ExpectedRevision = env.Spec.Revision
 	return v1beta1.EnvironmentCheckBuildJob, nil

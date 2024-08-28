@@ -30,7 +30,7 @@ type BuildCheck struct {
 	client.Client
 }
 
-// NewBuildCheck returns a new build check stage
+// NewBuildCheck returns a new build check stage.
 func NewBuildCheck(client client.Client, scheme *runtime.Scheme) *BuildCheck {
 	return &BuildCheck{
 		Client: client,
