@@ -103,6 +103,11 @@ type EnvironmentBuildSpec struct {
 	// excluded.
 	// +optional
 	Exclude []string `json:"exclude"`
+	// Vars is a list of environment variables that will be set for the build jobs.
+	// It contains both corev1.EnvVar and corev1.EnvFromSource types.
+	// +optional
+	// +nullable
+	Vars EnvironmentVars `json:"vars"`
 }
 
 type EnvironmentVars struct {

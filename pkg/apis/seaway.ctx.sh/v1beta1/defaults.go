@@ -105,6 +105,8 @@ func defaultEnvironmentBuild(obj *EnvironmentBuildSpec) {
 	if obj.Exclude == nil {
 		obj.Exclude = []string{}
 	}
+
+	defaultEnvironmentVars(&obj.Vars)
 }
 
 func defaultEnvironmentS3Spec(obj *EnvironmentS3Spec) {
