@@ -14,8 +14,8 @@ stringData:
 ---
 apiVersion: v1
 stringData:
-  CONSOLE_ACCESS_KEY: $SEAWAY_ACCESS_KEY
-  CONSOLE_SECRET_KEY: $SEAWAY_SECRET_KEY
+  CONSOLE_ACCESS_KEY: $SEAWAY_S3_ACCESS_KEY
+  CONSOLE_SECRET_KEY: $SEAWAY_S3_SECRET_KEY
 kind: Secret
 metadata:
   name: seaway-user
