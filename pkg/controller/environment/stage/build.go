@@ -107,47 +107,58 @@ func (b *Build) buildJob(job *batchv1.Job, env *v1beta1.Environment) error {
 		return err
 	}
 
-	job.Spec.Template.Spec.Containers = []corev1.Container{
-		{
-			Name:  "builder",
-			Image: *env.Spec.Build.Image,
-			Args: []string{
-				fmt.Sprintf("--dockerfile=%s", *env.Spec.Build.Dockerfile),
-				fmt.Sprintf("--context=s3://%s/%s", env.GetBucket(), env.GetKey()),
-				fmt.Sprintf("--destination=%s/%s:%s", reg.Host, env.GetName(), env.GetRevision()),
-				"--cache=true",
-				fmt.Sprintf("--cache-repo=%s/build-cache", reg.Host),
-				fmt.Sprintf("--custom-platform=%s", *env.Spec.Build.Platform),
-				// Allow secure as well.
-				"--insecure",
-				"--insecure-pull",
-				"--verbosity=trace",
-			},
-			EnvFrom: []corev1.EnvFromSource{
-				{
-					SecretRef: &corev1.SecretEnvSource{
-						LocalObjectReference: *env.Spec.Source.S3.Credentials,
-					},
-				},
-			},
-			Env: []corev1.EnvVar{
-				{
-					Name:  "AWS_REGION",
-					Value: *env.Spec.Source.S3.Region,
-				},
-				{
-					Name: "S3_ENDPOINT",
-					// Need to add the protocol...  Either force it and strip it when setting
-					// up the client or add it here.
-					Value: "http://" + *env.Spec.Source.S3.Endpoint,
-				},
-				{
-					Name:  "S3_FORCE_PATH_STYLE",
-					Value: strconv.FormatBool(*env.Spec.Source.S3.ForcePathStyle),
+	args := env.Spec.Build.Args
+	if args == nil {
+		args = []string{
+			fmt.Sprintf("--dockerfile=%s", *env.Spec.Build.Dockerfile),
+			fmt.Sprintf("--context=s3://%s/%s", env.GetBucket(), env.GetKey()),
+			fmt.Sprintf("--destination=%s/%s:%s", reg.Host, env.GetName(), env.GetRevision()),
+			// TODO: toggle caching
+			"--cache=true",
+			fmt.Sprintf("--cache-repo=%s/build-cache", reg.Host),
+			fmt.Sprintf("--custom-platform=%s", *env.Spec.Build.Platform),
+			// TODO: Allow secure as well based on the registry uri parsing.
+			"--insecure",
+			"--insecure-pull",
+			"--verbosity=trace",
+		}
+	}
+
+	container := corev1.Container{
+		Name:    "builder",
+		Image:   *env.Spec.Build.Image,
+		Command: env.Spec.Build.Command,
+		Args:    args,
+		EnvFrom: []corev1.EnvFromSource{
+			{
+				SecretRef: &corev1.SecretEnvSource{
+					LocalObjectReference: *env.Spec.Source.S3.Credentials,
 				},
 			},
 		},
+		Env: []corev1.EnvVar{
+			{
+				Name:  "AWS_REGION",
+				Value: *env.Spec.Source.S3.Region,
+			},
+			{
+				Name: "S3_ENDPOINT",
+				// Need to add the protocol...  Either force it and strip it when setting
+				// up the client or add it here.
+				Value: "http://" + *env.Spec.Source.S3.Endpoint,
+			},
+			{
+				Name:  "S3_FORCE_PATH_STYLE",
+				Value: strconv.FormatBool(*env.Spec.Source.S3.ForcePathStyle),
+			},
+		},
 	}
+
+	container.Env = append(container.Env, env.Spec.Vars.Env...)
+	container.EnvFrom = append(container.EnvFrom, env.Spec.Vars.EnvFrom...)
+
+	job.Spec.Template.Spec.Containers = []corev1.Container{container}
+
 	return nil
 }
 
