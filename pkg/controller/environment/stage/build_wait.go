@@ -45,8 +45,8 @@ func NewBuildWait(client client.Client, scheme *runtime.Scheme, registryURL stri
 // reconciled.  It checks if the build job has completed and if the image is available
 // in the registry.
 func (b *BuildWait) Do(ctx context.Context, env *v1beta1.Environment, status *v1beta1.EnvironmentStatus) (v1beta1.EnvironmentStage, error) {
-	logger := log.FromContext(ctx).WithValues("revision", env.Spec.Revision)
-	logger.Info("waiting for build job to complete")
+	logger := log.FromContext(ctx)
+	logger.V(3).Info("waiting for build job to complete")
 
 	// TODO: Check for timeout and fail.
 
@@ -71,14 +71,59 @@ func (b *BuildWait) Do(ctx context.Context, env *v1beta1.Environment, status *v1
 		return v1beta1.EnvironmentWaitingForBuildJobToComplete, err
 	}
 
-	if job.Status.Succeeded <= 0 && job.Status.Failed == 0 {
-		logger.Info("job not yet completed")
+	// This provides the opportunity to check the wait status here.
+
+	// If we are active and no completion timestamp and no conditions, requeue.
+
+	// We care about success to move on.  There's a successful field, but I think
+	// we want to check for the completion timestamp as we might want to have
+	// parallel pods running in the future.
+
+	// If failed and conditions, check the conditions for backofflimitexceeded.
+
+	// If we have some pods that are failing, then we go into a failing state
+	// and requeue. (also if not completion timestamp)
+
+	if job.Status.Active > 0 {
+		if job.Status.Failed > 0 {
+			logger.V(5).Info("build job is failing")
+			return v1beta1.EnvironmentStageBuildFailing, nil
+		}
+
+		if job.Status.Ready != nil && *job.Status.Ready == 0 {
+			logger.V(5).Info("job is active but not ready")
+			return v1beta1.EnvironmentWaitingForBuildJobToComplete, nil
+		}
+
+		if job.Status.Ready != nil && *job.Status.Ready > 0 && job.Status.CompletionTime == nil {
+			logger.V(5).Info("job is active and ready")
+			return v1beta1.EnvironmentWaitingForBuildJobToComplete, nil
+		}
+	} else {
+		if job.Status.CompletionTime != nil {
+			logger.V(3).Info("build completed successfully")
+			return v1beta1.EnvironmentDeployingRevision, nil
+		}
+
+		if len(job.Status.Conditions) > 0 {
+			next := v1beta1.EnvironmentBuildJobFailed
+			logger.Error(err, "build failed", "conditions", job.Status.Conditions, "next", next)
+			return next, errors.New("build failed")
+		}
+
+		// The job has more than likely failed, requeue and pick up the failure
+		// status the next time through.
 		return v1beta1.EnvironmentWaitingForBuildJobToComplete, nil
-	} else if job.Status.Failed > 0 {
-		logger.Info("job failed")
-		// TODO: Return the failure reason.
-		return v1beta1.EnvironmentBuildJobFailed, errors.New("build job failed")
 	}
+
+	// if job.Status.Succeeded <= 0 && job.Status.Failed == 0 {
+	// 	logger.Info("job not yet completed")
+	// 	return v1beta1.EnvironmentWaitingForBuildJobToComplete, nil
+	// } else if job.Status.Failed > 0 {
+	// 	logger.Info("job failed")
+	// 	// TODO: Return the failure reason.
+	// 	return v1beta1.EnvironmentBuildJobFailed, errors.New("build job failed")
+	// }
 
 	// This is probably redundant and since we are controlling the build job we should
 	// be pushing the image out there anyway.  Maybe just let the deployment fail with

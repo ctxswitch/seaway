@@ -49,30 +49,21 @@ func NewBuild(client client.Client, scheme *runtime.Scheme, registryURL string) 
 // Do reconciles the build stage and returns the next stage that will need to be
 // reconciled.  It creates a new build job based on the environment.
 func (b *Build) Do(ctx context.Context, env *v1beta1.Environment, status *v1beta1.EnvironmentStatus) (v1beta1.EnvironmentStage, error) {
-	logger := log.FromContext(ctx).WithValues("revision", env.Spec.Revision)
+	job := GetEnvironmentJob(env, b.Scheme)
+
+	logger := log.FromContext(ctx).WithValues("job", job.GetName())
 	logger.Info("building revision")
 
-	status.ExpectedRevision = env.Spec.Revision
-
-	// TODO: If the image is already present in the registry, skip the build.
-
-	job := GetEnvironmentJob(env, b.Scheme)
-	err := b.Get(ctx, client.ObjectKeyFromObject(&job), &job)
-	if client.IgnoreNotFound(err) != nil {
-		// The job already exists so we can't do anything with it.  Check the status and delete
-		// it if it completed successfully.
-		if job.Status.Succeeded > 0 {
-			logger.Info("job already successfully completed, skipping")
-			return v1beta1.EnvironmentDeployingRevision, nil
-		} else {
-			logger.Info("job already exists and has failed, skipping")
-			return v1beta1.EnvironmentBuildJobFailed, nil
-		}
-	}
+	// NOTE:
+	// To get here we've either come through the check stage or are returning
+	// after a requeue.  At this point we should no longer need to check for
+	// the job (since it would be redunant).  This is based on the assumption
+	// that we are in isolated namespaces (which the client is defining).  Any
+	// subsequent updates would re-init the processing stages and start over.
 
 	logger.Info("creating build job")
 
-	_, err = controllerutil.CreateOrUpdate(ctx, b.Client, &job, func() error {
+	_, err := controllerutil.CreateOrUpdate(ctx, b.Client, &job, func() error {
 		return b.buildJob(&job, env)
 	})
 	if err != nil {
@@ -85,9 +76,11 @@ func (b *Build) Do(ctx context.Context, env *v1beta1.Environment, status *v1beta
 }
 
 func (b *Build) buildJob(job *batchv1.Job, env *v1beta1.Environment) error {
+	// TODO: ttl, activedeadline and backoff should be configurable
 	job.Spec.TTLSecondsAfterFinished = ptr.To(int32(600))
-	job.Spec.ActiveDeadlineSeconds = ptr.To(int64(500))
-	job.Spec.BackoffLimit = ptr.To(int32(1))
+	// TODO: Change me back
+	job.Spec.ActiveDeadlineSeconds = ptr.To(int64(60))
+	job.Spec.BackoffLimit = ptr.To(int32(0))
 	job.Spec.Template.Spec.RestartPolicy = corev1.RestartPolicyNever
 	job.Spec.PodFailurePolicy = &batchv1.PodFailurePolicy{
 		Rules: []batchv1.PodFailurePolicyRule{

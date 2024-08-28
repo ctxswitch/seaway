@@ -17,7 +17,6 @@ package env
 import (
 	"archive/tar"
 	"compress/gzip"
-	"context"
 	"fmt"
 	"io"
 	"io/fs"
@@ -125,8 +124,8 @@ func (s *Sync) RunE(cmd *cobra.Command, args []string) error {
 	}
 
 	// TODO: timeout should be configurable
-	ctx, cancel := context.WithTimeout(ctx, 2*time.Minute)
-	defer cancel()
+	// ctx, cancel := context.WithTimeout(ctx, DefaultTimeout)
+	// defer cancel()
 
 	status := ""
 
@@ -146,6 +145,8 @@ func (s *Sync) RunE(cmd *cobra.Command, args []string) error {
 			if obj.IsDeployed() {
 				console.Success("Revision has been deployed")
 				return nil
+			} else if obj.HasFailed() {
+				console.Fatal("Environment failed to deploy")
 			} else if status != string(obj.Status.Stage) {
 				status = string(obj.Status.Stage)
 				console.Notice(status)

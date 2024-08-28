@@ -224,8 +224,12 @@ type Environment struct {
 type EnvironmentStage string
 
 const (
+	EnvironmentStageInitialize                EnvironmentStage = "Initializing"
+	EnvironmentCheckBuildJob                  EnvironmentStage = "Checking for existing jobs"
+	EnvironmentDeletingBuildJob               EnvironmentStage = "Deleting previous job"
 	EnvironmentCreateBuildJob                 EnvironmentStage = "Creating build job"
 	EnvironmentWaitingForBuildJobToComplete   EnvironmentStage = "Waiting for build job to complete"
+	EnvironmentStageBuildFailing              EnvironmentStage = "Build job is failing"
 	EnvironmentBuildJobFailed                 EnvironmentStage = "Build job failed"
 	EnvironmentDeployingRevision              EnvironmentStage = "Deploying revision"
 	EnvironmentWaitingForDeploymentToComplete EnvironmentStage = "Waiting for deployment to complete"

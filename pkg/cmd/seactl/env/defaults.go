@@ -14,6 +14,9 @@
 
 package env
 
+import "time"
+
 const (
 	DefaultLogLevel = 0
+	DefaultTimeout  = 10 * time.Minute
 )
