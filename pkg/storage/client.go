@@ -61,14 +61,14 @@ func (c *Client) Connect(ctx context.Context, secret *corev1.Secret) (*minio.Cli
 // connectWithEnv creates a connection to the S3 storage service using the
 // environment variables.
 func (c *Client) connectWithEnv() (*minio.Client, error) {
-	id := os.Getenv("AWS_ACCESS_KEY_ID")
+	id := os.Getenv("SEAWAY_S3_ACCESS_KEY")
 	if id == "" {
-		return nil, errors.New("AWS_ACCESS_KEY_ID not set")
+		return nil, errors.New("SEAWAY_S3_ACCESS_KEY not set")
 	}
 
-	key := os.Getenv("AWS_SECRET_ACCESS_KEY")
+	key := os.Getenv("SEAWAY_S3_SECRET_KEY")
 	if key == "" {
-		return nil, errors.New("AWS_SECRET_ACCESS_KEY not set")
+		return nil, errors.New("SEAWAY_S3_SECRET_KEY not set")
 	}
 
 	// Initialize minio client object.
@@ -88,14 +88,14 @@ func (c *Client) connectWithEnv() (*minio.Client, error) {
 // TODO: I have the data fields differently named here, so update env to match.  I'm using those
 // because that is what minio expects.  Need to look at this more.
 func (c *Client) connectWithSecret(secret *corev1.Secret) (*minio.Client, error) {
-	id, ok := secret.Data["AWS_ACCESS_KEY_ID"]
+	id, ok := secret.Data["SEAWAY_S3_ACCESS_KEY"]
 	if !ok {
-		return nil, errors.New("AWS_ACCESS_KEY_ID not found in secret")
+		return nil, errors.New("SEAWAY_S3_ACCESS_KEY not found in secret")
 	}
 
-	key, ok := secret.Data["AWS_SECRET_ACCESS_KEY"]
+	key, ok := secret.Data["SEAWAY_S3_SECRET_KEY"]
 	if !ok {
-		return nil, errors.New("AWS_SECRET_ACCESS_KEY not found in secret")
+		return nil, errors.New("SEAWAY_S3_SECRET_KEY not found in secret")
 	}
 
 	idText := strings.Trim(string(id), "\n")

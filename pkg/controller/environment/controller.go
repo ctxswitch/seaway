@@ -80,38 +80,38 @@ func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	v1beta1.Defaulted(env)
 	// No finalizer support for now.
 
-	// Change me up so if we aren't deployed yet, we call the reconciler - or if revision has changed mid deployment.
+	logger = logger.WithValues("revision", env.Spec.Revision)
+	ctx = log.IntoContext(ctx, logger)
 
-	if env.IsDeployed() {
-		return ctrl.Result{}, nil
-	}
-
-	if env.HasDeviated() {
-		logger.Info("environment has deviated, resetting", "revision", env.Spec.Revision)
-		env.Status.Stage = v1beta1.EnvironmentCreateBuildJob
-	}
-
-	// If the job has failed, don't try to do anything with it.
-	if env.HasFailed() {
+	// There's probably a cleaner way to handle the initial checks here.
+	switch {
+	case env.HasFailed():
 		logger.Info("environment has failed, skipping", "stage", env.Status.Stage)
 		return ctrl.Result{}, nil
+	case env.IsDeployed():
+		logger.Info("environment is deployed", "revision", env.Spec.Revision)
+		return ctrl.Result{}, nil
+	case env.Status.Stage == v1beta1.EnvironmentStageInitialize:
+		logger.Info("environment is initializing", "revision", env.Spec.Revision)
+		env.Status.Stage = v1beta1.EnvironmentCheckBuildJob
 	}
 
 	status := env.Status.DeepCopy()
-	current := status.Stage
+	stage := status.Stage
 
-	// TODO: Think about retry.
-	next, err := c.reconcileStage(ctx, env, status, current)
+	// TODO: Think about retry also need to wrap a timeout from the last status update.
+	reconciler := c.getReconciler(stage)
+	next, err := reconciler.Do(ctx, env, status)
 	status.Stage = next
 
 	c.updateStatus(ctx, env, status)
 
 	if err != nil {
-		logger.Error(err, "unable to reconcile environment")
+		logger.Error(err, "unable to reconcile environment", "next", next, "status", status)
 		return ctrl.Result{}, err
 	}
 
-	if current == v1beta1.EnvironmentRevisionDeployed {
+	if stage == v1beta1.EnvironmentRevisionDeployed {
 		logger.Info("environment deployed", "revision", env.Spec.Revision)
 		return ctrl.Result{}, err
 	} else {
@@ -119,21 +119,19 @@ func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 }
 
-func (c *Controller) reconcileStage(ctx context.Context, env *v1beta1.Environment, status *v1beta1.EnvironmentStatus, condition v1beta1.EnvironmentStage) (v1beta1.EnvironmentStage, error) {
-	reconciler := c.getReconciler(condition)
-	next, err := reconciler.Do(ctx, env, status)
-	if err != nil {
-		return condition, err
-	}
-
-	return next, nil
-}
-
 func (c *Controller) getReconciler(current v1beta1.EnvironmentStage) stage.Reconciler {
 	switch current {
+	case v1beta1.EnvironmentStageInitialize:
+		return stage.NewInitialize(c.Client, c.Scheme)
+	case v1beta1.EnvironmentCheckBuildJob:
+		return stage.NewBuildCheck(c.Client, c.Scheme)
+	case v1beta1.EnvironmentDeletingBuildJob:
+		return stage.NewBuildCheck(c.Client, c.Scheme)
 	case v1beta1.EnvironmentCreateBuildJob:
 		return stage.NewBuild(c.Client, c.Scheme, c.RegistryURL)
 	case v1beta1.EnvironmentWaitingForBuildJobToComplete:
+		return stage.NewBuildWait(c.Client, c.Scheme, c.RegistryURL)
+	case v1beta1.EnvironmentStageBuildFailing:
 		return stage.NewBuildWait(c.Client, c.Scheme, c.RegistryURL)
 	case v1beta1.EnvironmentDeployingRevision:
 		return stage.NewDeploy(c.Client, c.Scheme, c.RegistryNodePort)
@@ -142,7 +140,7 @@ func (c *Controller) getReconciler(current v1beta1.EnvironmentStage) stage.Recon
 	case v1beta1.EnvironmentRevisionDeployed:
 		return stage.NewDeployed(c.Client, c.Scheme)
 	default:
-		return stage.NewBuild(c.Client, c.Scheme, c.RegistryURL)
+		return stage.NewInitialize(c.Client, c.Scheme)
 	}
 }
 

@@ -17,7 +17,6 @@ package env
 import (
 	"archive/tar"
 	"compress/gzip"
-	"context"
 	"fmt"
 	"io"
 	"io/fs"
@@ -53,7 +52,8 @@ func NewSync() *Sync {
 
 // RunE is the main function for the sync command which syncs the code to the target
 // object storage and creates or updates the development environment.
-func (s *Sync) RunE(cmd *cobra.Command, args []string) error {
+// TODO: address the linting issues.
+func (s *Sync) RunE(cmd *cobra.Command, args []string) error { //nolint:funlen,gocognit
 	ctx := ctrl.SetupSignalHandler()
 
 	if len(args) != 1 {
@@ -125,8 +125,8 @@ func (s *Sync) RunE(cmd *cobra.Command, args []string) error {
 	}
 
 	// TODO: timeout should be configurable
-	ctx, cancel := context.WithTimeout(ctx, 2*time.Minute)
-	defer cancel()
+	// ctx, cancel := context.WithTimeout(ctx, DefaultTimeout)
+	// defer cancel()
 
 	status := ""
 
@@ -139,14 +139,20 @@ func (s *Sync) RunE(cmd *cobra.Command, args []string) error {
 			console.Warn("Cancelled: %s", ctx.Err())
 			return nil
 		case <-ticker.C:
-			// TODO: Best to use a clean environment object here?
 			if err := client.Get(ctx, obj, metav1.GetOptions{}); err != nil {
 				console.Fatal("Unable to get the environment: %s", err)
 			}
+
 			if obj.IsDeployed() {
 				console.Success("Revision has been deployed")
 				return nil
-			} else if status != string(obj.Status.Stage) {
+			}
+
+			if obj.HasFailed() {
+				console.Fatal("Environment failed to deploy")
+			}
+
+			if status != string(obj.Status.Stage) {
 				status = string(obj.Status.Stage)
 				console.Notice(status)
 			}

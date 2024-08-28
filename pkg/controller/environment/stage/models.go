@@ -27,7 +27,7 @@ import (
 func GetEnvironmentJob(env *v1beta1.Environment, scheme *runtime.Scheme) batchv1.Job {
 	job := batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      env.GetName() + "-" + env.Spec.Revision,
+			Name:      env.GetName() + "-build",
 			Namespace: env.GetNamespace(),
 		},
 	}
