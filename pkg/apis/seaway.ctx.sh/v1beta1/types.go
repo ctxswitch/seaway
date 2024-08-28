@@ -69,6 +69,14 @@ type EnvironmentS3Spec struct {
 }
 
 type EnvironmentBuildSpec struct {
+	// Args are the command arguments that will be passed to the build job.
+	// +optional
+	// +nullable
+	Args []string `json:"args"`
+	// Command is the command that will be passed to the build job.
+	// +optional
+	// +nullable
+	Command []string `json:"command"`
 	// Image is the build image ot use for the build job.  By default we use kaniko, but
 	// this can be overridden.  However, we don't have a way to override the build command
 	// at this point.
@@ -125,7 +133,7 @@ type EnvironmentResources map[corev1.ResourceName]resource.Quantity
 
 // EnvironmentSpec defines the desired state of Environment.
 type EnvironmentSpec struct {
-	// Args is a list of arguments that will be used for the deplyed application.
+	// Args is a list of arguments that will be used for the deployed application.
 	// +optional
 	// +nullable
 	Args []string `json:"args"`
