@@ -52,7 +52,7 @@ func NewSync() *Sync {
 
 // RunE is the main function for the sync command which syncs the code to the target
 // object storage and creates or updates the development environment.
-// TODO: address the linting issues
+// TODO: address the linting issues.
 func (s *Sync) RunE(cmd *cobra.Command, args []string) error { //nolint:funlen,gocognit
 	ctx := ctrl.SetupSignalHandler()
 
