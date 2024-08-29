@@ -60,6 +60,10 @@ func SetupWithManager(mgr ctrl.Manager, regURL string, regNodePort int32) (err e
 // +kubebuilder:rbac:groups=apps,resources=deployments/status,verbs=get
 // +kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=batch,resources=jobs/status,verbs=get
+// +kubebuilder:rbac:groups=core,resources=services,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=core,resources=services/status,verbs=get
+// +kubebuilder:rbac:groups=networking,resources=ingresses,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=networking,resources=ingresses/status,verbs=get
 // +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch
 
 func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {

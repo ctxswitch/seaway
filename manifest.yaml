@@ -12,12 +12,12 @@ environments:
     build:
       dockerfile: Dockerfile.test
       include:
-      - ^manifest.yaml
+      - ^manifest.yaml$
       - ^go.*
       - ^pkg/
       - ^docker/
       - ^config/
-      - ^Readme.md$
+      - ^README.md$
     source:
       s3:
         endpoint: minio.minio.svc.cluster.local:80
@@ -27,21 +27,13 @@ environments:
         bucket: seaway
     ports:
       - name: http
-        port: 8080
+        port: 9000
     command:
       - sleep
       - infinity
     resources:
       memory: 128Mi
       cpu: 100m
-    # We're going to end up in situations where some of the dependencies are cluster-wide
-    # like crds.  We're just going to ignore that for now, but it's a problem when teams
-    # use remote clusters.  I think we just suggest that the operators just use permissions
-    # to limit the scope of service accounts that the deployers are using so it will error
-    # if they try to deploy over a cluster-wide resource.  We could also create the service
-    # account ourselves and limit the scope of the service account to the namespace.
-    # 
-    # Recommendation that you use seperate environments for local versus remote deployments.
     dependencies:
       - name: all
         type: kustomize

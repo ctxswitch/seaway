@@ -23,6 +23,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -48,6 +49,17 @@ func NewDeploy(client client.Client, scheme *runtime.Scheme, nodePort int32) *De
 // reconciled.  It creates or updates a revision deployment based on the environment.
 func (d *Deploy) Do(ctx context.Context, env *v1beta1.Environment, status *v1beta1.EnvironmentStatus) (v1beta1.EnvironmentStage, error) {
 	logger := log.FromContext(ctx)
+
+	svc := GetEnvironmentService(env, d.Scheme)
+	if env.Spec.Ports != nil && len(env.Spec.Ports) > 0 {
+		_, err := controllerutil.CreateOrUpdate(ctx, d.Client, &svc, func() error {
+			return buildService(&svc, env)
+		})
+		if err != nil {
+			logger.Error(err, "unable to create or update service")
+			return v1beta1.EnvironmentDeploymentFailed, err
+		}
+	}
 
 	deploy := GetEnvironmentDeployment(env, d.Scheme)
 
@@ -95,6 +107,26 @@ func (d *Deploy) buildDeployment(deploy *appsv1.Deployment, env *v1beta1.Environ
 			"app":  env.GetName(),
 			"etag": env.GetRevision(),
 		}
+	}
+
+	return nil
+}
+
+// buildService builds the service for the environment.
+func buildService(svc *corev1.Service, env *v1beta1.Environment) error {
+	ports := make([]corev1.ServicePort, 0, len(env.Spec.Ports))
+	for _, port := range env.Spec.Ports {
+		ports = append(ports, corev1.ServicePort{
+			Name:       port.Name,
+			Protocol:   port.Protocol,
+			Port:       port.Port,
+			TargetPort: intstr.FromInt32(port.Port),
+		})
+	}
+
+	svc.Spec.Ports = ports
+	svc.Spec.Selector = map[string]string{
+		"app": env.GetName(),
 	}
 
 	return nil
