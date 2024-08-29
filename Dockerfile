@@ -13,4 +13,4 @@ FROM scratch
 COPY --from=base /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=build /usr/src/app/dist/seaway /seaway
 
-CMD ["/seaway", "controller", "--log-level=4"]
+CMD ["/seaway", "controller", "--log-level=3"]
