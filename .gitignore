@@ -8,3 +8,5 @@ dist/
 
 cover.out
 seaway.sum
+
+*.test
