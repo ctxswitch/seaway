@@ -85,15 +85,15 @@ func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	// There's probably a cleaner way to handle the initial checks here.
 	switch {
+	case env.HasDeviated():
+		logger.Info("environment been updated, redeploying")
+		env.Status.Stage = v1beta1.EnvironmentStageInitialize
 	case env.HasFailed():
-		logger.Info("environment has failed, skipping", "stage", env.Status.Stage)
+		logger.Info("environment has failed, skipping")
 		return ctrl.Result{}, nil
 	case env.IsDeployed():
 		logger.Info("environment is deployed", "revision", env.Spec.Revision)
 		return ctrl.Result{}, nil
-	case env.Status.Stage == v1beta1.EnvironmentStageInitialize:
-		logger.Info("environment is initializing", "revision", env.Spec.Revision)
-		env.Status.Stage = v1beta1.EnvironmentCheckBuildJob
 	}
 
 	status := env.Status.DeepCopy()
