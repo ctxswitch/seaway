@@ -1,19 +1,15 @@
+## 0.1.0-pre.10 (2024-08-29)
+
+Continued work towards the initial release.  Expect instability and additional changes.
+
 ### Added
-- TODO
+* Basic support for service and ingress management based on the presence of port definitions.
+* More configuration overrides for build jobs.
 
 ### Changed
-- TODO
-
-### Deprecated
-- TODO
-
-### Removed
-- TODO
+* The default internal registry now uses the installed minio S3 service as a backend, negating the need to manage PVs on a per cluster basis.
+* Build jobs have been consolidated into a single job.
+* Install manifests for shared resources reorganized.
 
 ### Fixed
-- TODO
-
-### Security
-- TODO
-
-**Full Changelog**: https://github.com/ctxswitch/seaway/blob/main/CHANGELOG.md
+* Addresses the issue where jobs would not update status when stages returned an error.
