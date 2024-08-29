@@ -26,7 +26,7 @@ import (
 func (m *Manifest) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	type ManifestDefaulted Manifest
 	var defaults = ManifestDefaulted{
-		Version:     "v0.0.1",
+		Version:     "v0.0.0",
 		Description: "Application managed by Seaway",
 	}
 

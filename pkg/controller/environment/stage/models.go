@@ -18,6 +18,8 @@ import (
 	"ctx.sh/seaway/pkg/apis/seaway.ctx.sh/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
+	corev1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -49,4 +51,32 @@ func GetEnvironmentDeployment(env *v1beta1.Environment, scheme *runtime.Scheme) 
 	controllerutil.SetControllerReference(env, &deploy, scheme) //nolint:errcheck
 
 	return deploy
+}
+
+// GetEnvironmentService returns a new Service object for the given environment.
+func GetEnvironmentService(env *v1beta1.Environment, scheme *runtime.Scheme) corev1.Service {
+	svc := corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      env.GetName(),
+			Namespace: env.GetNamespace(),
+		},
+	}
+
+	controllerutil.SetControllerReference(env, &svc, scheme) //nolint:errcheck
+
+	return svc
+}
+
+// GetEnvironmentIngress returns a new Ingress object for the given environment.
+func GetEnvironmentIngress(env *v1beta1.Environment, scheme *runtime.Scheme) networkingv1.Ingress {
+	ingress := networkingv1.Ingress{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      env.GetName(),
+			Namespace: env.GetNamespace(),
+		},
+	}
+
+	controllerutil.SetControllerReference(env, &ingress, scheme) //nolint:errcheck
+
+	return ingress
 }

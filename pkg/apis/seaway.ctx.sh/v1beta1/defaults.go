@@ -18,6 +18,7 @@ import (
 	"runtime"
 
 	corev1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -53,6 +54,7 @@ func defaultEnvironmentSpec(obj *EnvironmentSpec) {
 	defaultEnvironmentVars(&obj.Vars)
 	defaultEnvironmentSource(obj.Source)
 	defaultEnvironmentBuild(obj.Build)
+	defaultEnvironmentNetworking(obj.Networking)
 }
 
 func defaultEnvironmentVars(obj *EnvironmentVars) {
@@ -144,5 +146,29 @@ func defaultEnvironmentS3Spec(obj *EnvironmentS3Spec) {
 	if obj.Prefix == nil {
 		obj.Prefix = new(string)
 		*obj.Prefix = DefaultPrefix
+	}
+}
+
+func defaultEnvironmentNetworking(obj *EnvironmentNetworking) {
+	if obj == nil {
+		obj = new(EnvironmentNetworking)
+	}
+
+	if obj.Ports == nil {
+		obj.Ports = []EnvironmentPort{}
+	}
+
+	if obj.Ingress != nil {
+		defaultEnvironmentIngress(obj.Ingress)
+	}
+}
+
+func defaultEnvironmentIngress(obj *EnvironmentIngress) {
+	if obj.Annotations == nil {
+		obj.Annotations = map[string]string{}
+	}
+
+	if obj.TLS == nil {
+		obj.TLS = []networkingv1.IngressTLS{}
 	}
 }
