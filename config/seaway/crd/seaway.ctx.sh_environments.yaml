@@ -385,22 +385,52 @@ spec:
                     format: int32
                     type: integer
                 type: object
-              ports:
-                items:
-                  properties:
-                    name:
-                      type: string
-                    port:
-                      format: int32
-                      type: integer
-                    protocol:
-                      type: string
-                  required:
-                  - name
-                  - port
-                  type: object
+              networking:
                 nullable: true
-                type: array
+                properties:
+                  ingress:
+                    nullable: true
+                    properties:
+                      annotations:
+                        additionalProperties:
+                          type: string
+                        nullable: true
+                        type: object
+                      enabled:
+                        type: boolean
+                      ingressClassName:
+                        type: string
+                      tls:
+                        items:
+                          properties:
+                            hosts:
+                              items:
+                                type: string
+                              type: array
+                              x-kubernetes-list-type: atomic
+                            secretName:
+                              type: string
+                          type: object
+                        nullable: true
+                        type: array
+                    type: object
+                  ports:
+                    items:
+                      properties:
+                        name:
+                          type: string
+                        port:
+                          format: int32
+                          type: integer
+                        protocol:
+                          type: string
+                      required:
+                      - name
+                      - port
+                      type: object
+                    nullable: true
+                    type: array
+                type: object
               readinessProbe:
                 nullable: true
                 properties:

@@ -20,7 +20,12 @@ import corev1 "k8s.io/api/core/v1"
 // a corev1.Container object.
 func (e *EnvironmentSpec) ContainerPorts() []corev1.ContainerPort {
 	ports := []corev1.ContainerPort{}
-	for _, p := range e.Ports {
+
+	if e.Networking == nil {
+		return ports
+	}
+
+	for _, p := range e.Networking.Ports {
 		ports = append(ports, corev1.ContainerPort{
 			Name:          p.Name,
 			ContainerPort: p.Port,

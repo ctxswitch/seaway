@@ -21,6 +21,7 @@ import (
 	"ctx.sh/seaway/pkg/apis/seaway.ctx.sh/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -50,14 +51,28 @@ func NewDeploy(client client.Client, scheme *runtime.Scheme, nodePort int32) *De
 func (d *Deploy) Do(ctx context.Context, env *v1beta1.Environment, status *v1beta1.EnvironmentStatus) (v1beta1.EnvironmentStage, error) {
 	logger := log.FromContext(ctx)
 
-	svc := GetEnvironmentService(env, d.Scheme)
-	if env.Spec.Ports != nil && len(env.Spec.Ports) > 0 {
-		_, err := controllerutil.CreateOrUpdate(ctx, d.Client, &svc, func() error {
-			return buildService(&svc, env)
-		})
-		if err != nil {
-			logger.Error(err, "unable to create or update service")
-			return v1beta1.EnvironmentDeploymentFailed, err
+	if env.Spec.Networking != nil {
+		networking := env.Spec.Networking
+		svc := GetEnvironmentService(env, d.Scheme)
+		if networking.Ports != nil && len(networking.Ports) > 0 {
+			_, err := controllerutil.CreateOrUpdate(ctx, d.Client, &svc, func() error {
+				return buildService(&svc, env)
+			})
+			if err != nil {
+				logger.Error(err, "unable to create or update service")
+				return v1beta1.EnvironmentDeploymentFailed, err
+			}
+		}
+
+		if networking.Ports != nil && len(networking.Ports) > 0 && networking.Ingress.Enabled {
+			ing := GetEnvironmentIngress(env, d.Scheme)
+			_, err := controllerutil.CreateOrUpdate(ctx, d.Client, &ing, func() error {
+				return buildIngress(&ing, env)
+			})
+			if err != nil {
+				logger.Error(err, "unable to create or update ingress")
+				return v1beta1.EnvironmentDeploymentFailed, err
+			}
 		}
 	}
 
@@ -114,8 +129,8 @@ func (d *Deploy) buildDeployment(deploy *appsv1.Deployment, env *v1beta1.Environ
 
 // buildService builds the service for the environment.
 func buildService(svc *corev1.Service, env *v1beta1.Environment) error {
-	ports := make([]corev1.ServicePort, 0, len(env.Spec.Ports))
-	for _, port := range env.Spec.Ports {
+	ports := make([]corev1.ServicePort, 0, len(env.Spec.Networking.Ports))
+	for _, port := range env.Spec.Networking.Ports {
 		ports = append(ports, corev1.ServicePort{
 			Name:       port.Name,
 			Protocol:   port.Protocol,
@@ -128,6 +143,29 @@ func buildService(svc *corev1.Service, env *v1beta1.Environment) error {
 	svc.Spec.Selector = map[string]string{
 		"app": env.GetName(),
 	}
+
+	return nil
+}
+
+// buildIngress builds the ingress for the environment.
+func buildIngress(ing *networkingv1.Ingress, env *v1beta1.Environment) error {
+	ing.Spec.DefaultBackend = &networkingv1.IngressBackend{
+		Service: &networkingv1.IngressServiceBackend{
+			Name: env.GetName(),
+			Port: networkingv1.ServiceBackendPort{
+				// TODO: Right now just take the first port. I need to allow building out for
+				// multiple ports in the future, but for a quick and dirty implementation,
+				// this will work for now.  Just doc it and move on.
+				Number: env.Spec.Networking.Ports[0].Port,
+			},
+		},
+	}
+
+	for a := range env.Spec.Networking.Ingress.Annotations {
+		ing.Annotations[a] = env.Spec.Networking.Ingress.Annotations[a]
+	}
+
+	ing.Spec.TLS = env.Spec.Networking.Ingress.TLS
 
 	return nil
 }

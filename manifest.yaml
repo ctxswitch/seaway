@@ -25,9 +25,12 @@ environments:
         credentials:
           name: seaway-user
         bucket: seaway
-    ports:
-      - name: http
-        port: 9000
+    # networking:
+    #   ports:
+    #     - name: http
+    #       port: 9000
+    #   ingress:
+    #     enabled: true
     command:
       - sleep
       - infinity

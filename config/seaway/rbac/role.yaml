@@ -67,7 +67,8 @@ rules:
   verbs:
   - get
 - apiGroups:
-  - networking
+  - extensions
+  - networking.k8s.io
   resources:
   - ingresses
   verbs:
@@ -79,7 +80,8 @@ rules:
   - update
   - watch
 - apiGroups:
-  - networking
+  - extensions
+  - networking.k8s.io
   resources:
   - ingresses/status
   verbs:

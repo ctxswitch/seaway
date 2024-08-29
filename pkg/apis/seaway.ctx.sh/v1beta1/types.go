@@ -18,6 +18,7 @@ package v1beta1
 
 import (
 	corev1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -32,6 +33,39 @@ type EnvironmentPort struct {
 	// Protocol is the protocol for the port.  By default this is set to TCP.
 	// +optional
 	Protocol corev1.Protocol `json:"protocol" yaml:"protocol"`
+}
+
+type EnvironmentIngress struct {
+	// Annotations is a map of annotations to apply to the ingress resource.
+	// +optional
+	// +nullable
+	Annotations map[string]string `json:"annotations"`
+	// Enabled is a flag to enable or disable the ingress resource.  It is disabled by default.
+	// +optional
+	Enabled bool `json:"enabled"`
+	// IngressClassName is the name of the ingress class to use for the ingress resource.
+	// +optional
+	IngressClassName string `json:"ingressClassName"`
+	// TLS is a list of TLS configuration for the ingress resource.  The TLS configuration
+	// matches that of the networking.k8s.io/v1beta1 Ingress type.
+	// +optional
+	// +nullable
+	TLS []networkingv1.IngressTLS `json:"tls"`
+}
+
+type EnvironmentNetworking struct {
+	// Ports is a list of ports that the deployed application will listen on.  If
+	// ports is not empty, the container will be created with the ports specified
+	// and a service will be created to expose the ports.
+	// TODO: Update the controller to create the service.
+	// +optional
+	// +nullable
+	Ports []EnvironmentPort `json:"ports"`
+	// Ingress is the ingress configuration for the deployed application.  If enabled, the
+	// controller will create an ingress resource to expose the application.
+	// +optional
+	// +nullable
+	Ingress *EnvironmentIngress `json:"ingress"`
 }
 
 type EnvironmentS3Spec struct {
@@ -156,13 +190,10 @@ type EnvironmentSpec struct {
 	// +optional
 	// +nullable
 	LivenessProbe *corev1.Probe `json:"livenessProbe"`
-	// Ports is a list of ports that the deployed application will listen on.  If
-	// ports is not empty, the container will be created with the ports specified
-	// and a service will be created to expose the ports.
-	// TODO: Update the controller to create the service.
+	// Networking contains the networking configuration options for the environment.
 	// +optional
 	// +nullable
-	Ports []EnvironmentPort `json:"ports"`
+	Networking *EnvironmentNetworking `json:"networking"`
 	// ReadinessProbe is the readiness probe for the deployed application.
 	// +optional
 	// +nullable
