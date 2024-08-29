@@ -79,8 +79,8 @@ func (b *Build) buildJob(job *batchv1.Job, env *v1beta1.Environment) error {
 	// TODO: ttl, activedeadline and backoff should be configurable
 	job.Spec.TTLSecondsAfterFinished = ptr.To(int32(600))
 	// TODO: Change me back
-	job.Spec.ActiveDeadlineSeconds = ptr.To(int64(60))
-	job.Spec.BackoffLimit = ptr.To(int32(0))
+	job.Spec.ActiveDeadlineSeconds = ptr.To(int64(300))
+	job.Spec.BackoffLimit = ptr.To(int32(1))
 	job.Spec.Template.Spec.RestartPolicy = corev1.RestartPolicyNever
 	job.Spec.PodFailurePolicy = &batchv1.PodFailurePolicy{
 		Rules: []batchv1.PodFailurePolicyRule{

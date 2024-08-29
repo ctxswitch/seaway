@@ -35,10 +35,10 @@ type EnvironmentPort struct {
 }
 
 type EnvironmentS3Spec struct {
-	// Bucket is the name of the S3 bucket where the build context is stored.
+	// Bucket is the name of the S3 bucket where the source artifacts stored.
 	// +optional
 	Bucket *string `json:"bucket"`
-	// Prefix is the path prefix within the bucket where the build context is stored.
+	// Prefix is the path prefix within the bucket where the source artifacts stored.
 	// +optional
 	Prefix *string `json:"prefix"`
 	// Region is the AWS region where the S3 bucket is located.  This is required by

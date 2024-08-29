@@ -26,7 +26,7 @@ const (
 	DefaultRegion            = "us-east-1"
 	DefaultEndpoint          = "http://localhost:80"
 	DefaultForcePathStyle    = true
-	DefaultPrefix            = "contexts"
+	DefaultPrefix            = "artifacts"
 	DefaultBuildImage        = "gcr.io/kaniko-project/executor:latest"
 	DefaultDockerfile        = "Dockerfile"
 	DefaultPlatform          = runtime.GOOS + "/" + runtime.GOARCH
