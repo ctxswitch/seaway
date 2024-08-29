@@ -51,7 +51,8 @@ func NewDeploy(client client.Client, scheme *runtime.Scheme, nodePort int32) *De
 func (d *Deploy) Do(ctx context.Context, env *v1beta1.Environment, status *v1beta1.EnvironmentStatus) (v1beta1.EnvironmentStage, error) {
 	logger := log.FromContext(ctx)
 
-	if env.Spec.Networking != nil {
+	// TODO: Fix complexity later.
+	if env.Spec.Networking != nil { //nolint:nestif
 		networking := env.Spec.Networking
 		svc := GetEnvironmentService(env, d.Scheme)
 		if networking.Ports != nil && len(networking.Ports) > 0 {
