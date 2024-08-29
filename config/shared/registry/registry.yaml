@@ -57,3 +57,7 @@ spec:
           value: /registry
         - name: REGISTRY_STORAGE_S3_FORCEPATHSTYLE
           value: "true"
+        - name: REGISTRY_STORAGE_DELETE_ENABLED
+          value: "true"
+        - name: REGISTRY_STORAGE_REDIRECT_DISABLE
+          value: "true"
