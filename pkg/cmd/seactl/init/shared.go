@@ -93,7 +93,7 @@ func (s *Shared) RunE(cmd *cobra.Command, args []string) error {
 		console.Fatal("Unable to set MINIO_ROOT_PASSWORD")
 	}
 
-	if err := os.Setenv("CONTEXT", s.context); err != nil {
+	if err := os.Setenv("CONTEXT", "--context="+s.context); err != nil {
 		console.Fatal("Unable to set CONTEXT")
 	}
 
