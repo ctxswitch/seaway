@@ -109,7 +109,9 @@ func (s *Shared) RunE(cmd *cobra.Command, args []string) error {
 	script := exec.Command("bash", "-c", sharedScript)
 	script.Stderr = os.Stderr
 	script.Stdout = os.Stdout
-	script.Start()
+	if err := script.Start(); err != nil {
+		console.Fatal("Error starting script: %v", err)
+	}
 
 	if err := script.Wait(); err != nil {
 		console.Fatal("Error running script: %v", err)

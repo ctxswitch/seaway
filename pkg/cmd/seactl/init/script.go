@@ -2,6 +2,8 @@ package init
 
 // Uggg. Quick and dirty way to compact the responsibility of the user to create these
 // and add it to the cli.
+
+//nolint:gochecknoglobals
 var sharedScript = `
 if [[ x$SEAWAY_S3_ACCESS_KEY == "x" ]]; then
   echo "SEAWAY_S3_ACCESS_KEY is not set"
