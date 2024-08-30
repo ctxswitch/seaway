@@ -83,4 +83,4 @@ jobs:
           push: true
           tags: ctxsh/seaway:test
           build-args: |
-            VERSION=0.0.0-test.1
+            "VERSION=${{ steps.meta.outputs.version }}"

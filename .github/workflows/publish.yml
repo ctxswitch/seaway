@@ -1,0 +1,43 @@
+on:
+  push:
+    branches:
+      - 'publish_*'
+name: Build and Release Prereleases
+jobs:
+  build-and-create-release:
+    name: release
+    runs-on: ubuntu-latest
+    steps:
+      ###
+      ### Release the seaway controller container
+      ###
+      - name: setup qemu
+        uses: docker/setup-qemu-action@v3
+      - name: setup buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          platforms: linux/amd64,linux/arm64
+          buildkitd-config-inline: |
+            [worker.oci]
+              max-parallelism = 1
+      - name: login to dockerhub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ctxsh/seaway
+          tags: |
+            type=semver,pattern={{version}}
+      - name: build and push to dockerhub
+        uses: docker/build-push-action@v6
+        with:
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ctxsh/seaway:test
+          build-args: |
+            "VERSION=${{ steps.meta.outputs.version }}"
