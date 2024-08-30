@@ -20,12 +20,12 @@ spec:
       containers:
         - name: controller
           # TODO: Automatic update of version to the latest version during release?
-          image: docker.io/ctxsh/seaway:0.1.0-pre.9
+          image: docker.io/ctxsh/seaway:${SEAWAY_VERSION}
           imagePullPolicy: IfNotPresent
           securityContext:
-            runAsUser: 1000
-            runAsGroup: 1000
-            runAsNonRoot: true
+            runAsUser: 0
+            runAsGroup: 0
+            runAsNonRoot: false
           ports:
             - containerPort: 9090
           volumeMounts:
