@@ -1,5 +1,7 @@
 FROM golang:1.22 AS build
-ARG VERSION=0.0.0
+
+ARG VERSION=dev
+
 WORKDIR /usr/src/app
 COPY go.mod go.sum ./
 RUN go mod download
@@ -13,4 +15,4 @@ FROM scratch
 COPY --from=base /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=build /usr/src/app/dist/seaway /seaway
 
-CMD ["/seaway", "controller", "--log-level=3"]
+CMD ["/seaway", "controller", "--log-level=5"]
