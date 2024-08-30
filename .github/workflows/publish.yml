@@ -32,6 +32,7 @@ jobs:
           images: |
             ctxsh/seaway
           tags: |
+            type=ref,event=branch
             type=semver,pattern={{version}}
       - name: build and push to dockerhub
         uses: docker/build-push-action@v6
