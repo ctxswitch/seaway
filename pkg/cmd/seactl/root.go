@@ -16,19 +16,16 @@ package main
 
 import (
 	"ctx.sh/seaway/pkg/build"
-	"ctx.sh/seaway/pkg/cmd/seactl/deps"
-	"ctx.sh/seaway/pkg/cmd/seactl/env"
+	depscmd "ctx.sh/seaway/pkg/cmd/seactl/deps"
+	envcmd "ctx.sh/seaway/pkg/cmd/seactl/env"
+	initcmd "ctx.sh/seaway/pkg/cmd/seactl/init"
 	"github.com/spf13/cobra"
 )
 
 const (
 	RootUsage     = "seactl [command] [args...]"
-	RootShortDesc = "Build controller and image sync tool for kubernetes"
-	RootLongDesc  = `Coral is a build controller and image sync tool for kubernetes.  It
-provides components for watching source repositories for changes and building containers
-when changes and conditions are detected.  It also provides a tool for syncrhonizing the
-new images to nodes in a cluster based off of node labels bypassing the need for external
-registries.`
+	RootShortDesc = "CLI utility for managing Seaway development environments."
+	RootLongDesc  = `CLI utility for managing Seaway development environments.`
 	// TODO: Make these descriptions more informational.
 	DepsUsage     = "deps [subcommand] [context]"
 	DepsShortDesc = "Utility to manage application dependencies"
@@ -36,6 +33,9 @@ registries.`
 	EnvUsage      = "env [subcommand] [context]"
 	EnvShortDesc  = "Utility to manage development environments"
 	EnvLongDesc   = `Utility to manage development environments`
+	InitUsage     = "init [subcommand]"
+	InitShortDesc = "Utility to initialize Seaway resources"
+	InitLongDesc  = `Utility to initialize Seaway resources`
 )
 
 type Root struct{}
@@ -62,11 +62,12 @@ func (r *Root) Command() *cobra.Command {
 			_ = cmd.Help()
 		},
 		SilenceUsage:  true,
-		SilenceErrors: true,
+		SilenceErrors: false,
 	}
 
 	rootCmd.AddCommand(EnvCommand())
 	rootCmd.AddCommand(DepsCommand())
+	rootCmd.AddCommand(InitCommand())
 	return rootCmd
 }
 
@@ -82,8 +83,8 @@ func DepsCommand() *cobra.Command {
 		SilenceErrors: false,
 	}
 
-	cmd.AddCommand(deps.NewApply().Command())
-	cmd.AddCommand(deps.NewDelete().Command())
+	cmd.AddCommand(depscmd.NewApply().Command())
+	cmd.AddCommand(depscmd.NewDelete().Command())
 
 	return cmd
 }
@@ -100,7 +101,23 @@ func EnvCommand() *cobra.Command {
 		SilenceErrors: false,
 	}
 
-	cmd.AddCommand(env.NewSync().Command())
-	cmd.AddCommand(env.NewClean().Command())
+	cmd.AddCommand(envcmd.NewSync().Command())
+	cmd.AddCommand(envcmd.NewClean().Command())
+	return cmd
+}
+
+func InitCommand() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   InitUsage,
+		Short: InitShortDesc,
+		Long:  InitLongDesc,
+		Run: func(cmd *cobra.Command, args []string) {
+			_ = cmd.Help()
+		},
+		SilenceUsage:  true,
+		SilenceErrors: false,
+	}
+
+	cmd.AddCommand(initcmd.NewShared().Command())
 	return cmd
 }
