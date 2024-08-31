@@ -55,7 +55,7 @@ func (d *Deploy) Do(ctx context.Context, env *v1beta1.Environment, status *v1bet
 	if env.Spec.Networking != nil { //nolint:nestif
 		networking := env.Spec.Networking
 		svc := GetEnvironmentService(env, d.Scheme)
-		if networking.Ports != nil && len(networking.Ports) > 0 {
+		if len(networking.Ports) > 0 {
 			_, err := controllerutil.CreateOrUpdate(ctx, d.Client, &svc, func() error {
 				return buildService(&svc, env)
 			})
@@ -65,7 +65,7 @@ func (d *Deploy) Do(ctx context.Context, env *v1beta1.Environment, status *v1bet
 			}
 		}
 
-		if networking.Ports != nil && len(networking.Ports) > 0 && networking.Ingress.Enabled {
+		if len(networking.Ports) > 0 && networking.Ingress.Enabled {
 			ing := GetEnvironmentIngress(env, d.Scheme)
 			_, err := controllerutil.CreateOrUpdate(ctx, d.Client, &ing, func() error {
 				return buildIngress(&ing, env)
