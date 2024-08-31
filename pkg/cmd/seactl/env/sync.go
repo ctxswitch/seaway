@@ -25,12 +25,14 @@ import (
 	"time"
 
 	"ctx.sh/seaway/pkg/apis/seaway.ctx.sh/v1beta1"
+	"ctx.sh/seaway/pkg/auth"
 	"ctx.sh/seaway/pkg/console"
 	kube "ctx.sh/seaway/pkg/kube/client"
 	"ctx.sh/seaway/pkg/storage"
 	"github.com/minio/minio-go/v7"
 	"github.com/spf13/cobra"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
@@ -60,6 +62,25 @@ func (s *Sync) RunE(cmd *cobra.Command, args []string) error { //nolint:funlen,g
 		return fmt.Errorf("expected context name")
 	}
 
+	home, err := os.UserHomeDir()
+	if err != nil {
+		console.Fatal("Unable to determine user home directory")
+	}
+
+	var creds *auth.Credentials
+	filename := home + "/.seaway/creds"
+	if _, err := os.Stat(filename); err != nil {
+		creds, err = auth.NewCredentials(filename)
+		if err != nil {
+			console.Fatal("Unable to create credentials file: %v", err)
+		}
+	} else {
+		creds, err = auth.LoadCredentials(filename)
+		if err != nil {
+			console.Fatal("Unable to load credentials file: %v", err)
+		}
+	}
+
 	var manifest v1beta1.Manifest
 	if err := manifest.Load("manifest.yaml"); err != nil {
 		console.Fatal("Unable to load manifest")
@@ -71,7 +92,7 @@ func (s *Sync) RunE(cmd *cobra.Command, args []string) error { //nolint:funlen,g
 	}
 
 	store := storage.NewClient(env.Source.S3.GetEndpoint(), env.Source.S3.UseSSL())
-	mc, err := store.Connect(ctx, nil)
+	mc, err := store.Connect(ctx, creds)
 	if err != nil {
 		console.Fatal("Unable to connect to object storage: %s", err)
 	}
@@ -103,11 +124,25 @@ func (s *Sync) RunE(cmd *cobra.Command, args []string) error { //nolint:funlen,g
 		console.Fatal("error getting seaway client: %s", err.Error())
 	}
 
-	obj := GetEnvironment(manifest.Name, env.Namespace)
+	secret := GetSecret(manifest.Name, env.Namespace)
+	_, err = client.CreateOrUpdate(ctx, secret, func() error {
+		secret.StringData = map[string]string{
+			"AWS_ACCESS_KEY_ID":     creds.GetAccessKey(),
+			"AWS_SECRET_ACCESS_KEY": creds.GetSecretKey(),
+		}
+		return nil
+	})
+	if err != nil {
+		console.Fatal("error modifying secret: %s", err.Error())
+	}
 
+	obj := GetEnvironment(manifest.Name, env.Namespace)
 	op, err := client.CreateOrUpdate(ctx, obj, func() error {
 		env.EnvironmentSpec.DeepCopyInto(&obj.Spec)
 		obj.Spec.Revision = info.ETag
+		obj.Spec.Source.S3.Credentials = &corev1.LocalObjectReference{
+			Name: secret.GetName(),
+		}
 		return nil
 	})
 	if err != nil {
@@ -174,6 +209,19 @@ func GetEnvironment(name, namespace string) *v1beta1.Environment {
 	env.SetGroupVersionKind(v1beta1.SchemeGroupVersion.WithKind("Environment"))
 
 	return env
+}
+
+// GetSecret returns a new secret containing the credentials.
+func GetSecret(name, namespace string) *corev1.Secret {
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name + "-user",
+			Namespace: namespace,
+		},
+	}
+	secret.SetGroupVersionKind(corev1.SchemeGroupVersion.WithKind("Secret"))
+
+	return secret
 }
 
 // create builds the tar/gzip archive that will be uploaded to the object storage.

@@ -22,8 +22,6 @@ environments:
       s3:
         endpoint: minio.minio.svc.cluster.local:80
         localPort: 8080
-        credentials:
-          name: seaway-user
         bucket: seaway
     # networking:
     #   ports:
