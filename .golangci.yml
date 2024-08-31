@@ -39,7 +39,7 @@ linters:
     # - depguard
     - errcheck
     # - exhaustive
-    - exportloopref
+    - copyloopvar
     - forbidigo
     - funlen
     - gochecknoglobals
@@ -57,7 +57,6 @@ linters:
     - govet
     - ineffassign
     - lll
-    - megacheck
     - misspell
     - nakedret
     - nestif

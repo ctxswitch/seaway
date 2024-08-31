@@ -69,7 +69,9 @@ func (s *Sync) RunE(cmd *cobra.Command, args []string) error { //nolint:funlen,g
 
 	var creds *auth.Credentials
 	filename := home + "/.seaway/creds"
-	if _, err := os.Stat(filename); err != nil {
+
+	_, err = os.Stat(filename)
+	if err != nil {
 		creds, err = auth.NewCredentials(filename)
 		if err != nil {
 			console.Fatal("Unable to create credentials file: %v", err)
@@ -82,7 +84,8 @@ func (s *Sync) RunE(cmd *cobra.Command, args []string) error { //nolint:funlen,g
 	}
 
 	var manifest v1beta1.Manifest
-	if err := manifest.Load("manifest.yaml"); err != nil {
+	err = manifest.Load("manifest.yaml")
+	if err != nil {
 		console.Fatal("Unable to load manifest")
 	}
 
