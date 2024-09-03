@@ -89,7 +89,8 @@ func (b *Builder) buildJob() *batchv1.Job { //nolint:funlen
 			// TODO: Allow secure as well based on the registry uri parsing.
 			"--insecure",
 			"--insecure-pull",
-			"--verbosity=trace",
+			// TODO: Make this configurable
+			"--verbosity=info",
 		}
 	}
 
@@ -129,8 +130,8 @@ func (b *Builder) buildJob() *batchv1.Job { //nolint:funlen
 
 	spec := batchv1.JobSpec{
 		// TODO: ttl, activedeadline and backoff should be configurable
-		TTLSecondsAfterFinished: ptr.To(int32(600)),
-		ActiveDeadlineSeconds:   ptr.To(int64(300)),
+		TTLSecondsAfterFinished: ptr.To(int32(3600)),
+		ActiveDeadlineSeconds:   ptr.To(int64(600)),
 		BackoffLimit:            ptr.To(int32(1)),
 		PodFailurePolicy: &batchv1.PodFailurePolicy{
 			Rules: []batchv1.PodFailurePolicyRule{
@@ -147,8 +148,9 @@ func (b *Builder) buildJob() *batchv1.Job { //nolint:funlen
 		Template: corev1.PodTemplateSpec{
 			ObjectMeta: metav1.ObjectMeta{
 				Labels: map[string]string{
-					"app":  env.GetName(),
-					"etag": env.GetRevision(),
+					"app":   env.GetName(),
+					"etag":  env.GetRevision(),
+					"group": "build",
 				},
 			},
 			Spec: corev1.PodSpec{
@@ -207,13 +209,15 @@ func (b *Builder) buildDeployment() *appsv1.Deployment {
 		Replicas: env.Spec.Replicas,
 		Selector: &metav1.LabelSelector{
 			MatchLabels: map[string]string{
-				"app": env.GetName(),
+				"app":   env.GetName(),
+				"group": "application",
 			},
 		},
 		Template: corev1.PodTemplateSpec{
 			ObjectMeta: metav1.ObjectMeta{
 				Labels: map[string]string{
-					"app": env.GetName(),
+					"app":   env.GetName(),
+					"group": "application",
 				},
 			},
 			Spec: corev1.PodSpec{
@@ -259,7 +263,8 @@ func (b *Builder) buildService() *corev1.Service {
 	spec := corev1.ServiceSpec{
 		Ports: ports,
 		Selector: map[string]string{
-			"app": env.GetName(),
+			"app":   env.GetName(),
+			"group": "application",
 		},
 		Type: corev1.ServiceTypeClusterIP,
 	}
