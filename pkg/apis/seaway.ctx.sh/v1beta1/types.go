@@ -91,7 +91,7 @@ type EnvironmentStore struct {
 	LocalPort *int32 `json:"localPort" yaml:"localPort"`
 }
 
-type EnvironmentBuildSpec struct {
+type EnvironmentBuild struct {
 	// Args are the command arguments that will be passed to the build job.
 	// +optional
 	// +nullable
@@ -155,7 +155,7 @@ type EnvironmentSpec struct {
 	Args []string `json:"args" yaml:"args"`
 	// Build is the build spec for the environment.
 	// +optional
-	Build *EnvironmentBuildSpec `json:"build" yaml:"build"`
+	Build *EnvironmentBuild `json:"build" yaml:"build"`
 	// Command is the command that will be used to start the deployed application.
 	// +optional
 	// +nullable

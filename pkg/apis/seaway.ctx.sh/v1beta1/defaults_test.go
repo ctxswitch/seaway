@@ -17,7 +17,7 @@ func TestDefaulted(t *testing.T) {
 		},
 		Spec: EnvironmentSpec{
 			Args: []string{},
-			Build: &EnvironmentBuildSpec{
+			Build: &EnvironmentBuild{
 				Dockerfile: ptr.To(DefaultDockerfile),
 				Image:      ptr.To(DefaultBuildImage),
 				Platform:   ptr.To(DefaultPlatform),

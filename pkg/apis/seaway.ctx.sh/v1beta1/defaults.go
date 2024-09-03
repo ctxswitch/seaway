@@ -85,9 +85,9 @@ func defaultEnvironmentVars(obj *EnvironmentVars) *EnvironmentVars {
 	return obj
 }
 
-func defaultEnvironmentBuild(obj *EnvironmentBuildSpec) *EnvironmentBuildSpec {
+func defaultEnvironmentBuild(obj *EnvironmentBuild) *EnvironmentBuild {
 	if obj == nil {
-		obj = new(EnvironmentBuildSpec)
+		obj = new(EnvironmentBuild)
 	}
 
 	// RegistryRef is required.
