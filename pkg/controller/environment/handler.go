@@ -53,7 +53,10 @@ func (h *Handler) reconcile(ctx context.Context) (ctrl.Result, error) {
 		env.Status.Stage = v1beta1.EnvironmentStageInitialize
 	case env.IsDeployed():
 		logger.V(5).Info("handling reconciliation for existing revision")
-		env.Status.Stage = v1beta1.EnvironmentStageDeploy
+		// env.Status.Stage = v1beta1.EnvironmentStageDeploy
+		// TODO: Think about how we can handle a redeploy if only the env resources
+		// have changed and not the image itself.  Might want to add a manifest hash.
+		return ctrl.Result{}, nil
 	}
 
 	status := env.Status.DeepCopy()

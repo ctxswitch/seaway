@@ -19,6 +19,7 @@ import (
 	depscmd "ctx.sh/seaway/pkg/cmd/seactl/deps"
 	envcmd "ctx.sh/seaway/pkg/cmd/seactl/env"
 	initcmd "ctx.sh/seaway/pkg/cmd/seactl/init"
+	"ctx.sh/seaway/pkg/cmd/seactl/logs"
 	"github.com/spf13/cobra"
 )
 
@@ -36,6 +37,9 @@ const (
 	InitUsage     = "init [subcommand]"
 	InitShortDesc = "Utility to initialize Seaway resources"
 	InitLongDesc  = `Utility to initialize Seaway resources`
+	LogsUsage     = "logs [subcommand]"
+	LogsShortDesc = "Utility to stream logs from the development environment"
+	LogsLongDesc  = `Utility to stream logs from the development environment`
 )
 
 type Root struct{}
@@ -68,6 +72,7 @@ func (r *Root) Command() *cobra.Command {
 	rootCmd.AddCommand(EnvCommand())
 	rootCmd.AddCommand(DepsCommand())
 	rootCmd.AddCommand(InitCommand())
+	rootCmd.AddCommand(LogsCommand())
 
 	rootCmd.PersistentFlags().StringP("context", "", "", "set the Kubernetes context")
 	return rootCmd
@@ -121,5 +126,22 @@ func InitCommand() *cobra.Command {
 	}
 
 	cmd.AddCommand(initcmd.NewShared().Command())
+	return cmd
+}
+
+func LogsCommand() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   LogsUsage,
+		Short: LogsShortDesc,
+		Long:  LogsLongDesc,
+		Run: func(cmd *cobra.Command, args []string) {
+			_ = cmd.Help()
+		},
+		SilenceUsage:  true,
+		SilenceErrors: false,
+	}
+
+	cmd.AddCommand(logs.NewAppLogs().Command())
+	cmd.AddCommand(logs.NewBuildLogs().Command())
 	return cmd
 }
