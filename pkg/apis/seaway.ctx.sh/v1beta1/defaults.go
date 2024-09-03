@@ -18,11 +18,11 @@ import (
 	"runtime"
 
 	corev1 "k8s.io/api/core/v1"
-	networkingv1 "k8s.io/api/networking/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
+	DefaultReplicas          = 1
 	DefaultBucket            = "seaway"
 	DefaultRegion            = "us-east-1"
 	DefaultEndpoint          = "http://localhost:80"
@@ -46,18 +46,30 @@ func defaultEnvironment(obj *Environment) {
 }
 
 func defaultEnvironmentSpec(obj *EnvironmentSpec) {
-	if obj.Replicas == nil {
-		obj.Replicas = new(int32)
-		*obj.Replicas = 1
+	if obj == nil {
+		obj = new(EnvironmentSpec)
 	}
 
-	defaultEnvironmentVars(&obj.Vars)
-	defaultEnvironmentSource(obj.Source)
-	defaultEnvironmentBuild(obj.Build)
-	defaultEnvironmentNetworking(obj.Networking)
+	if obj.Args == nil {
+		obj.Args = []string{}
+	}
+
+	if obj.Resources == nil {
+		obj.Resources = EnvironmentResources{}
+	}
+
+	if obj.Replicas == nil {
+		obj.Replicas = new(int32)
+		*obj.Replicas = DefaultReplicas
+	}
+
+	obj.Vars = defaultEnvironmentVars(obj.Vars)
+	obj.Source = defaultEnvironmentSource(obj.Source)
+	obj.Build = defaultEnvironmentBuild(obj.Build)
+	obj.Networking = defaultEnvironmentNetworking(obj.Networking)
 }
 
-func defaultEnvironmentVars(obj *EnvironmentVars) {
+func defaultEnvironmentVars(obj *EnvironmentVars) *EnvironmentVars {
 	if obj == nil {
 		obj = new(EnvironmentVars)
 	}
@@ -69,17 +81,21 @@ func defaultEnvironmentVars(obj *EnvironmentVars) {
 	if obj.EnvFrom == nil {
 		obj.EnvFrom = []corev1.EnvFromSource{}
 	}
+
+	return obj
 }
 
-func defaultEnvironmentSource(obj *EnvironmentSource) {
+func defaultEnvironmentSource(obj *EnvironmentSource) *EnvironmentSource {
 	if obj == nil {
 		obj = new(EnvironmentSource)
 	}
 
-	defaultEnvironmentS3Spec(&obj.S3)
+	obj.S3 = defaultEnvironmentS3Spec(obj.S3)
+
+	return obj
 }
 
-func defaultEnvironmentBuild(obj *EnvironmentBuildSpec) {
+func defaultEnvironmentBuild(obj *EnvironmentBuildSpec) *EnvironmentBuildSpec {
 	if obj == nil {
 		obj = new(EnvironmentBuildSpec)
 	}
@@ -108,10 +124,10 @@ func defaultEnvironmentBuild(obj *EnvironmentBuildSpec) {
 		obj.Exclude = []string{}
 	}
 
-	defaultEnvironmentVars(&obj.Vars)
+	return obj
 }
 
-func defaultEnvironmentS3Spec(obj *EnvironmentS3Spec) {
+func defaultEnvironmentS3Spec(obj *EnvironmentS3Spec) *EnvironmentS3Spec {
 	if obj == nil {
 		obj = new(EnvironmentS3Spec)
 	}
@@ -136,20 +152,15 @@ func defaultEnvironmentS3Spec(obj *EnvironmentS3Spec) {
 		*obj.ForcePathStyle = DefaultForcePathStyle
 	}
 
-	// TODO: don't default credentials.  Allow access without them for cases of
-	// kiam or other SA based access.
-	if obj.Credentials == nil {
-		obj.Credentials = new(corev1.LocalObjectReference)
-		obj.Credentials.Name = DefaultCredentialsSecret
-	}
-
 	if obj.Prefix == nil {
 		obj.Prefix = new(string)
 		*obj.Prefix = DefaultPrefix
 	}
+
+	return obj
 }
 
-func defaultEnvironmentNetworking(obj *EnvironmentNetworking) {
+func defaultEnvironmentNetworking(obj *EnvironmentNetworking) *EnvironmentNetworking {
 	if obj == nil {
 		obj = new(EnvironmentNetworking)
 	}
@@ -158,17 +169,35 @@ func defaultEnvironmentNetworking(obj *EnvironmentNetworking) {
 		obj.Ports = []EnvironmentPort{}
 	}
 
-	if obj.Ingress != nil {
-		defaultEnvironmentIngress(obj.Ingress)
+	for _, port := range obj.Ports {
+		defaultEnvironmentPort(&port)
 	}
+
+	obj.Ingress = defaultEnvironmentIngress(obj.Ingress)
+
+	return obj
 }
 
-func defaultEnvironmentIngress(obj *EnvironmentIngress) {
+func defaultEnvironmentPort(obj *EnvironmentPort) *EnvironmentPort {
+	if obj == nil {
+		obj = new(EnvironmentPort)
+	}
+
+	if obj.Protocol == "" {
+		obj.Protocol = corev1.ProtocolTCP
+	}
+
+	return obj
+}
+
+func defaultEnvironmentIngress(obj *EnvironmentIngress) *EnvironmentIngress {
+	if obj == nil {
+		obj = new(EnvironmentIngress)
+	}
+
 	if obj.Annotations == nil {
 		obj.Annotations = map[string]string{}
 	}
 
-	if obj.TLS == nil {
-		obj.TLS = []networkingv1.IngressTLS{}
-	}
+	return obj
 }

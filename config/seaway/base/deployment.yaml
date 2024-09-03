@@ -28,6 +28,7 @@ spec:
             runAsNonRoot: false
           ports:
             - containerPort: 9090
+            - containerPort: 9443
           volumeMounts:
             - name: tls
               mountPath: "/etc/webhook/tls"

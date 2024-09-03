@@ -16,6 +16,7 @@ package main
 
 import (
 	"crypto/tls"
+	"net/url"
 	"os"
 
 	"ctx.sh/seaway/pkg/apis/seaway.ctx.sh/v1beta1"
@@ -109,9 +110,15 @@ func (c *Controller) RunE(cmd *cobra.Command, args []string) error {
 		os.Exit(1)
 	}
 
+	registry, err := url.Parse(c.registryURL)
+	if err != nil {
+		log.Error(err, "unable to parse registry url")
+		os.Exit(1)
+	}
+
 	// Register controllers.
 	if err = controller.SetupWithManager(mgr, &controller.Options{
-		RegistryURL:      c.registryURL,
+		RegistryURL:      registry,
 		RegistryNodePort: c.registryNodePort,
 	}); err != nil {
 		log.Error(err, "unable to setup seaway controllers")

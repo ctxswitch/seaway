@@ -14,7 +14,12 @@
 
 package v1beta1
 
-import "fmt"
+import (
+	"fmt"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
+)
 
 // GetKey returns the key for the archive object in the S3 bucket.
 func (e *Environment) GetKey() string {
@@ -33,7 +38,7 @@ func (e *Environment) GetRevision() string {
 
 // HasFailed returns true if the environment has failed to build or deploy.
 func (e *Environment) HasFailed() bool {
-	return e.Status.Stage == EnvironmentBuildJobFailed || e.Status.Stage == EnvironmentDeploymentFailed
+	return e.Status.Stage == EnvironmentStageBuildImageFailed || e.Status.Stage == EnvironmentStageDeployFailed
 }
 
 // IsDeployed returns true if the environment has been deployed.  At the end of the
@@ -41,11 +46,23 @@ func (e *Environment) HasFailed() bool {
 // successfully deployed revision so we can check to see if the spec revision matches
 // the deployed revision in the status.
 func (e *Environment) IsDeployed() bool {
-	return e.Status.DeployedRevision == e.Spec.Revision
+	return e.Status.DeployedRevision == e.GetRevision()
 }
 
 // HasDeviated returns true if the configured revision has deviated from the deployed
 // revision.
 func (e *Environment) HasDeviated() bool {
-	return e.Status.ExpectedRevision != "" && e.Status.ExpectedRevision != e.Spec.Revision
+	return e.Status.ExpectedRevision != "" && e.Status.ExpectedRevision != e.GetRevision()
+}
+
+// GetControllerReference returns the controller reference for the environment.
+func (e *Environment) GetControllerReference() metav1.OwnerReference {
+	return metav1.OwnerReference{
+		APIVersion:         e.APIVersion,
+		Kind:               e.Kind,
+		Name:               e.GetName(),
+		UID:                e.GetUID(),
+		Controller:         ptr.To(true),
+		BlockOwnerDeletion: ptr.To(false),
+	}
 }
