@@ -56,7 +56,8 @@ func (c Clean) RunE(cmd *cobra.Command, args []string) error {
 	}
 
 	var manifest v1beta1.Manifest
-	if err := manifest.Load("manifest.yaml"); err != nil {
+	err = manifest.Load("manifest.yaml")
+	if err != nil {
 		console.Fatal("Unable to load manifest")
 	}
 
