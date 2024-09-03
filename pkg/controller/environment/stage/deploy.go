@@ -79,7 +79,7 @@ func (d *Deploy) Do(ctx context.Context, status *v1beta1.EnvironmentStatus) (v1b
 }
 
 func (d *Deploy) delete(ctx context.Context, obj client.Object) error {
-	if obj == nil || reflect.ValueOf(obj) == reflect.Zero(reflect.TypeOf(obj)) {
+	if obj == nil || reflect.ValueOf(obj) == reflect.Zero(reflect.TypeOf(obj)) { //nolint:govet
 		return nil
 	}
 
