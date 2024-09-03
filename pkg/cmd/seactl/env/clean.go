@@ -44,6 +44,8 @@ func NewClean() *Clean {
 // and objects associated with a development environment.
 // TODO: Implement the clean command.
 func (c Clean) RunE(cmd *cobra.Command, args []string) error {
+	kubeContext := cmd.Root().Flags().Lookup("context").Value.String()
+
 	ctx := ctrl.SetupSignalHandler()
 
 	if len(args) != 1 {
@@ -68,7 +70,7 @@ func (c Clean) RunE(cmd *cobra.Command, args []string) error {
 
 	console.Info("Cleaning environment '%s'", env.Name)
 
-	client, err := kube.NewSeawayClient("", "")
+	client, err := kube.NewSeawayClient("", kubeContext)
 	if err != nil {
 		console.Fatal(err.Error())
 	}

@@ -33,7 +33,6 @@ const (
 
 type Shared struct {
 	logLevel        int8
-	context         string
 	enableTailscale bool
 }
 
@@ -46,6 +45,8 @@ func NewShared() *Shared {
 // keep the install as simple as possible for users.  In the future, there will
 // be no external dependencies and the install will be done completely by seactl.
 func (s *Shared) RunE(cmd *cobra.Command, args []string) error {
+	kubeContext := cmd.Root().Flags().Lookup("context").Value.String()
+
 	if _, err := exec.LookPath("kubectl"); err != nil {
 		console.Fatal("kubectl is not installed")
 	}
@@ -93,7 +94,7 @@ func (s *Shared) RunE(cmd *cobra.Command, args []string) error {
 		console.Fatal("Unable to set MINIO_ROOT_PASSWORD")
 	}
 
-	if err := os.Setenv("CONTEXT", "--context="+s.context); err != nil {
+	if err := os.Setenv("CONTEXT", "--context="+kubeContext); err != nil {
 		console.Fatal("Unable to set CONTEXT")
 	}
 
@@ -130,7 +131,6 @@ func (s *Shared) Command() *cobra.Command {
 	}
 
 	cmd.PersistentFlags().Int8VarP(&s.logLevel, "log-level", "", DefaultLogLevel, "set the log level (integer value)")
-	cmd.PersistentFlags().StringVarP(&s.context, "context", "c", "", "specify the kubernetes context to use")
 	cmd.PersistentFlags().BoolVarP(&s.enableTailscale, "enable-tailscale", "", false, "enable tailscale ingress controller on the cluster")
 	return cmd
 }
