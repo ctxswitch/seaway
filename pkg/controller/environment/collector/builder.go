@@ -47,9 +47,9 @@ func (b *Builder) desired(d *DesiredState) error {
 	d.Job = b.buildJob()
 	d.Deployment = b.buildDeployment()
 
-	if len(env.Spec.Networking.Ports) > 0 {
+	if env.Spec.Network.Service.Enabled {
 		d.Service = b.buildService()
-		if env.Spec.Networking.Ingress.Enabled {
+		if env.Spec.Network.Ingress.Enabled {
 			d.Ingress = b.buildIngress()
 		}
 	}
@@ -250,14 +250,20 @@ func (b *Builder) buildService() *corev1.Service {
 		},
 	}
 
-	ports := make([]corev1.ServicePort, 0, len(env.Spec.Networking.Ports))
-	for _, port := range env.Spec.Networking.Ports {
-		ports = append(ports, corev1.ServicePort{
+	ports := make([]corev1.ServicePort, 0, len(env.Spec.Network.Service.Ports))
+	for _, port := range env.Spec.Network.Service.Ports {
+		servicePort := corev1.ServicePort{
 			Name:       port.Name,
 			Protocol:   port.Protocol,
 			Port:       port.Port,
 			TargetPort: intstr.FromInt32(port.Port),
-		})
+		}
+
+		if port.NodePort > 0 {
+			servicePort.NodePort = port.NodePort
+		}
+
+		ports = append(ports, servicePort)
 	}
 
 	spec := corev1.ServiceSpec{
@@ -267,6 +273,10 @@ func (b *Builder) buildService() *corev1.Service {
 			"group": "application",
 		},
 		Type: corev1.ServiceTypeClusterIP,
+	}
+
+	if env.Spec.Network.Service.ExternalName != nil {
+		spec.ExternalName = *env.Spec.Network.Service.ExternalName
 	}
 
 	return &corev1.Service{
@@ -288,37 +298,47 @@ func (b *Builder) buildIngress() *networkingv1.Ingress {
 		Namespace: env.Namespace,
 		Annotations: mergeMap(map[string]string{
 			"seaway.ctx.sh/revision": env.GetRevision(),
-		}, env.Spec.Networking.Ingress.Annotations),
+		}, env.Spec.Network.Ingress.Annotations),
 		Labels: ingress.Labels,
 		OwnerReferences: []metav1.OwnerReference{
 			env.GetControllerReference(),
 		},
 	}
 
-	backend := &networkingv1.IngressBackend{}
-	// TODO: Messy.  Don't like the coupling here.
-	if env.Spec.Networking.Ingress.Enabled && len(env.Spec.Networking.Ports) != 0 {
-		backend.Service = &networkingv1.IngressServiceBackend{
+	backend := &networkingv1.IngressBackend{
+		Service: &networkingv1.IngressServiceBackend{
 			Name: env.GetName(),
 			Port: networkingv1.ServiceBackendPort{
 				// TODO: Right now just take the first port. I need to allow building out for
 				// multiple ports in the future, but for a quick and dirty implementation,
 				// this will work for now.  Just doc it and move on.
-				Number: env.Spec.Networking.Ports[0].Port,
+				Number: *env.Spec.Network.Ingress.Port,
 			},
-		}
+		},
 	}
+	// TODO: Messy.  Don't like the coupling here.
+	// if env.Spec.Networking.Ingress.Enabled && env.Spec.Networking.Service.Enabled {
+	// 	backend.Service = &networkingv1.IngressServiceBackend{
+	// 		Name: env.GetName(),
+	// 		Port: networkingv1.ServiceBackendPort{
+	// 			// TODO: Right now just take the first port. I need to allow building out for
+	// 			// multiple ports in the future, but for a quick and dirty implementation,
+	// 			// this will work for now.  Just doc it and move on.
+	// 			Number: *env.Spec.Networking.Ingress.Port,
+	// 		},
+	// 	}
+	// }
 
 	spec := networkingv1.IngressSpec{
 		DefaultBackend: backend,
 	}
 
-	if env.Spec.Networking.Ingress.ClassName != nil {
-		spec.IngressClassName = env.Spec.Networking.Ingress.ClassName
+	if env.Spec.Network.Ingress.ClassName != nil {
+		spec.IngressClassName = env.Spec.Network.Ingress.ClassName
 	}
 
-	if env.Spec.Networking.Ingress.TLS != nil {
-		spec.TLS = env.Spec.Networking.Ingress.TLS
+	if env.Spec.Network.Ingress.TLS != nil {
+		spec.TLS = env.Spec.Network.Ingress.TLS
 	}
 
 	return &networkingv1.Ingress{

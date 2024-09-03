@@ -22,24 +22,29 @@ spec:
     - ^entrypoint.sh
     - ^requirements.txt
     platform: linux/arm64
-  networking:
-    # Even though ingress is set because there are no ports defined,
-    # the ingress will not be created.
+  network:
+    # Even though ingress is set because there the service is disabled, so the
+    # ingress will not be created.
     ingress:
       enabled: true
+      className: tailscale
+      tls:
+      - hosts:
+        - test
+    service:
+      enabled: false
   replicas: 1
   resources:
     cpu: 100m
     memory: 1Gi
   revision: 35aa10a4f94a71582dad23d54a19f9e8
-  source:
-    s3:
-      bucket: seaway
-      endpoint: minio.minio.svc.cluster.local:80
-      forcePathStyle: true
-      localPort: 8080
-      prefix: artifacts
-      region: us-east-1
+  store:
+    bucket: seaway
+    endpoint: minio.minio.svc.cluster.local:80
+    forcePathStyle: true
+    localPort: 8080
+    prefix: artifacts
+    region: us-east-1
   vars:
     env:
     - name: ENV
