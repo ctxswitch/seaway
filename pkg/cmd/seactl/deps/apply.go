@@ -45,6 +45,8 @@ func NewApply() *Apply {
 
 // RunE generates and applies the dependencies for a development environment.
 func (a *Apply) RunE(cmd *cobra.Command, args []string) error {
+	kubeContext := cmd.Root().Flags().Lookup("context").Value.String()
+
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
 
@@ -63,7 +65,7 @@ func (a *Apply) RunE(cmd *cobra.Command, args []string) error {
 		console.Fatal("Build environment '%s' not found in the manifest", args[0])
 	}
 
-	client, err := kube.NewSeawayClient("", "")
+	client, err := kube.NewSeawayClient("", kubeContext)
 	if err != nil {
 		console.Fatal(err.Error())
 	}

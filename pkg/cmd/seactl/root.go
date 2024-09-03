@@ -68,6 +68,8 @@ func (r *Root) Command() *cobra.Command {
 	rootCmd.AddCommand(EnvCommand())
 	rootCmd.AddCommand(DepsCommand())
 	rootCmd.AddCommand(InitCommand())
+
+	rootCmd.PersistentFlags().StringP("context", "", "", "set the Kubernetes context")
 	return rootCmd
 }
 

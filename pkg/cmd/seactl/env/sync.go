@@ -53,6 +53,8 @@ func NewSync() *Sync {
 // object storage and creates or updates the development environment.
 // TODO: address the linting issues.
 func (s *Sync) RunE(cmd *cobra.Command, args []string) error { //nolint:funlen,gocognit
+	kubeContext := cmd.Root().Flags().Lookup("context").Value.String()
+
 	ctx := ctrl.SetupSignalHandler()
 
 	if len(args) != 1 {
@@ -103,7 +105,7 @@ func (s *Sync) RunE(cmd *cobra.Command, args []string) error { //nolint:funlen,g
 	console.Notice("ETag: %s", info.ETag)
 
 	console.Info("Updating environment")
-	client, err := kube.NewSeawayClient("", "")
+	client, err := kube.NewSeawayClient("", kubeContext)
 	if err != nil {
 		console.Fatal("error getting seaway client: %s", err.Error())
 	}
