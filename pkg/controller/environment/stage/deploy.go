@@ -18,7 +18,6 @@ type operation string
 const (
 	OperationCreate operation = "create"
 	OperationUpdate operation = "update"
-	OperationDelete operation = "delete"
 	OperationNone   operation = "no changes"
 )
 
