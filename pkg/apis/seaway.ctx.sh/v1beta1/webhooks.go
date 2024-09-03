@@ -36,6 +36,7 @@ func (e *Environment) SetupWebhookWithManager(mgr ctrl.Manager) error {
 func (e *Environment) Validate() (admission.Warnings, error) {
 	warnings := make([]string, 0)
 
+	// TODO: validate hostnames for ingress TLS
 	return warnings, nil
 }
 

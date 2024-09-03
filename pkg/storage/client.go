@@ -26,6 +26,8 @@ import (
 type Client struct {
 	Endpoint string
 	UseSSL   bool
+
+	client *minio.Client
 }
 
 // NewClient creates a new client.
@@ -40,8 +42,8 @@ func NewClient(endpoint string, useSSL bool) *Client {
 // Connect creates a connection to the S3 storage service.  It's only really
 // been tested against Minio, but in theory should work with any S3-compatible
 // service as long as the configuration is correct.
-func (c *Client) Connect(ctx context.Context, creds *auth.Credentials) (*minio.Client, error) {
-	return minio.New(c.Endpoint, &minio.Options{
+func (c *Client) Connect(ctx context.Context, creds *auth.Credentials) error {
+	client, err := minio.New(c.Endpoint, &minio.Options{
 		Creds:  credentials.NewStaticV4(creds.GetAccessKey(), creds.GetSecretKey(), ""),
 		Secure: c.UseSSL,
 		// TODO: Add region support.
@@ -50,4 +52,41 @@ func (c *Client) Connect(ctx context.Context, creds *auth.Credentials) (*minio.C
 		// TODO: Add bucket lookup support.
 		// TODO: Add trailing headers support.
 	})
+	if err != nil {
+		return err
+	}
+	c.client = client
+
+	return nil
 }
+
+// CreateBucketIfNotExists creates a bucket if it doesn't already exist.
+func (c *Client) CreateBucketIfNotExists(ctx context.Context, client *minio.Client, bucket string) error {
+	ok, err := c.client.BucketExists(ctx, bucket)
+	if err != nil {
+		return err
+	}
+
+	if ok {
+		return nil
+	}
+
+	return c.client.MakeBucket(ctx, bucket, minio.MakeBucketOptions{
+		ObjectLocking: false,
+		Region:        "",
+	})
+}
+
+func (c *Client) PutObject(ctx context.Context, bucket, key string, file string) (minio.UploadInfo, error) {
+	err := c.CreateBucketIfNotExists(ctx, c.client, bucket)
+	if err != nil {
+		return minio.UploadInfo{}, err
+	}
+
+	return c.client.FPutObject(ctx, bucket, key, file, minio.PutObjectOptions{})
+}
+
+// info, err := mc.FPutObject(ctx, bucket, key, archive, minio.PutObjectOptions{})
+// 	if err != nil {
+// 		console.Fatal("Unable to upload the archive: %s", err)
+// 	}

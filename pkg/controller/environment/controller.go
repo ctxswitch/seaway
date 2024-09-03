@@ -16,12 +16,11 @@ package environment
 
 import (
 	"context"
-	"reflect"
-	"time"
+	"net/url"
 
 	"ctx.sh/seaway/pkg/apis/seaway.ctx.sh/v1beta1"
-	"ctx.sh/seaway/pkg/controller/environment/stage"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"ctx.sh/seaway/pkg/controller/environment/collector"
+	"ctx.sh/seaway/pkg/registry"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -33,12 +32,12 @@ import (
 type Controller struct {
 	Scheme           *runtime.Scheme
 	Recorder         record.EventRecorder
-	RegistryURL      string
+	RegistryURL      *url.URL
 	RegistryNodePort int32
 	client.Client
 }
 
-func SetupWithManager(mgr ctrl.Manager, regURL string, regNodePort int32) (err error) {
+func SetupWithManager(mgr ctrl.Manager, regURL *url.URL, regNodePort int32) (err error) {
 	c := &Controller{
 		Scheme:           mgr.GetScheme(),
 		Client:           mgr.GetClient(),
@@ -72,93 +71,30 @@ func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	logger := log.FromContext(ctx)
 	logger.V(5).Info("reconciling development environment")
 
-	env := &v1beta1.Environment{}
-	err := c.Get(ctx, req.NamespacedName, env)
-	if err != nil {
-		if client.IgnoreNotFound(err) == nil {
-			logger.V(5).Info("environment was deleted")
-			return ctrl.Result{}, nil
-		}
-		logger.Error(err, "unable to get environment")
+	var collection collector.Collection
+
+	sc := &collector.StateCollector{
+		Client:           c.Client,
+		Scheme:           c.Scheme,
+		RegistryNodePort: c.RegistryNodePort,
+		RegistryURL:      c.RegistryURL,
+	}
+	if err := sc.ObserveAndBuild(ctx, req, &collection); err != nil {
 		return ctrl.Result{}, err
 	}
 
-	v1beta1.Defaulted(env)
-	// No finalizer support for now.
-
-	logger = logger.WithValues("revision", env.Spec.Revision)
-	ctx = log.IntoContext(ctx, logger)
-
-	// There's probably a cleaner way to handle the initial checks here.
-	switch {
-	case env.HasDeviated():
-		logger.Info("environment been updated, redeploying")
-		env.Status.Stage = v1beta1.EnvironmentStageInitialize
-	case env.HasFailed():
-		logger.Info("environment has failed, skipping")
-		return ctrl.Result{}, nil
-	case env.IsDeployed():
-		logger.Info("environment is deployed", "revision", env.Spec.Revision)
+	if collection.Observed.Env == nil {
+		logger.Info("environment was deleted")
 		return ctrl.Result{}, nil
 	}
 
-	status := env.Status.DeepCopy()
-	stage := status.Stage
+	reg := registry.NewClient(registry.NewHTTPClient()).WithRegistry(c.RegistryURL)
 
-	// TODO: Think about retry also need to wrap a timeout from the last status update.
-	reconciler := c.getReconciler(stage)
-	next, err := reconciler.Do(ctx, env, status)
-	status.Stage = next
-
-	c.updateStatus(ctx, env, status)
-
-	if err != nil {
-		logger.Error(err, "unable to reconcile environment", "next", next, "status", status)
-		return ctrl.Result{}, err
+	handler := &Handler{
+		collection: &collection,
+		client:     c.Client,
+		registry:   reg,
 	}
 
-	if stage == v1beta1.EnvironmentRevisionDeployed {
-		logger.Info("environment deployed", "revision", env.Spec.Revision)
-		return ctrl.Result{}, err
-	} else {
-		return ctrl.Result{RequeueAfter: 1 * time.Second}, err
-	}
-}
-
-func (c *Controller) getReconciler(current v1beta1.EnvironmentStage) stage.Reconciler {
-	switch current {
-	case v1beta1.EnvironmentStageInitialize:
-		return stage.NewInitialize(c.Client, c.Scheme)
-	case v1beta1.EnvironmentCheckBuildJob:
-		return stage.NewBuildCheck(c.Client, c.Scheme)
-	case v1beta1.EnvironmentDeletingBuildJob:
-		return stage.NewBuildCheck(c.Client, c.Scheme)
-	case v1beta1.EnvironmentCreateBuildJob:
-		return stage.NewBuild(c.Client, c.Scheme, c.RegistryURL)
-	case v1beta1.EnvironmentWaitingForBuildJobToComplete:
-		return stage.NewBuildWait(c.Client, c.Scheme, c.RegistryURL)
-	case v1beta1.EnvironmentStageBuildFailing:
-		return stage.NewBuildWait(c.Client, c.Scheme, c.RegistryURL)
-	case v1beta1.EnvironmentDeployingRevision:
-		return stage.NewDeploy(c.Client, c.Scheme, c.RegistryNodePort)
-	case v1beta1.EnvironmentWaitingForDeploymentToComplete:
-		return stage.NewDeployWait(c.Client, c.Scheme)
-	case v1beta1.EnvironmentRevisionDeployed:
-		return stage.NewDeployed(c.Client, c.Scheme)
-	default:
-		return stage.NewInitialize(c.Client, c.Scheme)
-	}
-}
-
-func (c *Controller) updateStatus(ctx context.Context, env *v1beta1.Environment, status *v1beta1.EnvironmentStatus) {
-	logger := log.FromContext(ctx)
-	logger.Info("updating environment status", "status", status)
-	if !reflect.DeepEqual(env.Status.Stage, status) {
-		status.DeepCopyInto(&env.Status)
-		env.Status.LastUpdated = metav1.Now()
-		err := c.Status().Update(ctx, env)
-		if err != nil {
-			logger.Error(err, "unable to update environment status")
-		}
-	}
+	return handler.reconcile(ctx)
 }

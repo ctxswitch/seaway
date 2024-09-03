@@ -60,7 +60,7 @@ func (a *Apply) RunE(cmd *cobra.Command, args []string) error {
 
 	env, err := manifest.GetEnvironment(args[0])
 	if err != nil {
-		console.Fatal("Build context '%s' not found in the manifest", args[0])
+		console.Fatal("Build environment '%s' not found in the manifest", args[0])
 	}
 
 	client, err := kube.NewSeawayClient("", "")
@@ -68,20 +68,33 @@ func (a *Apply) RunE(cmd *cobra.Command, args []string) error {
 		console.Fatal(err.Error())
 	}
 
+	console.Info("Applying dependencies for the '%s' environment", env.Name)
+
+	for _, dep := range env.Dependencies {
+		console.Info("Applying dependency '%s'", dep.Path)
+		if err := a.apply(ctx, client, dep.Path); err != nil {
+			console.Fatal(err.Error())
+		}
+	}
+
+	return nil
+}
+
+func (a *Apply) apply(ctx context.Context, client *kube.SeawayClient, path string) error {
 	// Process the kustomize manifests from the base directory
 	krusty, err := kustomize.NewKustomizer(&kustomize.KustomizerOptions{
-		BaseDir: "config/overlays/dev",
+		BaseDir: path,
 	})
 	if err != nil {
 		console.Fatal(err.Error())
+		return err
 	}
 
 	items, err := krusty.Resources()
 	if err != nil {
 		console.Fatal(err.Error())
+		return err
 	}
-
-	console.Info("Applying dependencies for the '%s' environment", env.Name)
 
 	for _, item := range items {
 		expected := item.Resource
@@ -101,6 +114,7 @@ func (a *Apply) RunE(cmd *cobra.Command, args []string) error {
 		})
 		if err != nil {
 			console.Fatal(err.Error())
+			return err
 		}
 
 		api := strings.ToLower(obj.GetObjectKind().GroupVersionKind().GroupKind().String())

@@ -15,12 +15,14 @@
 package controller
 
 import (
+	"net/url"
+
 	"ctx.sh/seaway/pkg/controller/environment"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 type Options struct {
-	RegistryURL      string
+	RegistryURL      *url.URL
 	RegistryNodePort int32
 }
 

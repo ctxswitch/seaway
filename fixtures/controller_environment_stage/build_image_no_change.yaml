@@ -1,0 +1,22 @@
+# apiVersion: seaway.ctx.sh/v1beta1
+# kind: Environment
+# metadata:
+#   name: test
+#   namespace: default
+# spec:
+#   revision: 1
+# ---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: test-build
+  namespace: default
+  annotations:
+    seaway.ctx.sh/environment: test
+    seaway.ctx.sh/revision: 1
+  spec:
+    template:
+      spec:
+        containers:
+        - name: build
+          image: k8s.gcr.io/kaniko

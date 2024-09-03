@@ -14,27 +14,38 @@
 
 package registry
 
-import "fmt"
+import (
+	"fmt"
+	"net/url"
+)
 
 type API interface {
-	HasTag(string, string, string) (bool, error)
+	WithRegistry(*url.URL) API
+	HasTag(string, string) (bool, error)
 }
 
 // Client is a client for the registry API.
 type Client struct {
+	registry string
 	Connector
 }
 
 // NewClient creates a new registry client.
-func NewClient(connector Connector) *Client {
+func NewClient(connector Connector) API {
 	return &Client{
 		Connector: connector,
 	}
 }
 
+// WithRegistry creates a new client with a registry.
+func (c *Client) WithRegistry(reg *url.URL) API {
+	c.registry = reg.String()
+	return c
+}
+
 // HasTag checks if a tag exists in a registry.
-func (c *Client) HasTag(reg, name, tag string) (bool, error) {
-	url := fmt.Sprintf("%s/v2/%s/tags/list", reg, name)
+func (c *Client) HasTag(name, tag string) (bool, error) {
+	url := fmt.Sprintf("%s/v2/%s/tags/list", c.registry, name)
 	var items TagsList
 	err := c.Get(url, &items)
 	if err != nil {
@@ -49,3 +60,5 @@ func (c *Client) HasTag(reg, name, tag string) (bool, error) {
 
 	return false, nil
 }
+
+var _ API = &Client{}

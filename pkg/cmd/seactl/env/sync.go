@@ -29,7 +29,6 @@ import (
 	"ctx.sh/seaway/pkg/console"
 	kube "ctx.sh/seaway/pkg/kube/client"
 	"ctx.sh/seaway/pkg/storage"
-	"github.com/minio/minio-go/v7"
 	"github.com/spf13/cobra"
 
 	corev1 "k8s.io/api/core/v1"
@@ -95,7 +94,7 @@ func (s *Sync) RunE(cmd *cobra.Command, args []string) error { //nolint:funlen,g
 	}
 
 	store := storage.NewClient(env.Source.S3.GetEndpoint(), env.Source.S3.UseSSL())
-	mc, err := store.Connect(ctx, creds)
+	err = store.Connect(ctx, creds)
 	if err != nil {
 		console.Fatal("Unable to connect to object storage: %s", err)
 	}
@@ -111,7 +110,7 @@ func (s *Sync) RunE(cmd *cobra.Command, args []string) error { //nolint:funlen,g
 	bucket := *env.Source.S3.Bucket
 	key := fmt.Sprintf("%s/%s-%s.tar.gz", *env.Source.S3.Prefix, manifest.Name, env.Namespace)
 
-	info, err := mc.FPutObject(ctx, bucket, key, archive, minio.PutObjectOptions{})
+	info, err := store.PutObject(ctx, bucket, key, archive)
 	if err != nil {
 		console.Fatal("Unable to upload the archive: %s", err)
 	}
@@ -143,9 +142,6 @@ func (s *Sync) RunE(cmd *cobra.Command, args []string) error { //nolint:funlen,g
 	op, err := client.CreateOrUpdate(ctx, obj, func() error {
 		env.EnvironmentSpec.DeepCopyInto(&obj.Spec)
 		obj.Spec.Revision = info.ETag
-		obj.Spec.Source.S3.Credentials = &corev1.LocalObjectReference{
-			Name: secret.GetName(),
-		}
 		return nil
 	})
 	if err != nil {
@@ -187,6 +183,7 @@ func (s *Sync) RunE(cmd *cobra.Command, args []string) error { //nolint:funlen,g
 			}
 
 			if obj.HasFailed() {
+				console.Error(obj.Status.Reason)
 				console.Fatal("Environment failed to deploy")
 			}
 

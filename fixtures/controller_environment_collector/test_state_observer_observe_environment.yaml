@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: test-user
+  namespace: default
+stringData:
+  AWS_ACCESS_KEY_ID: xxxxxx
+  AWS_SECRET_ACCESS_KEY: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+---
+apiVersion: seaway.ctx.sh/v1beta1
+kind: Environment
+metadata:
+  name: test
+  namespace: default
