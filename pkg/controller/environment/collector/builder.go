@@ -97,17 +97,17 @@ func (b *Builder) buildJob() *batchv1.Job { //nolint:funlen
 	vars := []corev1.EnvVar{
 		{
 			Name:  "AWS_REGION",
-			Value: *env.Spec.Source.S3.Region,
+			Value: *env.Spec.Store.Region,
 		},
 		{
 			Name: "S3_ENDPOINT",
 			// Need to add the protocol...  Either force it and strip it when setting
 			// up the client or add it here.
-			Value: "http://" + *env.Spec.Source.S3.Endpoint,
+			Value: "http://" + *env.Spec.Store.Endpoint,
 		},
 		{
 			Name:  "S3_FORCE_PATH_STYLE",
-			Value: strconv.FormatBool(*env.Spec.Source.S3.ForcePathStyle),
+			Value: strconv.FormatBool(*env.Spec.Store.ForcePathStyle),
 		},
 	}
 

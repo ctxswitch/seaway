@@ -68,7 +68,7 @@ type EnvironmentNetworking struct {
 	Ingress *EnvironmentIngress `json:"ingress" yaml:"ingress"`
 }
 
-type EnvironmentS3Spec struct {
+type EnvironmentStore struct {
 	// Bucket is the name of the S3 bucket where the source artifacts stored.
 	// +optional
 	Bucket *string `json:"bucket" yaml:"bucket"`
@@ -153,13 +153,6 @@ type EnvironmentVars struct {
 	EnvFrom []corev1.EnvFromSource `json:"envFrom" yaml:"envFrom"`
 }
 
-type EnvironmentSource struct {
-	// S3 is the source for the build context.  In the future we will add other sources.
-	// +optional
-	S3 *EnvironmentS3Spec `json:"s3" yaml:"s3"`
-	// TODO: Add github as a source.
-}
-
 // EnvironmentResources is a map of corev1.ResourceName used to simplify the manifest.
 // Originally I was just using the corev1.ResourceRequirements type, but it was a bit
 // clunky in a manifest that you'd expect to be managed extensively by a human.
@@ -207,9 +200,11 @@ type EnvironmentSpec struct {
 	// +optional
 	// +nullable
 	SecurityContext *corev1.SecurityContext `json:"securityContext" yaml:"securityContext"`
-	// Source is the source for the build context.
+	// Store represents the storage configuration where artifacts are uploaded
+	// and stored.
 	// +optional
-	Source *EnvironmentSource `json:"source" yaml:"source"`
+	Store *EnvironmentStore `json:"store" yaml:"store"`
+
 	// StartupProbe is the startup probe for the deployed application.
 	// +optional
 	// +nullable

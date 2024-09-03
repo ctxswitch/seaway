@@ -77,7 +77,7 @@ func (s *Sync) RunE(cmd *cobra.Command, args []string) error { //nolint:funlen,g
 		console.Fatal("Build context '%s' not found in the manifest", args[0])
 	}
 
-	store := storage.NewClient(env.Source.S3.GetEndpoint(), env.Source.S3.UseSSL())
+	store := storage.NewClient(env.Store.GetEndpoint(), env.Store.UseSSL())
 	err = store.Connect(ctx, creds)
 	if err != nil {
 		console.Fatal("Unable to connect to object storage: %s", err)
@@ -91,7 +91,7 @@ func (s *Sync) RunE(cmd *cobra.Command, args []string) error { //nolint:funlen,g
 	defer os.Remove(archive)
 
 	console.Info("Uploading archive")
-	bucket := *env.Source.S3.Bucket
+	bucket := *env.Store.Bucket
 	key := ArchiveKey(manifest.Name, &env)
 
 	info, err := store.PutObject(ctx, bucket, key, archive)

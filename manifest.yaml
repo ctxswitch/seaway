@@ -14,11 +14,10 @@ environments:
       - ^docker/
       - ^config/
       - ^README.md$
-    source:
-      s3:
-        endpoint: minio.minio.svc.cluster.local:80
-        localPort: 8080
-        bucket: seaway
+    store:
+      bucket: seaway
+      endpoint: minio.minio.svc.cluster.local:80
+      localPort: 8080
     command:
       - sleep
       - infinity

@@ -502,25 +502,6 @@ spec:
                         type: string
                     type: object
                 type: object
-              source:
-                properties:
-                  s3:
-                    properties:
-                      bucket:
-                        type: string
-                      endpoint:
-                        type: string
-                      forcePathStyle:
-                        type: boolean
-                      localPort:
-                        format: int32
-                        type: integer
-                      prefix:
-                        type: string
-                      region:
-                        type: string
-                    type: object
-                type: object
               startupProbe:
                 nullable: true
                 properties:
@@ -602,6 +583,22 @@ spec:
                   timeoutSeconds:
                     format: int32
                     type: integer
+                type: object
+              store:
+                properties:
+                  bucket:
+                    type: string
+                  endpoint:
+                    type: string
+                  forcePathStyle:
+                    type: boolean
+                  localPort:
+                    format: int32
+                    type: integer
+                  prefix:
+                    type: string
+                  region:
+                    type: string
                 type: object
               vars:
                 nullable: true

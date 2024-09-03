@@ -64,7 +64,7 @@ func defaultEnvironmentSpec(obj *EnvironmentSpec) {
 	}
 
 	obj.Vars = defaultEnvironmentVars(obj.Vars)
-	obj.Source = defaultEnvironmentSource(obj.Source)
+	obj.Store = defaultEnvironmentStore(obj.Store)
 	obj.Build = defaultEnvironmentBuild(obj.Build)
 	obj.Networking = defaultEnvironmentNetworking(obj.Networking)
 }
@@ -81,16 +81,6 @@ func defaultEnvironmentVars(obj *EnvironmentVars) *EnvironmentVars {
 	if obj.EnvFrom == nil {
 		obj.EnvFrom = []corev1.EnvFromSource{}
 	}
-
-	return obj
-}
-
-func defaultEnvironmentSource(obj *EnvironmentSource) *EnvironmentSource {
-	if obj == nil {
-		obj = new(EnvironmentSource)
-	}
-
-	obj.S3 = defaultEnvironmentS3Spec(obj.S3)
 
 	return obj
 }
@@ -127,9 +117,9 @@ func defaultEnvironmentBuild(obj *EnvironmentBuildSpec) *EnvironmentBuildSpec {
 	return obj
 }
 
-func defaultEnvironmentS3Spec(obj *EnvironmentS3Spec) *EnvironmentS3Spec {
+func defaultEnvironmentStore(obj *EnvironmentStore) *EnvironmentStore {
 	if obj == nil {
-		obj = new(EnvironmentS3Spec)
+		obj = new(EnvironmentStore)
 	}
 
 	if obj.Bucket == nil {
