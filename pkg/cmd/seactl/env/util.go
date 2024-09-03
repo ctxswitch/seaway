@@ -13,7 +13,7 @@ import (
 
 // ArchiveKey is the path and name of the archive object.
 func ArchiveKey(name string, env *v1beta1.ManifestEnvironmentSpec) string {
-	return fmt.Sprintf("%s/%s-%s.tar.gz", *env.Source.S3.Prefix, name, env.Namespace)
+	return fmt.Sprintf("%s/%s-%s.tar.gz", *env.Store.Prefix, name, env.Namespace)
 }
 
 // GetEnvironment returns a new environment object.

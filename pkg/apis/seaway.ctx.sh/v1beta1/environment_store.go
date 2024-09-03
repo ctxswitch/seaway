@@ -21,7 +21,7 @@ import (
 
 // UseSSL parses the endpoint URI and returns true if the endpoint is
 // using SSL.
-func (e *EnvironmentS3Spec) UseSSL() bool {
+func (e *EnvironmentStore) UseSSL() bool {
 	url, err := url.Parse(*e.Endpoint)
 	if err != nil {
 		return false
@@ -37,7 +37,7 @@ func (e *EnvironmentS3Spec) UseSSL() bool {
 // TODO: Setting the LocalPort and Endpoint should be mutually exclusive
 // as to avoid confusion in a configuration.  Add this validation to the API
 // when we have a chance.
-func (e *EnvironmentS3Spec) GetEndpoint() string {
+func (e *EnvironmentStore) GetEndpoint() string {
 	if e.LocalPort != nil {
 		return fmt.Sprintf("localhost:%d", *e.LocalPort)
 	} else {

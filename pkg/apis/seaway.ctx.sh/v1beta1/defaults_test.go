@@ -37,15 +37,13 @@ func TestDefaulted(t *testing.T) {
 			ReadinessProbe: nil,
 			Replicas:       ptr.To(int32(DefaultReplicas)),
 			Resources:      EnvironmentResources{},
-			Source: &EnvironmentSource{
-				S3: &EnvironmentS3Spec{
-					Bucket:         ptr.To(DefaultBucket),
-					Prefix:         ptr.To(DefaultPrefix),
-					Region:         ptr.To(DefaultRegion),
-					Endpoint:       ptr.To(DefaultEndpoint),
-					ForcePathStyle: ptr.To(DefaultForcePathStyle),
-					LocalPort:      nil,
-				},
+			Store: &EnvironmentStore{
+				Bucket:         ptr.To(DefaultBucket),
+				Prefix:         ptr.To(DefaultPrefix),
+				Region:         ptr.To(DefaultRegion),
+				Endpoint:       ptr.To(DefaultEndpoint),
+				ForcePathStyle: ptr.To(DefaultForcePathStyle),
+				LocalPort:      nil,
 			},
 			StartupProbe: nil,
 			Vars: &EnvironmentVars{

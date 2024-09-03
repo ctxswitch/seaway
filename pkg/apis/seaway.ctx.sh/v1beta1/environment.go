@@ -23,12 +23,12 @@ import (
 
 // GetKey returns the key for the archive object in the S3 bucket.
 func (e *Environment) GetKey() string {
-	return fmt.Sprintf("%s/%s-%s.tar.gz", *e.Spec.Source.S3.Prefix, e.GetName(), e.GetNamespace())
+	return fmt.Sprintf("%s/%s-%s.tar.gz", *e.Spec.Store.Prefix, e.GetName(), e.GetNamespace())
 }
 
 // GetBucket returns the bucket where the archive object is stored.
 func (e *Environment) GetBucket() string {
-	return *e.Spec.Source.S3.Bucket
+	return *e.Spec.Store.Bucket
 }
 
 // GetRevision returns the configured revision of the environment.

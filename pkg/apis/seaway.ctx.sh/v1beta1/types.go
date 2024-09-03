@@ -68,7 +68,7 @@ type EnvironmentNetworking struct {
 	Ingress *EnvironmentIngress `json:"ingress" yaml:"ingress"`
 }
 
-type EnvironmentS3Spec struct {
+type EnvironmentStore struct {
 	// Bucket is the name of the S3 bucket where the source artifacts stored.
 	// +optional
 	Bucket *string `json:"bucket" yaml:"bucket"`
@@ -86,17 +86,6 @@ type EnvironmentS3Spec struct {
 	// hostname.  This should be set for true for non-AWS S3 compatible services.
 	// +optional
 	ForcePathStyle *bool `json:"forcePathStyle" yaml:"forcePathStyle"`
-	// Credentials is a reference to a secret containing the storage credentials.
-	// The secret should contain the following: AWS_ACCESS_KEY_ID and
-	// AWS_SECRET_ACCESS_KEY.  Even with other providers, we stil use these environment
-	// variables.
-	// TODO: Right now this is a bit clunky.  I think we can do better and allow minio
-	// and gcs specific credential variables.
-	// +optional
-	// Credentials *corev1.LocalObjectReference `json:"credentials"`
-	// LocalPort is used when running the sync client on a locally hosted cluster utilizing
-	// k3d or kind and the s3 service for the client sync is exposed through port forwarding
-	// or via an ingress.
 	// LocalPort represents a port on the local machine that is forwarded to the S3 service.
 	// +optional
 	LocalPort *int32 `json:"localPort" yaml:"localPort"`
@@ -153,13 +142,6 @@ type EnvironmentVars struct {
 	EnvFrom []corev1.EnvFromSource `json:"envFrom" yaml:"envFrom"`
 }
 
-type EnvironmentSource struct {
-	// S3 is the source for the build context.  In the future we will add other sources.
-	// +optional
-	S3 *EnvironmentS3Spec `json:"s3" yaml:"s3"`
-	// TODO: Add github as a source.
-}
-
 // EnvironmentResources is a map of corev1.ResourceName used to simplify the manifest.
 // Originally I was just using the corev1.ResourceRequirements type, but it was a bit
 // clunky in a manifest that you'd expect to be managed extensively by a human.
@@ -207,9 +189,11 @@ type EnvironmentSpec struct {
 	// +optional
 	// +nullable
 	SecurityContext *corev1.SecurityContext `json:"securityContext" yaml:"securityContext"`
-	// Source is the source for the build context.
+	// Store represents the storage configuration where artifacts are uploaded
+	// and stored.
 	// +optional
-	Source *EnvironmentSource `json:"source" yaml:"source"`
+	Store *EnvironmentStore `json:"store" yaml:"store"`
+
 	// StartupProbe is the startup probe for the deployed application.
 	// +optional
 	// +nullable

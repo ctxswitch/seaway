@@ -83,13 +83,13 @@ func (c Clean) RunE(cmd *cobra.Command, args []string) error {
 
 	console.Info("Deleting source archive")
 
-	store := storage.NewClient(env.Source.S3.GetEndpoint(), env.Source.S3.UseSSL())
+	store := storage.NewClient(env.Store.GetEndpoint(), env.Store.UseSSL())
 	err = store.Connect(ctx, creds)
 	if err != nil {
 		console.Fatal("Unable to connect to object storage: %s", err)
 	}
 
-	bucket := *env.Source.S3.Bucket
+	bucket := *env.Store.Bucket
 	key := ArchiveKey(manifest.Name, &env)
 	err = store.DeleteObject(ctx, bucket, key)
 	if err != nil {
