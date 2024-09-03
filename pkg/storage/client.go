@@ -86,6 +86,10 @@ func (c *Client) PutObject(ctx context.Context, bucket, key string, file string)
 	return c.client.FPutObject(ctx, bucket, key, file, minio.PutObjectOptions{})
 }
 
+func (c *Client) DeleteObject(ctx context.Context, bucket, key string) error {
+	return c.client.RemoveObject(ctx, bucket, key, minio.RemoveObjectOptions{})
+}
+
 // info, err := mc.FPutObject(ctx, bucket, key, archive, minio.PutObjectOptions{})
 // 	if err != nil {
 // 		console.Fatal("Unable to upload the archive: %s", err)

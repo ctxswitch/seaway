@@ -25,13 +25,11 @@ import (
 	"time"
 
 	"ctx.sh/seaway/pkg/apis/seaway.ctx.sh/v1beta1"
-	"ctx.sh/seaway/pkg/auth"
 	"ctx.sh/seaway/pkg/console"
 	kube "ctx.sh/seaway/pkg/kube/client"
 	"ctx.sh/seaway/pkg/storage"
 	"github.com/spf13/cobra"
 
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
@@ -58,28 +56,12 @@ func (s *Sync) RunE(cmd *cobra.Command, args []string) error { //nolint:funlen,g
 	ctx := ctrl.SetupSignalHandler()
 
 	if len(args) != 1 {
-		return fmt.Errorf("expected context name")
+		return fmt.Errorf("expected environment name")
 	}
 
-	home, err := os.UserHomeDir()
+	creds, err := GetCredentials()
 	if err != nil {
-		console.Fatal("Unable to determine user home directory")
-	}
-
-	var creds *auth.Credentials
-	filename := home + "/.seaway/creds"
-
-	_, err = os.Stat(filename)
-	if err != nil {
-		creds, err = auth.NewCredentials(filename)
-		if err != nil {
-			console.Fatal("Unable to create credentials file: %v", err)
-		}
-	} else {
-		creds, err = auth.LoadCredentials(filename)
-		if err != nil {
-			console.Fatal("Unable to load credentials file: %v", err)
-		}
+		console.Fatal("Unable to get credentials: %s", err)
 	}
 
 	var manifest v1beta1.Manifest
@@ -108,7 +90,7 @@ func (s *Sync) RunE(cmd *cobra.Command, args []string) error { //nolint:funlen,g
 
 	console.Info("Uploading archive")
 	bucket := *env.Source.S3.Bucket
-	key := fmt.Sprintf("%s/%s-%s.tar.gz", *env.Source.S3.Prefix, manifest.Name, env.Namespace)
+	key := ArchiveKey(manifest.Name, &env)
 
 	info, err := store.PutObject(ctx, bucket, key, archive)
 	if err != nil {
@@ -193,35 +175,6 @@ func (s *Sync) RunE(cmd *cobra.Command, args []string) error { //nolint:funlen,g
 			}
 		}
 	}
-}
-
-// GetEnvironment returns a new environment object.
-func GetEnvironment(name, namespace string) *v1beta1.Environment {
-	env := &v1beta1.Environment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
-		},
-	}
-	// TODO: We actually need this with the client at this point because we use
-	// the gvk to get the resource interface. Revisit this later and refactor it
-	// out.  It's not horrible but it's not great either.
-	env.SetGroupVersionKind(v1beta1.SchemeGroupVersion.WithKind("Environment"))
-
-	return env
-}
-
-// GetSecret returns a new secret containing the credentials.
-func GetSecret(name, namespace string) *corev1.Secret {
-	secret := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name + "-user",
-			Namespace: namespace,
-		},
-	}
-	secret.SetGroupVersionKind(corev1.SchemeGroupVersion.WithKind("Secret"))
-
-	return secret
 }
 
 // create builds the tar/gzip archive that will be uploaded to the object storage.
