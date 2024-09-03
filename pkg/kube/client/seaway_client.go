@@ -73,6 +73,20 @@ func (c *SeawayClient) Get(ctx context.Context, obj Object, opts metav1.GetOptio
 	return nil
 }
 
+func (c *SeawayClient) Delete(ctx context.Context, obj Object, opts metav1.DeleteOptions) error {
+	u := &unstructured.Unstructured{}
+	if err := toUnstructured(obj, u); err != nil {
+		return err
+	}
+
+	iface, err := c.client.ResourceInterfaceFor(u.GetNamespace(), obj)
+	if err != nil {
+		return err
+	}
+
+	return iface.Delete(ctx, u.GetName(), opts)
+}
+
 func (c *SeawayClient) Create(ctx context.Context, obj Object, opts metav1.CreateOptions) error {
 	u := &unstructured.Unstructured{}
 	if err := toUnstructured(obj, u); err != nil {
