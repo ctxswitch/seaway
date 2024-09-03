@@ -114,7 +114,6 @@ func (ls *LogSteamer) stream(ctx context.Context, obj runtime.Object) error {
 		return parallelConsumer(ctx, requests)
 	}
 
-	fmt.Println("sequentially")
 	return sequentialConsumer(ctx, requests)
 }
 
@@ -135,7 +134,6 @@ func parallelConsumer(ctx context.Context, requests map[corev1.ObjectReference]r
 				// Ignore any errors.
 				fmt.Fprintf(writer, "error: %v\n", err)
 			}
-
 		}(objRef, request)
 	}
 
@@ -177,8 +175,8 @@ func consume(ctx context.Context, request rest.ResponseWrapper, out io.Writer) e
 	r := bufio.NewReader(readCloser)
 	for {
 		bytes, err := r.ReadBytes('\n')
-		if _, err := out.Write(bytes); err != nil {
-			return err
+		if _, werr := out.Write(bytes); werr != nil {
+			return werr
 		}
 
 		if err != nil {
