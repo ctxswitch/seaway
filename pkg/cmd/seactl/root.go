@@ -38,10 +38,6 @@ const (
 	InitLongDesc  = `Utility to initialize Seaway resources`
 )
 
-var (
-	kubeContext string
-)
-
 type Root struct{}
 
 func NewRoot() *Root {
@@ -73,7 +69,7 @@ func (r *Root) Command() *cobra.Command {
 	rootCmd.AddCommand(DepsCommand())
 	rootCmd.AddCommand(InitCommand())
 
-	rootCmd.PersistentFlags().StringVarP(&kubeContext, "context", "", "", "set the Kubernetes context")
+	rootCmd.PersistentFlags().StringP("context", "", "", "set the Kubernetes context")
 	return rootCmd
 }
 
