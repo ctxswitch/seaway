@@ -1,2 +1,15 @@
 ### Added
-* The seactl `env sync` command now uses the credentials generated in `init shared` to create the secret in the environment namespace for the build job.  This is just a temporary solution to a more wider problem for addressing multitenant environments, but allows for easy install and testing the workflows for single tenant installs.
+* Stream container logs through `logs app` and `logs build`
+* Services and ingresses are cleaned up when disabled.
+* Environment removal through `env clean`.
+* The kubernetes context is supported across all commands.
+### Changed
+* Networking manifest attribute changed to `network`
+* The `source/s3` attribute was consolidated to `store`
+
+### Removed
+* Setting credentials through the manifest.
+
+### Fixed
+* Fixed reconcile loop that was introduced in pre.13
+* Tests surfaced several environment stage issues.
