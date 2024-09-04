@@ -289,7 +289,7 @@ spec:
                     format: int32
                     type: integer
                 type: object
-              networking:
+              network:
                 properties:
                   ingress:
                     nullable: true
@@ -300,9 +300,14 @@ spec:
                         nullable: true
                         type: object
                       className:
+                        nullable: true
                         type: string
                       enabled:
                         type: boolean
+                      port:
+                        format: int32
+                        nullable: true
+                        type: integer
                       tls:
                         items:
                           properties:
@@ -317,22 +322,41 @@ spec:
                         nullable: true
                         type: array
                     type: object
-                  ports:
-                    items:
-                      properties:
-                        name:
-                          type: string
-                        port:
-                          format: int32
-                          type: integer
-                        protocol:
-                          type: string
-                      required:
-                      - name
-                      - port
-                      type: object
+                  service:
                     nullable: true
-                    type: array
+                    properties:
+                      annotations:
+                        additionalProperties:
+                          type: string
+                        nullable: true
+                        type: object
+                      enabled:
+                        type: boolean
+                      externalName:
+                        nullable: true
+                        type: string
+                      ports:
+                        items:
+                          properties:
+                            name:
+                              type: string
+                            nodePort:
+                              format: int32
+                              type: integer
+                            port:
+                              format: int32
+                              type: integer
+                            protocol:
+                              type: string
+                          required:
+                          - name
+                          - port
+                          type: object
+                        nullable: true
+                        type: array
+                      type:
+                        type: string
+                    type: object
                 type: object
               readinessProbe:
                 nullable: true

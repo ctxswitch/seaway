@@ -66,7 +66,7 @@ func defaultEnvironmentSpec(obj *EnvironmentSpec) {
 	obj.Vars = defaultEnvironmentVars(obj.Vars)
 	obj.Store = defaultEnvironmentStore(obj.Store)
 	obj.Build = defaultEnvironmentBuild(obj.Build)
-	obj.Networking = defaultEnvironmentNetworking(obj.Networking)
+	obj.Network = defaultEnvironmentNetwork(obj.Network)
 }
 
 func defaultEnvironmentVars(obj *EnvironmentVars) *EnvironmentVars {
@@ -150,20 +150,16 @@ func defaultEnvironmentStore(obj *EnvironmentStore) *EnvironmentStore {
 	return obj
 }
 
-func defaultEnvironmentNetworking(obj *EnvironmentNetworking) *EnvironmentNetworking {
+func defaultEnvironmentNetwork(obj *EnvironmentNetwork) *EnvironmentNetwork {
 	if obj == nil {
-		obj = new(EnvironmentNetworking)
+		obj = new(EnvironmentNetwork)
 	}
 
-	if obj.Ports == nil {
-		obj.Ports = []EnvironmentPort{}
-	}
+	obj.Service = defaultEnvironmentService(obj.Service)
 
-	for _, port := range obj.Ports {
-		defaultEnvironmentPort(&port)
+	if obj.Service.Enabled {
+		obj.Ingress = defaultEnvironmentIngress(obj.Ingress, obj.Service.Ports[0].Port)
 	}
-
-	obj.Ingress = defaultEnvironmentIngress(obj.Ingress)
 
 	return obj
 }
@@ -180,13 +176,56 @@ func defaultEnvironmentPort(obj *EnvironmentPort) *EnvironmentPort {
 	return obj
 }
 
-func defaultEnvironmentIngress(obj *EnvironmentIngress) *EnvironmentIngress {
+func defaultEnvironmentService(obj *EnvironmentService) *EnvironmentService {
 	if obj == nil {
-		obj = new(EnvironmentIngress)
+		obj = new(EnvironmentService)
+	}
+
+	if !obj.Enabled {
+		return obj
 	}
 
 	if obj.Annotations == nil {
 		obj.Annotations = map[string]string{}
+	}
+
+	if obj.Type == "" {
+		obj.Type = corev1.ServiceTypeClusterIP
+	}
+
+	if len(obj.Ports) == 0 {
+		obj.Ports = []EnvironmentPort{
+			{
+				Name:     "http",
+				Port:     9000,
+				Protocol: corev1.ProtocolTCP,
+			},
+		}
+	} else {
+		for _, port := range obj.Ports {
+			defaultEnvironmentPort(&port)
+		}
+	}
+
+	return obj
+}
+
+func defaultEnvironmentIngress(obj *EnvironmentIngress, defaultPort int32) *EnvironmentIngress {
+	if obj == nil {
+		obj = new(EnvironmentIngress)
+	}
+
+	if !obj.Enabled {
+		return obj
+	}
+
+	if obj.Annotations == nil {
+		obj.Annotations = map[string]string{}
+	}
+
+	if obj.Port == nil {
+		obj.Port = new(int32)
+		*obj.Port = defaultPort
 	}
 
 	return obj

@@ -33,6 +33,11 @@ type EnvironmentPort struct {
 	// Protocol is the protocol for the port.  By default this is set to TCP.
 	// +optional
 	Protocol corev1.Protocol `json:"protocol" yaml:"protocol"`
+	// NodePort is the port on each node that the service is exposed on when the
+	// service type is NodePort or LoadBalancer.  Type must be set to NodePort
+	// or LoadBalancer for this field to have an effect.
+	// +optional
+	NodePort int32 `json:"nodePort" yaml:"nodePort"`
 }
 
 type EnvironmentIngress struct {
@@ -45,7 +50,13 @@ type EnvironmentIngress struct {
 	Enabled bool `json:"enabled" yaml:"enabled"`
 	// ClassName is the name of the ingress class to use for the ingress resource.
 	// +optional
+	// +nullable
 	ClassName *string `json:"className" yaml:"className"`
+	// Port is the port on the service that the ingress will route traffic to. By
+	// default this will pick the first port listed in the service.
+	// +optional
+	// +nullable
+	Port *int32 `json:"port" yaml:"port"`
 	// TLS is a list of TLS configuration for the ingress resource.  The TLS configuration
 	// matches that of the networking.k8s.io/v1beta1 Ingress type.
 	// +optional
@@ -53,19 +64,41 @@ type EnvironmentIngress struct {
 	TLS []networkingv1.IngressTLS `json:"tls" yaml:"tls"`
 }
 
-type EnvironmentNetworking struct {
-	// Ports is a list of ports that the deployed application will listen on.  If
-	// ports is not empty, the container will be created with the ports specified
-	// and a service will be created to expose the ports.
-	// TODO: Update the controller to create the service.
+type EnvironmentService struct {
+	// Annotations is a map of annotations to apply to the service resource.
+	// +optional
+	// +nullable
+	Annotations map[string]string `json:"annotations" yaml:"annotations"`
+	// Enabled is a flag to enable or disable the service resource.  It is disabled by
+	// default.
+	// +optional
+	Enabled bool `json:"enabled" yaml:"enabled"`
+	// ExternalName is the external reference that discovery will use as an alias for
+	// the service (CNAME).
+	// +optional
+	// +nullable
+	ExternalName *string `json:"externalName" yaml:"externalName"`
+	// Ports is a list of ports that the deployed application will listen on.  If the
+	// service is enabled and the ports are not set, the controller will default to
+	// port 9000.
 	// +optional
 	// +nullable
 	Ports []EnvironmentPort `json:"ports" yaml:"ports"`
+	// Type is the type of service to create.  By default this is set to ClusterIP.
+	// +optional
+	Type corev1.ServiceType `json:"type" yaml:"type"`
+}
+
+type EnvironmentNetwork struct {
 	// Ingress is the ingress configuration for the deployed application.  If enabled, the
 	// controller will create an ingress resource to expose the application.
 	// +optional
 	// +nullable
 	Ingress *EnvironmentIngress `json:"ingress" yaml:"ingress"`
+	// Service is the service configuration for the deployed application.
+	// +optional
+	// +nullable
+	Service *EnvironmentService `json:"service" yaml:"service"`
 }
 
 type EnvironmentStore struct {
@@ -168,9 +201,9 @@ type EnvironmentSpec struct {
 	// +optional
 	// +nullable
 	LivenessProbe *corev1.Probe `json:"livenessProbe" yaml:"livenessProbe"`
-	// Networking contains the networking configuration options for the environment.
+	// Network contains the network configuration options for the environment.
 	// +optional
-	Networking *EnvironmentNetworking `json:"networking" yaml:"networking"`
+	Network *EnvironmentNetwork `json:"network" yaml:"network"`
 	// ReadinessProbe is the readiness probe for the deployed application.
 	// +optional
 	// +nullable
