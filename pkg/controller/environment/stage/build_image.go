@@ -48,7 +48,7 @@ func (b *BuildImage) Do(ctx context.Context, status *v1beta1.EnvironmentStatus) 
 				return v1beta1.EnvironmentStageBuildImageFailed, err
 			}
 			// If the job was observed but deleted before we we could delete it, we
-			// don't faile the build since we are in the correct state.
+			// don't fail the build since we are in the correct state.
 			logger.V(4).Info("job was deleted before we could delete it", "job", b.observed.Job.Name)
 		}
 	}

@@ -5,10 +5,10 @@ commonAnnotations:
   ctx.sh/license: "Apache"
   ctx.sh/support: "https://github.com/ctxswitch/seaway/issues"
 resources: 
+  - config.yaml
   - ../../base
-  # - ../../crd
-  # - ../../rbac
-  # - ../../webhook
+  - service.yaml
+  - ingress.yaml
   - creds.yaml
 patches:
   - path: deployment.yaml

@@ -2,7 +2,6 @@ package stage
 
 import (
 	"context"
-	"net/url"
 	"testing"
 
 	"ctx.sh/seaway/pkg/apis/seaway.ctx.sh/v1beta1"
@@ -34,9 +33,7 @@ func TestDeploy_DoNewEnvironmentAllComponents(t *testing.T) {
 	var collection collector.Collection
 
 	sc := &collector.StateCollector{
-		Client:           mc,
-		RegistryNodePort: 31555,
-		RegistryURL:      &url.URL{Scheme: "http", Host: "localhost:5000"},
+		Client: mc,
 	}
 	err := sc.ObserveAndBuild(ctx, ctrl.Request{
 		NamespacedName: types.NamespacedName{
@@ -96,9 +93,7 @@ func TestDeploy_DoNewEnvironmentOnlyDeploy(t *testing.T) {
 	var collection collector.Collection
 
 	sc := &collector.StateCollector{
-		Client:           mc,
-		RegistryNodePort: 31555,
-		RegistryURL:      &url.URL{Scheme: "http", Host: "localhost:5000"},
+		Client: mc,
 	}
 	err := sc.ObserveAndBuild(ctx, ctrl.Request{
 		NamespacedName: types.NamespacedName{
@@ -158,9 +153,7 @@ func TestDeploy_DoNewEnvironmentOnlyService(t *testing.T) {
 	var collection collector.Collection
 
 	sc := &collector.StateCollector{
-		Client:           mc,
-		RegistryNodePort: 31555,
-		RegistryURL:      &url.URL{Scheme: "http", Host: "localhost:5000"},
+		Client: mc,
 	}
 	err := sc.ObserveAndBuild(ctx, ctrl.Request{
 		NamespacedName: types.NamespacedName{
@@ -220,9 +213,7 @@ func TestDeploy_RemoveIngressIfNil(t *testing.T) {
 	var collection collector.Collection
 
 	sc := &collector.StateCollector{
-		Client:           mc,
-		RegistryNodePort: 31555,
-		RegistryURL:      &url.URL{Scheme: "http", Host: "localhost:5000"},
+		Client: mc,
 	}
 	err := sc.ObserveAndBuild(ctx, ctrl.Request{
 		NamespacedName: types.NamespacedName{
@@ -283,9 +274,7 @@ func TestDeploy_RemoveServiceIfNil(t *testing.T) {
 	var collection collector.Collection
 
 	sc := &collector.StateCollector{
-		Client:           mc,
-		RegistryNodePort: 31555,
-		RegistryURL:      &url.URL{Scheme: "http", Host: "localhost:5000"},
+		Client: mc,
 	}
 	err := sc.ObserveAndBuild(ctx, ctrl.Request{
 		NamespacedName: types.NamespacedName{
@@ -350,9 +339,7 @@ func TestDeploy_DontRemoveIngressIfNotObserved(t *testing.T) {
 	var collection collector.Collection
 
 	sc := &collector.StateCollector{
-		Client:           mc,
-		RegistryNodePort: 31555,
-		RegistryURL:      &url.URL{Scheme: "http", Host: "localhost:5000"},
+		Client: mc,
 	}
 	err := sc.ObserveAndBuild(ctx, ctrl.Request{
 		NamespacedName: types.NamespacedName{

@@ -2,7 +2,6 @@ package collector
 
 import (
 	"context"
-	"net/url"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -15,10 +14,8 @@ type Collection struct {
 }
 
 type StateCollector struct {
-	Client           client.Client
-	Scheme           *runtime.Scheme
-	RegistryNodePort int32
-	RegistryURL      *url.URL
+	Client client.Client
+	Scheme *runtime.Scheme
 }
 
 func (sc *StateCollector) ObserveAndBuild(ctx context.Context, req ctrl.Request, c *Collection) error {
@@ -38,8 +35,6 @@ func (sc *StateCollector) ObserveAndBuild(ctx context.Context, req ctrl.Request,
 	build := &Builder{
 		observed: observed,
 		scheme:   sc.Scheme,
-		nodePort: sc.RegistryNodePort,
-		registry: sc.RegistryURL,
 	}
 	if err := build.desired(desired); err != nil {
 		return err

@@ -59,41 +59,42 @@ func (m *Client) WithFixtureDirectory(dir string) *Client {
 
 // ApplyFixtureOrDie loads a single fixture into the cache.  The fixture must be in a
 // recognizable format for the universal deserializer.
-func (m *Client) ApplyFixtureOrDie(filename ...string) {
+func (m *Client) ApplyFixtureOrDie(path ...string) {
 	decoder := scheme.Codecs.UniversalDeserializer()
-	for _, file := range filename {
-		f := filepath.Join(m.fixtureDir, file)
-		data, err := os.ReadFile(f)
+
+	file := filepath.Join(path...)
+
+	f := filepath.Join(m.fixtureDir, file)
+	data, err := os.ReadFile(f)
+	if err != nil {
+		panic(err)
+	}
+
+	sections := strings.Split(string(data), "---")
+
+	for _, section := range sections {
+		data = []byte(section)
+		obj, _, err := decoder.Decode(data, nil, nil)
 		if err != nil {
 			panic(err)
 		}
 
-		sections := strings.Split(string(data), "---")
+		// Fake some of the creation metadata.  There's probably a few other
+		// things that could be useful.
+		if obj.(client.Object).GetCreationTimestamp().Time.IsZero() {
+			obj.(client.Object).SetCreationTimestamp(metav1.Time{
+				Time: metav1.Now().Time,
+			})
+		}
 
-		for _, section := range sections {
-			data = []byte(section)
-			obj, _, err := decoder.Decode(data, nil, nil)
-			if err != nil {
-				panic(err)
-			}
+		// If the namespace is not set, set it to default.
+		if obj.(client.Object).GetNamespace() == "" {
+			obj.(client.Object).SetNamespace("default")
+		}
 
-			// Fake some of the creation metadata.  There's probably a few other
-			// things that could be useful.
-			if obj.(client.Object).GetCreationTimestamp().Time.IsZero() {
-				obj.(client.Object).SetCreationTimestamp(metav1.Time{
-					Time: metav1.Now().Time,
-				})
-			}
-
-			// If the namespace is not set, set it to default.
-			if obj.(client.Object).GetNamespace() == "" {
-				obj.(client.Object).SetNamespace("default")
-			}
-
-			err = m.tracker.Add(obj)
-			if err != nil {
-				panic(err)
-			}
+		err = m.tracker.Add(obj)
+		if err != nil {
+			panic(err)
 		}
 	}
 }

@@ -1,7 +1,23 @@
+apiVersion: seaway.ctx.sh/v1beta1
+kind: SeawayConfig
+metadata:
+  name: default
+  namespace: seaway-system
+spec:
+  storage:
+    endpoint: minio.minio.svc.cluster.local:80
+    bucket: seaway
+    region: us-east-1
+    forcePathStyle: true
+    credentials: seaway-credentials
+  registry:
+    url: registry.registries.svc.cluster.local:5000
+    nodePort: 31555
+---
 apiVersion: v1
 kind: Secret
 metadata:
-  name: test-user
+  name: storage-credentials
   namespace: default
 stringData:
   AWS_ACCESS_KEY_ID: xxxxxx

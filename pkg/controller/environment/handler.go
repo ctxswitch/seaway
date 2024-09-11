@@ -8,19 +8,15 @@ import (
 	"ctx.sh/seaway/pkg/apis/seaway.ctx.sh/v1beta1"
 	"ctx.sh/seaway/pkg/controller/environment/collector"
 	"ctx.sh/seaway/pkg/controller/environment/stage"
-	"ctx.sh/seaway/pkg/registry"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-type ReconcilerFunc func(context.Context, *v1beta1.EnvironmentStatus) (v1beta1.EnvironmentStage, error)
-
 type Handler struct {
 	client     client.Client
 	collection *collector.Collection
-	registry   registry.API
 }
 
 func (h *Handler) reconcile(ctx context.Context) (ctrl.Result, error) {
@@ -29,8 +25,13 @@ func (h *Handler) reconcile(ctx context.Context) (ctrl.Result, error) {
 
 	logger.V(5).Info("handling reconciliation for revision")
 
-	if h.collection.Observed.UserSecret == nil {
+	if h.collection.Observed.Credentials == nil {
 		logger.Error(nil, "unable to reconcile environment without user secrets")
+		return ctrl.Result{}, nil
+	}
+
+	if h.collection.Observed.Config == nil {
+		logger.Error(nil, "unable to reconcile environment without seaway config")
 		return ctrl.Result{}, nil
 	}
 
@@ -92,7 +93,7 @@ func (h *Handler) getStage(current v1beta1.EnvironmentStage) stage.Stage {
 	case v1beta1.EnvironmentStageBuildImageWait:
 		return stage.NewBuildImageWait(h.client, h.collection)
 	case v1beta1.EnvironmentStageBuildImageVerify:
-		return stage.NewBuildImageVerify(h.client, h.collection, h.registry)
+		return stage.NewBuildImageVerify(h.client, h.collection)
 	case v1beta1.EnvironmentStageDeploy:
 		return stage.NewDeploy(h.client, h.collection)
 	case v1beta1.EnvironmentStageDeployVerify:

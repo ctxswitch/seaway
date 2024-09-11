@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"strconv"
 
+	"ctx.sh/seaway/pkg/apis/seaway.ctx.sh/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -20,6 +21,7 @@ type DesiredState struct {
 	Deployment *appsv1.Deployment
 	Service    *corev1.Service
 	Ingress    *networkingv1.Ingress
+	Config     *v1beta1.SeawayConfig
 }
 
 func NewDesiredState() *DesiredState {
@@ -28,20 +30,37 @@ func NewDesiredState() *DesiredState {
 		Deployment: nil,
 		Service:    nil,
 		Ingress:    nil,
+		Config:     nil,
 	}
 }
 
 type Builder struct {
 	observed *ObservedState
 	scheme   *runtime.Scheme
-	nodePort int32
-	registry *url.URL
+
+	registry    v1beta1.SeawayConfigRegistrySpec
+	registryURL *url.URL
+	storage     v1beta1.SeawayConfigStorageSpec
+	storageURL  *url.URL
 }
 
 func (b *Builder) desired(d *DesiredState) error {
 	env := b.observed.Env
 	if env == nil {
 		return nil
+	}
+
+	var err error
+	b.storage = b.observed.Config.Spec.SeawayConfigStorageSpec
+	b.storageURL, err = url.Parse(b.storage.Endpoint)
+	if err != nil {
+		return err
+	}
+
+	b.registry = b.observed.Config.Spec.SeawayConfigRegistrySpec
+	b.registryURL, err = url.Parse(b.registry.URL)
+	if err != nil {
+		return err
 	}
 
 	d.Job = b.buildJob()
@@ -80,11 +99,11 @@ func (b *Builder) buildJob() *batchv1.Job { //nolint:funlen
 	if args == nil {
 		args = []string{
 			fmt.Sprintf("--dockerfile=%s", *env.Spec.Build.Dockerfile),
-			fmt.Sprintf("--context=s3://%s/%s", env.GetBucket(), env.GetKey()),
-			fmt.Sprintf("--destination=%s/%s:%s", b.registry.Host, env.GetName(), env.GetRevision()),
+			fmt.Sprintf("--context=s3://%s/%s-%s.tar.gz", b.storageURL.Host, env.GetName(), env.GetNamespace()),
+			fmt.Sprintf("--destination=%s/%s:%s", b.registryURL.String(), env.GetName(), env.GetRevision()),
 			// TODO: toggle caching
 			"--cache=true",
-			fmt.Sprintf("--cache-repo=%s/build-cache", b.registry.Host),
+			fmt.Sprintf("--cache-repo=%s/build-cache", b.registryURL.String()),
 			fmt.Sprintf("--custom-platform=%s", *env.Spec.Build.Platform),
 			// TODO: Allow secure as well based on the registry uri parsing.
 			"--insecure",
@@ -97,17 +116,17 @@ func (b *Builder) buildJob() *batchv1.Job { //nolint:funlen
 	vars := []corev1.EnvVar{
 		{
 			Name:  "AWS_REGION",
-			Value: *env.Spec.Store.Region,
+			Value: b.storage.Region,
 		},
 		{
 			Name: "S3_ENDPOINT",
 			// Need to add the protocol...  Either force it and strip it when setting
 			// up the client or add it here.
-			Value: "http://" + *env.Spec.Store.Endpoint,
+			Value: b.storageURL.String(),
 		},
 		{
 			Name:  "S3_FORCE_PATH_STYLE",
-			Value: strconv.FormatBool(*env.Spec.Store.ForcePathStyle),
+			Value: strconv.FormatBool(b.storage.ForcePathStyle),
 		},
 	}
 
@@ -121,7 +140,7 @@ func (b *Builder) buildJob() *batchv1.Job { //nolint:funlen
 			{
 				SecretRef: &corev1.SecretEnvSource{
 					LocalObjectReference: corev1.LocalObjectReference{
-						Name: b.observed.UserSecret.GetName(),
+						Name: b.observed.Credentials.GetName(),
 					},
 				},
 			},
@@ -191,7 +210,7 @@ func (b *Builder) buildDeployment() *appsv1.Deployment {
 
 	container := corev1.Container{
 		Name:           "app",
-		Image:          fmt.Sprintf("localhost:%d/%s:%s", b.nodePort, env.GetName(), env.GetRevision()),
+		Image:          fmt.Sprintf("localhost:%d/%s:%s", b.registry.NodePort, env.GetName(), env.GetRevision()),
 		Command:        env.Spec.Command,
 		Args:           env.Spec.Args,
 		WorkingDir:     env.Spec.WorkingDir,

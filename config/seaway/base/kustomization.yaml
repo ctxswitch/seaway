@@ -9,4 +9,4 @@ resources:
   - ../crd
   - ../rbac
   - ../webhook
-  - deployment.yaml
+  - controller.yaml

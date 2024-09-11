@@ -15,21 +15,9 @@
 package v1beta1
 
 import (
-	"fmt"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 )
-
-// GetKey returns the key for the archive object in the S3 bucket.
-func (e *Environment) GetKey() string {
-	return fmt.Sprintf("%s/%s-%s.tar.gz", *e.Spec.Store.Prefix, e.GetName(), e.GetNamespace())
-}
-
-// GetBucket returns the bucket where the archive object is stored.
-func (e *Environment) GetBucket() string {
-	return *e.Spec.Store.Bucket
-}
 
 // GetRevision returns the configured revision of the environment.
 func (e *Environment) GetRevision() string {

@@ -16,11 +16,9 @@ package environment
 
 import (
 	"context"
-	"net/url"
 
 	"ctx.sh/seaway/pkg/apis/seaway.ctx.sh/v1beta1"
 	"ctx.sh/seaway/pkg/controller/environment/collector"
-	"ctx.sh/seaway/pkg/registry"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -30,20 +28,16 @@ import (
 )
 
 type Controller struct {
-	Scheme           *runtime.Scheme
-	Recorder         record.EventRecorder
-	RegistryURL      *url.URL
-	RegistryNodePort int32
+	Scheme   *runtime.Scheme
+	Recorder record.EventRecorder
 	client.Client
 }
 
-func SetupWithManager(mgr ctrl.Manager, regURL *url.URL, regNodePort int32) (err error) {
+func SetupWithManager(mgr ctrl.Manager) (err error) {
 	c := &Controller{
-		Scheme:           mgr.GetScheme(),
-		Client:           mgr.GetClient(),
-		Recorder:         mgr.GetEventRecorderFor("watch-controller"),
-		RegistryURL:      regURL,
-		RegistryNodePort: regNodePort,
+		Scheme:   mgr.GetScheme(),
+		Client:   mgr.GetClient(),
+		Recorder: mgr.GetEventRecorderFor("watch-controller"),
 	}
 
 	return ctrl.NewControllerManagedBy(mgr).
@@ -74,10 +68,8 @@ func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	var collection collector.Collection
 
 	sc := &collector.StateCollector{
-		Client:           c.Client,
-		Scheme:           c.Scheme,
-		RegistryNodePort: c.RegistryNodePort,
-		RegistryURL:      c.RegistryURL,
+		Client: c.Client,
+		Scheme: c.Scheme,
 	}
 	if err := sc.ObserveAndBuild(ctx, req, &collection); err != nil {
 		return ctrl.Result{}, err
@@ -88,12 +80,9 @@ func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, nil
 	}
 
-	reg := registry.NewClient(registry.NewHTTPClient()).WithRegistry(c.RegistryURL)
-
 	handler := &Handler{
 		collection: &collection,
 		client:     c.Client,
-		registry:   reg,
 	}
 
 	return handler.reconcile(ctx)

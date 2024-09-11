@@ -15,22 +15,17 @@
 package controller
 
 import (
-	"net/url"
-
 	"ctx.sh/seaway/pkg/controller/environment"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
-type Options struct {
-	RegistryURL      *url.URL
-	RegistryNodePort int32
-}
+type Options struct{}
 
 type Controller struct{}
 
 // SetupWithManager sets up any known controllers.
 func SetupWithManager(mgr ctrl.Manager, opts *Options) (err error) {
-	if err = environment.SetupWithManager(mgr, opts.RegistryURL, opts.RegistryNodePort); err != nil {
+	if err = environment.SetupWithManager(mgr); err != nil {
 		return
 	}
 

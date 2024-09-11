@@ -16,10 +16,10 @@ package main
 
 import (
 	"crypto/tls"
-	"net/url"
 	"os"
 
 	"ctx.sh/seaway/pkg/apis/seaway.ctx.sh/v1beta1"
+	"ctx.sh/seaway/pkg/apis/seaway.ctx.sh/v1beta1/handlers"
 	"ctx.sh/seaway/pkg/controller"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap/zapcore"
@@ -48,10 +48,7 @@ type Controller struct {
 	skipInsecureVerify bool
 	logLevel           int8
 	namespace          string
-
-	// Registry flags.
-	registryURL      string
-	registryNodePort int32
+	defaultConfig      string
 }
 
 func NewController() *Controller {
@@ -105,22 +102,16 @@ func (c *Controller) RunE(cmd *cobra.Command, args []string) error {
 		os.Exit(1)
 	}
 
+	hookServer.Register("/upload", handlers.NewUploadHandler(&handlers.UploadOptions{
+		Client: mgr.GetClient(),
+	}))
+
 	if err = (&v1beta1.Environment{}).SetupWebhookWithManager(mgr); err != nil {
 		log.Error(err, "unable to create webhook", "webhook", "Environment")
 		os.Exit(1)
 	}
 
-	registry, err := url.Parse(c.registryURL)
-	if err != nil {
-		log.Error(err, "unable to parse registry url")
-		os.Exit(1)
-	}
-
-	// Register controllers.
-	if err = controller.SetupWithManager(mgr, &controller.Options{
-		RegistryURL:      registry,
-		RegistryNodePort: c.registryNodePort,
-	}); err != nil {
+	if err = controller.SetupWithManager(mgr, &controller.Options{}); err != nil {
 		log.Error(err, "unable to setup seaway controllers")
 		os.Exit(1)
 	}
@@ -154,11 +145,7 @@ func (c *Controller) Command() *cobra.Command {
 	cmd.PersistentFlags().BoolVarP(&c.skipInsecureVerify, "skip-insecure-verify", "", DefaultSkipInsecureVerify, "skip certificate verification for the webhooks")
 	cmd.PersistentFlags().Int8VarP(&c.logLevel, "log-level", "", DefaultLogLevel, "set the log level (integer value)")
 	cmd.PersistentFlags().StringVarP(&c.namespace, "namespace", "", DefaultNamespace, "limit the controller to a specific namespace")
+	cmd.PersistentFlags().StringVarP(&c.defaultConfig, "default-config", "", DefaultConfigName, "specify the default seaway config that will be used if none is specified")
 
-	cmd.PersistentFlags().StringVarP(&c.registryURL, "registry-url", "", DefaultRegistryURL, "specify the url to the local registry")
-	cmd.PersistentFlags().Int32VarP(&c.registryNodePort, "registry-nodeport", "", DefaultRegistryNodePort, "specify the nodeport for the registry service")
-	// TODO: in the future, add flags for registry credentials.
-	// One thing that I'll note here is that external repos are not supported, but definitely are not out of the question if there is a proxy in place
-	// that can be accessed through the nodeport.  Maybe something as simple as a lightweight nginx container.  I might add something like this later.
 	return cmd
 }

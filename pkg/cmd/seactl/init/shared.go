@@ -19,7 +19,6 @@ import (
 	"os/exec"
 	"strconv"
 
-	"ctx.sh/seaway/pkg/auth"
 	"ctx.sh/seaway/pkg/build"
 	"ctx.sh/seaway/pkg/console"
 	"github.com/spf13/cobra"
@@ -59,39 +58,22 @@ func (s *Shared) RunE(cmd *cobra.Command, args []string) error {
 		console.Fatal("envsubst is not installed")
 	}
 
-	home, err := os.UserHomeDir()
-	if err != nil {
-		console.Fatal("Unable to determine user home directory")
+	// TODO: Just create the secrets later.  Right now we rely on them being set
+	// when we replace them in the script.
+	if os.Getenv("SEAWAY_S3_ACCESS_KEY") == "" {
+		console.Fatal("SEAWAY_S3_ACCESS_KEY is not set")
 	}
 
-	var creds *auth.Credentials
-	filename := home + "/.seaway/creds"
-	if _, err := os.Stat(filename); err != nil {
-		creds, err = auth.NewCredentials(filename)
-		if err != nil {
-			console.Fatal("Unable to create credentials file: %v", err)
-		}
-	} else {
-		creds, err = auth.LoadCredentials(filename)
-		if err != nil {
-			console.Fatal("Unable to load credentials file: %v", err)
-		}
+	if os.Getenv("SEAWAY_S3_SECRET_KEY") == "" {
+		console.Fatal("SEAWAY_S3_SECRET_KEY is not set")
 	}
 
-	if err := os.Setenv("SEAWAY_S3_ACCESS_KEY", creds.GetAccessKey()); err != nil {
-		console.Fatal("Unable to set SEAWAY_S3_ACCESS_KEY")
+	if os.Getenv("MINIO_ROOT_USER") == "" {
+		console.Fatal("MINIO_ROOT_USER is not set")
 	}
 
-	if err := os.Setenv("SEAWAY_S3_SECRET_KEY", creds.GetSecretKey()); err != nil {
-		console.Fatal("Unable to set SEAWAY_S3_SECRET_KEY")
-	}
-
-	if err := os.Setenv("MINIO_ROOT_USER", creds.GetMinioRootUser()); err != nil {
-		console.Fatal("Unable to set MINIO_ROOT_USER")
-	}
-
-	if err := os.Setenv("MINIO_ROOT_PASSWORD", creds.MinioRootPassword); err != nil {
-		console.Fatal("Unable to set MINIO_ROOT_PASSWORD")
+	if os.Getenv("MINIO_ROOT_PASSWORD") == "" {
+		console.Fatal("MINIO_ROOT_PASSWORD is not set")
 	}
 
 	if err := os.Setenv("CONTEXT", "--context="+kubeContext); err != nil {

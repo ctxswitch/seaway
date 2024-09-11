@@ -2,7 +2,6 @@ package stage
 
 import (
 	"context"
-	"net/url"
 	"testing"
 
 	"ctx.sh/seaway/pkg/apis/seaway.ctx.sh/v1beta1"
@@ -20,7 +19,7 @@ func NewMockRegistry() registry.API {
 	return &MockRegistry{}
 }
 
-func (m *MockRegistry) WithRegistry(reg *url.URL) registry.API {
+func (m *MockRegistry) WithRegistry(reg string) registry.API {
 	return m
 }
 
@@ -55,6 +54,17 @@ func TestBuildImageVerify(t *testing.T) {
 	for _, tt := range tests {
 		collection := &collector.Collection{
 			Observed: &collector.ObservedState{
+				Config: &v1beta1.SeawayConfig{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test",
+						Namespace: v1beta1.DefaultControllerNamespace,
+					},
+					Spec: v1beta1.SeawayConfigSpec{
+						SeawayConfigRegistrySpec: v1beta1.SeawayConfigRegistrySpec{
+							URL: "http://registry:5000",
+						},
+					},
+				},
 				Env: &v1beta1.Environment{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "test",
@@ -71,7 +81,7 @@ func TestBuildImageVerify(t *testing.T) {
 			mockRegistry := NewMockRegistry()
 			mockRegistry.(*MockRegistry).SetHasTag(tt.hasTag)
 
-			b := NewBuildImageVerify(nil, collection, mockRegistry)
+			b := NewBuildImageVerify(nil, collection).WithRegistry(mockRegistry)
 			stage, err := b.Do(context.TODO(), &v1beta1.EnvironmentStatus{})
 			assert.NoError(t, err)
 			assert.Equal(t, tt.expected, stage)

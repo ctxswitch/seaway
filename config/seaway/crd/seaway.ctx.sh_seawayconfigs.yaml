@@ -1,0 +1,70 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.16.1
+  name: seawayconfigs.seaway.ctx.sh
+spec:
+  group: seaway.ctx.sh
+  names:
+    kind: SeawayConfig
+    listKind: SeawayConfigList
+    plural: seawayconfigs
+    shortNames:
+    - sconfig
+    singular: seawayconfig
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1beta1
+    schema:
+      openAPIV3Schema:
+        properties:
+          apiVersion:
+            type: string
+          kind:
+            type: string
+          metadata:
+            type: object
+          spec:
+            properties:
+              registry:
+                properties:
+                  nodePort:
+                    format: int32
+                    type: integer
+                  url:
+                    type: string
+                required:
+                - nodePort
+                - url
+                type: object
+              storage:
+                properties:
+                  bucket:
+                    type: string
+                  credentials:
+                    type: string
+                  endpoint:
+                    type: string
+                  forcePathStyle:
+                    type: boolean
+                  prefix:
+                    type: string
+                  region:
+                    type: string
+                required:
+                - bucket
+                - credentials
+                - endpoint
+                - region
+                type: object
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources: {}

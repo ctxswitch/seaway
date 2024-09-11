@@ -4,7 +4,6 @@ resources:
 - namespace.yaml
 - creds.yaml
 - tenant.yaml
-- ingress.yaml
 labels:
 - includeSelectors: true
   pairs:

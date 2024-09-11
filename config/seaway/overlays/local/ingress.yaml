@@ -1,8 +1,8 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: s3
-  namespace: minio
+  name: seaway
+  namespace: seaway-system
   annotations:
     ingress.kubernetes.io/ssl-redirect: "false"
 spec:
@@ -13,6 +13,6 @@ spec:
         pathType: Prefix
         backend:
           service:
-            name: minio
+            name: seaway-controller
             port:
-              number: 80
+              number: 443

@@ -4,4 +4,5 @@ stringData:
   AWS_SECRET_ACCESS_KEY: $SEAWAY_S3_SECRET_KEY
 kind: Secret
 metadata:
-  name: seaway-user
+  name: seaway-credentials
+  namespace: seaway-system

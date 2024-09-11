@@ -48,8 +48,8 @@ func (r *Root) Command() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			_ = cmd.Help()
 		},
-		SilenceUsage:  true,
-		SilenceErrors: true,
+		SilenceUsage:  false,
+		SilenceErrors: false,
 	}
 
 	rootCmd.AddCommand(NewController().Command())

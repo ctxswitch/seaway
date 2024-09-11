@@ -17,6 +17,8 @@ package env
 import (
 	"archive/tar"
 	"compress/gzip"
+	"context"
+	"crypto/md5"
 	"fmt"
 	"io"
 	"io/fs"
@@ -27,7 +29,6 @@ import (
 	"ctx.sh/seaway/pkg/apis/seaway.ctx.sh/v1beta1"
 	"ctx.sh/seaway/pkg/console"
 	kube "ctx.sh/seaway/pkg/kube/client"
-	"ctx.sh/seaway/pkg/storage"
 	"github.com/spf13/cobra"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -61,13 +62,8 @@ func (s *Sync) RunE(cmd *cobra.Command, args []string) error { //nolint:funlen,g
 		return fmt.Errorf("expected environment name")
 	}
 
-	creds, err := GetCredentials()
-	if err != nil {
-		console.Fatal("Unable to get credentials: %s", err)
-	}
-
 	var manifest v1beta1.Manifest
-	err = manifest.Load("manifest.yaml")
+	err := manifest.Load("manifest.yaml")
 	if err != nil {
 		console.Fatal("Unable to load manifest")
 	}
@@ -75,12 +71,6 @@ func (s *Sync) RunE(cmd *cobra.Command, args []string) error { //nolint:funlen,g
 	env, err := manifest.GetEnvironment(args[0])
 	if err != nil {
 		console.Fatal("Build context '%s' not found in the manifest", args[0])
-	}
-
-	store := storage.NewClient(env.Store.GetEndpoint(), env.Store.UseSSL())
-	err = store.Connect(ctx, creds)
-	if err != nil {
-		console.Fatal("Unable to connect to object storage: %s", err)
 	}
 
 	console.Info("Creating archive")
@@ -91,18 +81,26 @@ func (s *Sync) RunE(cmd *cobra.Command, args []string) error { //nolint:funlen,g
 	defer os.Remove(archive)
 
 	console.Info("Uploading archive")
-	bucket := *env.Store.Bucket
-	key := ArchiveKey(manifest.Name, &env)
 
-	info, err := store.PutObject(ctx, bucket, key, archive)
+	etag, err := checksum(archive)
+	if err != nil {
+		console.Fatal("Unable to calculate the archive checksum: %s", err)
+	}
+
+	upload := v1beta1.NewClient("http://localhost:8080/upload")
+	resp, err := upload.Upload(ctx, archive, map[string]string{
+		"name":      manifest.Name,
+		"namespace": env.Namespace,
+		"etag":      etag,
+		"config":    "config",
+	})
 	if err != nil {
 		console.Fatal("Unable to upload the archive: %s", err)
 	}
 
 	console.Notice("Source: %s", archive)
-	console.Notice("Destination: s3://%s/%s", bucket, key)
-	console.Notice("Size: %d", info.Size)
-	console.Notice("ETag: %s", info.ETag)
+	console.Notice("Size: %d", resp.Size)
+	console.Notice("ETag: %s", resp.ETag)
 
 	console.Info("Updating environment")
 	client, err := kube.NewSeawayClient("", kubeContext)
@@ -110,22 +108,10 @@ func (s *Sync) RunE(cmd *cobra.Command, args []string) error { //nolint:funlen,g
 		console.Fatal("error getting seaway client: %s", err.Error())
 	}
 
-	secret := GetSecret(manifest.Name, env.Namespace)
-	_, err = client.CreateOrUpdate(ctx, secret, func() error {
-		secret.StringData = map[string]string{
-			"AWS_ACCESS_KEY_ID":     creds.GetAccessKey(),
-			"AWS_SECRET_ACCESS_KEY": creds.GetSecretKey(),
-		}
-		return nil
-	})
-	if err != nil {
-		console.Fatal("error modifying secret: %s", err.Error())
-	}
-
 	obj := GetEnvironment(manifest.Name, env.Namespace)
 	op, err := client.CreateOrUpdate(ctx, obj, func() error {
 		env.EnvironmentSpec.DeepCopyInto(&obj.Spec)
-		obj.Spec.Revision = info.ETag
+		obj.Spec.Revision = resp.ETag
 		return nil
 	})
 	if err != nil {
@@ -143,8 +129,8 @@ func (s *Sync) RunE(cmd *cobra.Command, args []string) error { //nolint:funlen,g
 	}
 
 	// TODO: timeout should be configurable
-	// ctx, cancel := context.WithTimeout(ctx, DefaultTimeout)
-	// defer cancel()
+	ctx, cancel := context.WithTimeout(ctx, DefaultTimeout)
+	defer cancel()
 
 	status := ""
 
@@ -248,6 +234,22 @@ func (s *Sync) add(tw *tar.Writer, filename string) error {
 	}
 
 	return nil
+}
+
+func checksum(filename string) (string, error) {
+	h := md5.New()
+	file, err := os.Open(filename)
+	if err != nil {
+		return "", err
+	}
+	defer file.Close()
+
+	_, err = io.Copy(h, file)
+	if err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf("%x", h.Sum(nil)), nil
 }
 
 // Command creates the sync command.
