@@ -27,3 +27,9 @@ kind: Ingress
 metadata:
   name: test
   namespace: default
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: test-credentials
+  namespace: default

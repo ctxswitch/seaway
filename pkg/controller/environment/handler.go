@@ -25,7 +25,7 @@ func (h *Handler) reconcile(ctx context.Context) (ctrl.Result, error) {
 
 	logger.V(5).Info("handling reconciliation for revision")
 
-	if h.collection.Observed.Credentials == nil {
+	if h.collection.Observed.StorageCredentials == nil {
 		logger.Error(nil, "unable to reconcile environment without user secrets")
 		return ctrl.Result{}, nil
 	}
@@ -99,7 +99,7 @@ func (h *Handler) getStage(current v1beta1.EnvironmentStage) stage.Stage {
 	case v1beta1.EnvironmentStageDeployVerify:
 		return stage.NewDeployVerify(h.client, h.collection)
 	default:
-		return stage.NewError()
+		return stage.NewError(current)
 	}
 }
 

@@ -106,6 +106,8 @@ func (c *Controller) RunE(cmd *cobra.Command, args []string) error {
 		Client: mgr.GetClient(),
 	}))
 
+	hookServer.Register("/ping", handlers.NewPingHandler())
+
 	if err = (&v1beta1.Environment{}).SetupWebhookWithManager(mgr); err != nil {
 		log.Error(err, "unable to create webhook", "webhook", "Environment")
 		os.Exit(1)

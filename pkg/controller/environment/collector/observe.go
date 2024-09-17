@@ -2,6 +2,7 @@ package collector
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"ctx.sh/seaway/pkg/apis/seaway.ctx.sh/v1beta1"
@@ -44,12 +45,29 @@ type StateObserver struct {
 }
 
 func (o *StateObserver) observe(ctx context.Context, observed *ObservedState) error {
-	err := o.observeRequired(ctx, observed)
+	env, err := o.observeEnvironment(ctx)
+	if err != nil {
+		if client.IgnoreNotFound(err) == nil {
+			return nil
+		}
+		return err
+	}
+
+	observed.Env = env
+
+	config, err := o.observeConfig(ctx, env.Spec.Config, v1beta1.DefaultControllerNamespace)
 	if err != nil {
 		return err
 	}
 
-	env := observed.Env
+	observed.Config = config
+
+	storageCredentials, err := o.observeStorageCredentials(ctx, config.Spec.SeawayConfigStorageSpec.Credentials, config.GetNamespace())
+	if err != nil {
+		return err
+	}
+
+	observed.StorageCredentials = storageCredentials
 
 	// Observe the job
 	job, err := o.observeJob(ctx, o.Request.Name+"-build")
@@ -77,7 +95,7 @@ func (o *StateObserver) observe(ctx context.Context, observed *ObservedState) er
 
 	// Observe the ingress
 	ingress, err := o.observeIngress(ctx)
-	if err != nil { 
+	if err != nil {
 		return err
 	}
 
@@ -90,7 +108,7 @@ func (o *StateObserver) observe(ctx context.Context, observed *ObservedState) er
 	// the environment namespace at the moment.  The alternative is just inject the
 	// creds directly into the build job's environment - which is even worse though
 	// I'm probably overthinking it at this early stage.
-	credentials, err := o.observeCredentials(ctx, env.Name+"-credentials")
+	credentials, err := o.observeEnvCredentials(ctx, env.Name+"-credentials")
 	if err != nil {
 		return err
 	}
@@ -100,37 +118,9 @@ func (o *StateObserver) observe(ctx context.Context, observed *ObservedState) er
 	return nil
 }
 
-// observeRequired is a helper that wraps the observation of required resources and will
-// fail if any of them are not found.
-func (o StateObserver) observeRequired(ctx context.Context, observed *ObservedState) error {
-	env, err := o.observeEnvironment(ctx)
-	if err != nil || env == nil {
-		return err
-	}
-
-	observed.Env = env
-
-	config, err := o.observeConfig(ctx, *env.Spec.Config, v1beta1.DefaultControllerNamespace)
-	if err != nil || config == nil {
-		return err
-	}
-
-	observed.Config = config
-
-	storageCredentials, err := o.observeCredentials(ctx, config.Spec.SeawayConfigStorageSpec.Credentials)
-	if err != nil || storageCredentials == nil {
-		return err
-	}
-
-	observed.StorageCredentials = storageCredentials
-}
-
 func (o *StateObserver) observeEnvironment(ctx context.Context) (*v1beta1.Environment, error) {
 	var env v1beta1.Environment
 	if err := o.Client.Get(ctx, o.Request.NamespacedName, &env); err != nil {
-		if client.IgnoreNotFound(err) == nil {
-			return nil, nil
-		}
 		return nil, err
 	}
 	v1beta1.Defaulted(&env)
@@ -184,7 +174,7 @@ func (o *StateObserver) observeIngress(ctx context.Context) (*networkingv1.Ingre
 	return &ingress, nil
 }
 
-func (o *StateObserver) observeCredentials(ctx context.Context, name string) (*corev1.Secret, error) {
+func (o *StateObserver) observeEnvCredentials(ctx context.Context, name string) (*corev1.Secret, error) {
 	var secret corev1.Secret
 	if err := o.Client.Get(ctx, types.NamespacedName{
 		Namespace: o.Request.Namespace,
@@ -198,6 +188,20 @@ func (o *StateObserver) observeCredentials(ctx context.Context, name string) (*c
 	return &secret, nil
 }
 
+func (o *StateObserver) observeStorageCredentials(ctx context.Context, name, namespace string) (*corev1.Secret, error) {
+	var secret corev1.Secret
+	if err := o.Client.Get(ctx, types.NamespacedName{
+		Namespace: namespace,
+		Name:      name,
+	}, &secret); err != nil {
+		if client.IgnoreNotFound(err) == nil {
+			return nil, fmt.Errorf("storage credentials not found: %s/%s", name, namespace)
+		}
+		return nil, err
+	}
+	return &secret, nil
+}
+
 func (o *StateObserver) observeConfig(ctx context.Context, name, namespace string) (*v1beta1.SeawayConfig, error) {
 	var config v1beta1.SeawayConfig
 	if err := o.Client.Get(ctx, client.ObjectKey{
@@ -205,7 +209,7 @@ func (o *StateObserver) observeConfig(ctx context.Context, name, namespace strin
 		Name:      name,
 	}, &config); err != nil {
 		if client.IgnoreNotFound(err) == nil {
-			return nil, nil
+			return nil, fmt.Errorf("seaway config not found: %s/%s", name, namespace)
 		}
 		return nil, err
 	}

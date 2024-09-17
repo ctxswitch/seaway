@@ -25,7 +25,8 @@ func (sc *StateCollector) ObserveAndBuild(ctx context.Context, req ctrl.Request,
 		Request: req,
 	}
 
-	if err := observer.observe(ctx, observed); err != nil {
+	err := observer.observe(ctx, observed)
+	if err != nil {
 		return err
 	}
 
@@ -36,7 +37,8 @@ func (sc *StateCollector) ObserveAndBuild(ctx context.Context, req ctrl.Request,
 		observed: observed,
 		scheme:   sc.Scheme,
 	}
-	if err := build.desired(desired); err != nil {
+	err = build.desired(desired)
+	if err != nil {
 		return err
 	}
 

@@ -7,7 +7,9 @@ import (
 	"io"
 	"mime/multipart"
 	"net/http"
+	"net/url"
 	"os"
+	"strings"
 
 	"ctx.sh/seaway/pkg/apis/seaway.ctx.sh/v1beta1"
 	"github.com/minio/minio-go/v7"
@@ -16,11 +18,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
+// +kubebuilder:skip
 type UploadOptions struct {
 	Client    client.Client
 	Namespace string
 }
 
+// +kubebuilder:skip
 type Upload struct {
 	namespace string
 	client.Client
@@ -50,14 +54,26 @@ func (h *Upload) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	etag := r.FormValue("etag")
 	config := r.FormValue("config")
 
+	if config == "" {
+		config = h.namespace + "/" + v1beta1.DefaultConfigName
+	}
+
+	parts := strings.Split(config, "/")
+	if len(parts) == 1 {
+		parts = append([]string{h.namespace}, parts...)
+	}
+
+	logger.Info("Uploading file", "name", name, "namespace", namespace, "etag", etag, "config", config)
+
 	var seawayConfig v1beta1.SeawayConfig
 	err := h.Get(r.Context(), client.ObjectKey{
-		Name:      config,
-		Namespace: h.namespace,
+		Name:      parts[1],
+		Namespace: parts[0],
 	}, &seawayConfig)
 	if err != nil {
 		logger.Error(err, "Error retrieving the seaway config", "name", name, "namespace", namespace, "etag", etag)
 		h.respond(w, minio.UploadInfo{}, err)
+		return
 	}
 
 	file, _, err := r.FormFile("archive")
@@ -84,7 +100,7 @@ func (h *Upload) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	h.respond(w, info, nil)
 }
 
-func (h *Upload) store(ctx context.Context, config v1beta1.SeawayConfigStorageSpec, file multipart.File, name, namespace string) (minio.UploadInfo, error) {
+func (h *Upload) store(ctx context.Context, storage v1beta1.SeawayConfigStorageSpec, file multipart.File, name, namespace string) (minio.UploadInfo, error) {
 	defer file.Close()
 
 	data, err := io.ReadAll(file)
@@ -102,7 +118,12 @@ func (h *Upload) store(ctx context.Context, config v1beta1.SeawayConfigStorageSp
 
 	// TODO: Support more providers than the environment providers.  There's
 	// others like IAM, STS, etc.  We could also add a secrets provider as well.
-	store, err := minio.New(config.Endpoint, &minio.Options{
+	u, err := url.Parse(storage.Endpoint)
+	if err != nil {
+		return minio.UploadInfo{}, err
+	}
+
+	store, err := minio.New(u.Host, &minio.Options{
 		Creds: credentials.NewChainCredentials([]credentials.Provider{
 			// Requires MINIO_ACCESS_KEY and MINIO_SECRET_KEY.
 			&credentials.EnvMinio{},
@@ -114,7 +135,7 @@ func (h *Upload) store(ctx context.Context, config v1beta1.SeawayConfigStorageSp
 		return minio.UploadInfo{}, err
 	}
 
-	err = h.makeBucketIfNotExists(ctx, store, config.Bucket)
+	err = h.makeBucketIfNotExists(ctx, store, storage.Bucket)
 	if err != nil {
 		return minio.UploadInfo{}, err
 	}
@@ -126,8 +147,8 @@ func (h *Upload) store(ctx context.Context, config v1beta1.SeawayConfigStorageSp
 	archive := tmp.Name()
 
 	// Upload to minio.
-	key := fmt.Sprintf("%s/%s-%s.tar.gz", config.Prefix, name, namespace)
-	info, err := store.FPutObject(ctx, config.Bucket, key, archive, minio.PutObjectOptions{})
+	key := storage.GetArchiveKey(name, namespace)
+	info, err := store.FPutObject(ctx, storage.Bucket, key, archive, minio.PutObjectOptions{})
 	if err != nil {
 		return minio.UploadInfo{}, err
 	}

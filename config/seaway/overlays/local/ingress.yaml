@@ -6,13 +6,8 @@ metadata:
   annotations:
     ingress.kubernetes.io/ssl-redirect: "false"
 spec:
-  rules:
-  - http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: seaway-controller
-            port:
-              number: 443
+  defaultBackend:
+    service:
+      name: seaway-webhook-service
+      port:
+        number: 443

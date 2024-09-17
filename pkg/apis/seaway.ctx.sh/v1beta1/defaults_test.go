@@ -25,7 +25,7 @@ func TestDefaulted(t *testing.T) {
 				Exclude:    []string{},
 			},
 			Command:       nil,
-			Config:        ptr.To(DefaultConfigName),
+			Config:        DefaultConfigName,
 			Endpoint:      ptr.To(DefaultEndpoint),
 			Lifecycle:     nil,
 			LivenessProbe: nil,

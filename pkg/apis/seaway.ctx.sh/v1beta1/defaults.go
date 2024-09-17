@@ -56,9 +56,8 @@ func defaultEnvironmentSpec(obj *EnvironmentSpec) {
 		obj.Args = []string{}
 	}
 
-	if obj.Config == nil {
-		obj.Config = new(string)
-		*obj.Config = DefaultConfigName
+	if obj.Config == "" {
+		obj.Config = DefaultConfigName
 	}
 
 	if obj.Endpoint == nil {

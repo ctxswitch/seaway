@@ -3,6 +3,7 @@ package v1beta1
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"io"
 	"mime/multipart"
@@ -21,10 +22,6 @@ type UploadResponse struct {
 	Code int `json:"code"`
 	// Error is the error message if the upload failed.
 	Error string `json:"error"`
-}
-
-type ClientAPI interface {
-	Upload(ctx context.Context, path string, params map[string]string) error
 }
 
 type Client struct {
@@ -76,7 +73,14 @@ func (u *Client) Upload(ctx context.Context, path string, params map[string]stri
 
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 
-	client := &http.Client{}
+	transport := http.DefaultTransport
+	transport.(*http.Transport).TLSClientConfig = &tls.Config{
+		// TODO: Allow configuration of this.
+		InsecureSkipVerify: true,
+	}
+	client := &http.Client{
+		Transport: transport,
+	}
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err

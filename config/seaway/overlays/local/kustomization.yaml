@@ -5,11 +5,10 @@ commonAnnotations:
   ctx.sh/license: "Apache"
   ctx.sh/support: "https://github.com/ctxswitch/seaway/issues"
 resources: 
-  - config.yaml
   - ../../base
-  - service.yaml
   - ingress.yaml
   - creds.yaml
+  - config.yaml
 patches:
   - path: deployment.yaml
     target:

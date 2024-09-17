@@ -4,5 +4,5 @@ stringData:
   REGISTRY_STORAGE_S3_SECRETKEY: $SEAWAY_S3_SECRET_KEY
 kind: Secret
 metadata:
-  name: seaway-creds
-  namespace: registries
+  name: registry-credentials
+  namespace: seaway-system

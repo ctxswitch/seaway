@@ -2,7 +2,7 @@ apiVersion: minio.min.io/v2
 kind: Tenant
 metadata:
   name: seaway
-  namespace: minio
+  namespace: seaway-system
 spec:
   exposeServices:
     minio: true

@@ -17,20 +17,22 @@ import (
 )
 
 type DesiredState struct {
-	Job        *batchv1.Job
-	Deployment *appsv1.Deployment
-	Service    *corev1.Service
-	Ingress    *networkingv1.Ingress
-	Config     *v1beta1.SeawayConfig
+	Job            *batchv1.Job
+	Deployment     *appsv1.Deployment
+	Service        *corev1.Service
+	Ingress        *networkingv1.Ingress
+	Config         *v1beta1.SeawayConfig
+	EnvCredentials *corev1.Secret
 }
 
 func NewDesiredState() *DesiredState {
 	return &DesiredState{
-		Job:        nil,
-		Deployment: nil,
-		Service:    nil,
-		Ingress:    nil,
-		Config:     nil,
+		Job:            nil,
+		Deployment:     nil,
+		Service:        nil,
+		Ingress:        nil,
+		Config:         nil,
+		EnvCredentials: nil,
 	}
 }
 
@@ -63,6 +65,7 @@ func (b *Builder) desired(d *DesiredState) error {
 		return err
 	}
 
+	d.EnvCredentials = b.buildEnvCredentials()
 	d.Job = b.buildJob()
 	d.Deployment = b.buildDeployment()
 
@@ -74,6 +77,33 @@ func (b *Builder) desired(d *DesiredState) error {
 	}
 
 	return nil
+}
+
+func (b *Builder) buildEnvCredentials() *corev1.Secret {
+	env := b.observed.Env
+	credentials := b.observed.EnvCredentials
+
+	if credentials == nil {
+		credentials = &corev1.Secret{}
+	}
+
+	metatdata := metav1.ObjectMeta{
+		Name:      env.Name + "-credentials",
+		Namespace: env.Namespace,
+		Annotations: mergeMap(map[string]string{
+			"seaway.ctx.sh/revision": env.GetRevision(),
+		}, credentials.Annotations),
+		OwnerReferences: []metav1.OwnerReference{
+			env.GetControllerReference(),
+		},
+	}
+
+	data := b.observed.StorageCredentials.Data
+
+	return &corev1.Secret{
+		ObjectMeta: metatdata,
+		Data:       data,
+	}
 }
 
 func (b *Builder) buildJob() *batchv1.Job { //nolint:funlen
@@ -99,11 +129,11 @@ func (b *Builder) buildJob() *batchv1.Job { //nolint:funlen
 	if args == nil {
 		args = []string{
 			fmt.Sprintf("--dockerfile=%s", *env.Spec.Build.Dockerfile),
-			fmt.Sprintf("--context=s3://%s/%s-%s.tar.gz", b.storageURL.Host, env.GetName(), env.GetNamespace()),
-			fmt.Sprintf("--destination=%s/%s:%s", b.registryURL.String(), env.GetName(), env.GetRevision()),
+			fmt.Sprintf("--context=s3://%s/%s", b.storage.Bucket, b.storage.GetArchiveKey(env.GetName(), env.GetNamespace())),
+			fmt.Sprintf("--destination=%s/%s:%s", b.registryURL.Host, env.GetName(), env.GetRevision()),
 			// TODO: toggle caching
 			"--cache=true",
-			fmt.Sprintf("--cache-repo=%s/build-cache", b.registryURL.String()),
+			fmt.Sprintf("--cache-repo=%s/build-cache", b.registryURL.Host),
 			fmt.Sprintf("--custom-platform=%s", *env.Spec.Build.Platform),
 			// TODO: Allow secure as well based on the registry uri parsing.
 			"--insecure",
@@ -122,7 +152,7 @@ func (b *Builder) buildJob() *batchv1.Job { //nolint:funlen
 			Name: "S3_ENDPOINT",
 			// Need to add the protocol...  Either force it and strip it when setting
 			// up the client or add it here.
-			Value: b.storageURL.String(),
+			Value: b.storage.Endpoint,
 		},
 		{
 			Name:  "S3_FORCE_PATH_STYLE",
@@ -140,7 +170,7 @@ func (b *Builder) buildJob() *batchv1.Job { //nolint:funlen
 			{
 				SecretRef: &corev1.SecretEnvSource{
 					LocalObjectReference: corev1.LocalObjectReference{
-						Name: b.observed.Credentials.GetName(),
+						Name: env.Name + "-credentials",
 					},
 				},
 			},

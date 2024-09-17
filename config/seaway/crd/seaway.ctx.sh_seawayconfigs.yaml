@@ -12,7 +12,7 @@ spec:
     listKind: SeawayConfigList
     plural: seawayconfigs
     shortNames:
-    - sconfig
+    - sc
     singular: seawayconfig
   scope: Namespaced
   versions:
