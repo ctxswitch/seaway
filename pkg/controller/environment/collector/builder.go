@@ -117,9 +117,9 @@ func (b *Builder) buildJob() *batchv1.Job { //nolint:funlen
 	metatdata := metav1.ObjectMeta{
 		Name:      env.Name + "-build",
 		Namespace: env.Namespace,
-		Annotations: mergeMap(map[string]string{
+		Annotations: map[string]string{
 			"seaway.ctx.sh/revision": env.GetRevision(),
-		}, job.Annotations),
+		},
 		OwnerReferences: []metav1.OwnerReference{
 			env.GetControllerReference(),
 		},
@@ -358,25 +358,10 @@ func (b *Builder) buildIngress() *networkingv1.Ingress {
 		Service: &networkingv1.IngressServiceBackend{
 			Name: env.GetName(),
 			Port: networkingv1.ServiceBackendPort{
-				// TODO: Right now just take the first port. I need to allow building out for
-				// multiple ports in the future, but for a quick and dirty implementation,
-				// this will work for now.  Just doc it and move on.
 				Number: *env.Spec.Network.Ingress.Port,
 			},
 		},
 	}
-	// TODO: Messy.  Don't like the coupling here.
-	// if env.Spec.Networking.Ingress.Enabled && env.Spec.Networking.Service.Enabled {
-	// 	backend.Service = &networkingv1.IngressServiceBackend{
-	// 		Name: env.GetName(),
-	// 		Port: networkingv1.ServiceBackendPort{
-	// 			// TODO: Right now just take the first port. I need to allow building out for
-	// 			// multiple ports in the future, but for a quick and dirty implementation,
-	// 			// this will work for now.  Just doc it and move on.
-	// 			Number: *env.Spec.Networking.Ingress.Port,
-	// 		},
-	// 	}
-	// }
 
 	spec := networkingv1.IngressSpec{
 		DefaultBackend: backend,

@@ -37,12 +37,11 @@ func (h *Handler) reconcile(ctx context.Context) (ctrl.Result, error) {
 
 	env := h.collection.Observed.Env
 
-	// There's probably a cleaner way to handle the initial checks here.
+	// TODO: If the seaway config has been updated, trigger a redeploy of
+	// any environments that are using it.
 
-	// If there was a build failure we stop.
-	// If there was a deploy failure we can try to redeploy.
 	switch {
-	case env.HasFailed() && !env.HasDeviated() || env.HasDeviated():
+	case env.HasDeviated():
 		logger.Info("environment been updated, redeploying")
 		env.Status.Stage = v1beta1.EnvironmentStageInitialize
 	case env.IsDeployed():
@@ -84,6 +83,8 @@ func (h *Handler) getStage(current v1beta1.EnvironmentStage) stage.Stage {
 	case v1beta1.EnvironmentStageBuildImage:
 		return stage.NewBuildImage(h.client, h.collection)
 	case v1beta1.EnvironmentStageBuildImageWait:
+		return stage.NewBuildImageWait(h.client, h.collection)
+	case v1beta1.EnvironmentStageBuildImageFailing:
 		return stage.NewBuildImageWait(h.client, h.collection)
 	case v1beta1.EnvironmentStageBuildImageVerify:
 		return stage.NewBuildImageVerify(h.client, h.collection)

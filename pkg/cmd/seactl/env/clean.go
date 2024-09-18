@@ -21,6 +21,7 @@ import (
 	"ctx.sh/seaway/pkg/console"
 	kube "ctx.sh/seaway/pkg/kube/client"
 	"github.com/spf13/cobra"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
@@ -71,7 +72,7 @@ func (c Clean) RunE(cmd *cobra.Command, args []string) error {
 
 	obj := GetEnvironment(manifest.Name, env.Namespace)
 	err = client.Delete(ctx, obj, metav1.DeleteOptions{})
-	if err != nil {
+	if !errors.IsNotFound(err) {
 		console.Fatal("Unable to delete environment: %s", err)
 	}
 

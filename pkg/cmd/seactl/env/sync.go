@@ -31,6 +31,7 @@ import (
 	kube "ctx.sh/seaway/pkg/kube/client"
 	"github.com/spf13/cobra"
 
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
@@ -44,6 +45,7 @@ provided in the manifest.  This will trigger a new development deployment if the
 
 type Sync struct {
 	logLevel int8
+	force    bool
 }
 
 func NewSync() *Sync {
@@ -102,17 +104,27 @@ func (s *Sync) RunE(cmd *cobra.Command, args []string) error { //nolint:funlen,g
 		console.Fatal("Upload failed: %s", resp.Error)
 	}
 
-	console.Notice("Source: %s", archive)
-	console.Notice("Size: %d", resp.Size)
-	console.Notice("ETag: %s", resp.ETag)
+	// console.Notice("Source: %s", archive)
+	console.ListNotice("Size: %d", resp.Size)
+	console.ListNotice("Revision: %s", resp.ETag)
 
-	console.Info("Updating environment")
+	console.Info("Deploying")
+
 	client, err := kube.NewSeawayClient("", kubeContext)
 	if err != nil {
 		console.Fatal("error getting seaway client: %s", err.Error())
 	}
 
 	obj := GetEnvironment(manifest.Name, env.Namespace)
+
+	if s.force {
+		if err := client.Delete(ctx, obj, metav1.DeleteOptions{}); err != nil {
+			if !errors.IsNotFound(err) {
+				console.Fatal("error deleting environment: %s", err.Error())
+			}
+		}
+	}
+
 	op, err := client.CreateOrUpdate(ctx, obj, func() error {
 		env.EnvironmentSpec.DeepCopyInto(&obj.Spec)
 		obj.Spec.Revision = resp.ETag
@@ -124,12 +136,12 @@ func (s *Sync) RunE(cmd *cobra.Command, args []string) error { //nolint:funlen,g
 
 	switch op {
 	case kube.OperationResultNone:
-		console.Success("No changes detected")
+		console.ListNotice("No changes detected")
 		return nil
 	case kube.OperationResultUpdated:
-		console.Info("Environment updated")
+		console.ListNotice("Environment updated")
 	case kube.OperationResultCreated:
-		console.Info("Environment created")
+		console.ListNotice("Environment created")
 	}
 
 	// TODO: timeout should be configurable
@@ -150,20 +162,19 @@ func (s *Sync) RunE(cmd *cobra.Command, args []string) error { //nolint:funlen,g
 			if err := client.Get(ctx, obj, metav1.GetOptions{}); err != nil {
 				console.Fatal("Unable to get the environment: %s", err)
 			}
-
-			if obj.IsDeployed() {
-				console.Success("Revision has been deployed")
-				return nil
-			}
-
-			if obj.HasFailed() {
-				console.Error(obj.Status.Reason)
-				console.Fatal("Environment failed to deploy")
-			}
-
 			if status != string(obj.Status.Stage) {
 				status = string(obj.Status.Stage)
-				console.Notice(status)
+				switch {
+				case obj.IsFailing():
+					console.ListWarning(status)
+				case obj.HasFailed():
+					console.ListFailed(status)
+					os.Exit(1)
+				case obj.IsDeployed():
+					console.ListSuccess(status)
+				default:
+					console.ListNotice(status)
+				}
 			}
 		}
 	}
@@ -266,6 +277,6 @@ func (s *Sync) Command() *cobra.Command {
 	}
 
 	cmd.PersistentFlags().Int8VarP(&s.logLevel, "log-level", "", DefaultLogLevel, "set the log level (integer value)")
-
+	cmd.PersistentFlags().BoolVarP(&s.force, "force", "", false, "force a resync even if no changes are detected")
 	return cmd
 }

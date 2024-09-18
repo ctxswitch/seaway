@@ -55,6 +55,11 @@ func (e *Environment) HasFailed() bool {
 		e.Status.Stage == EnvironmentStageFailed
 }
 
+// IsFailing returns true if the environment is in the process of failing.
+func (e *Environment) IsFailing() bool {
+	return e.Status.Stage == EnvironmentStageBuildImageFailing
+}
+
 // IsDeployed returns true if the environment has been deployed.  At the end of the
 // reconciliation loop, the status of the environment is updated to reflect the
 // successfully deployed revision so we can check to see if the spec revision matches
