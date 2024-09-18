@@ -4,12 +4,6 @@ commonAnnotations:
   ctx.sh/authors: "Seaway Authors"
   ctx.sh/license: "Apache"
   ctx.sh/support: "https://github.com/ctxswitch/seaway/issues"
-resources: 
-  - ../../base
-  - ingress.yaml
-patches:
-  - path: controller.yaml
-    target:
-      kind: Deployment
-      name: seaway-controller
-      namespace: seaway-system
+resources:
+  - creds.yaml
+  - config.yaml

@@ -17,8 +17,6 @@ package v1beta1
 // +kubebuilder:docs-gen:collapse=Apache License
 
 import (
-	"fmt"
-
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -354,6 +352,7 @@ type SeawayConfigRegistrySpec struct {
 	NodePort int32 `json:"nodePort"`
 }
 
+// SeawayConfigSpec is configuration for a seawayconfig resource.
 type SeawayConfigSpec struct {
 	SeawayConfigStorageSpec  `json:"storage,omitempty"`
 	SeawayConfigRegistrySpec `json:"registry,omitempty"`
@@ -362,7 +361,7 @@ type SeawayConfigSpec struct {
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +k8s:defaulter-gen=true
-// +kubebuilder:resource:scope=Namespaced,shortName=sc,singular=seawayconfig
+// +kubebuilder:resource:scope=Namespaced,shortName=sconf,singular=seawayconfig
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 
 // Config is the configuration that the controller will use.  It contains the
@@ -371,14 +370,6 @@ type SeawayConfig struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 	Spec              SeawayConfigSpec `json:"spec,omitempty"`
-}
-
-func (c *SeawayConfigStorageSpec) GetArchiveKey(name, namespace string) string {
-	if c.Prefix == "" {
-		return fmt.Sprintf("%s-%s.tar.gz", name, namespace)
-	}
-
-	return fmt.Sprintf("%s/%s-%s.tar.gz", c.Prefix, name, namespace)
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

@@ -41,22 +41,15 @@ func (h *Handler) reconcile(ctx context.Context) (ctrl.Result, error) {
 
 	// If there was a build failure we stop.
 	// If there was a deploy failure we can try to redeploy.
-
 	switch {
-	case env.Status.Stage == v1beta1.EnvironmentStageDeployFailed:
-		logger.Info("environment has failed to deploy, skipping reconcile")
-		return ctrl.Result{}, nil
-	case env.Status.Stage == v1beta1.EnvironmentStageBuildImageFailed:
-		logger.Info("environment has failed to build, skipping reconcile")
-		return ctrl.Result{}, nil
-	case env.HasDeviated():
+	case env.HasFailed() && !env.HasDeviated() || env.HasDeviated():
 		logger.Info("environment been updated, redeploying")
 		env.Status.Stage = v1beta1.EnvironmentStageInitialize
 	case env.IsDeployed():
-		logger.V(5).Info("handling reconciliation for existing revision")
-		// env.Status.Stage = v1beta1.EnvironmentStageDeploy
-		// TODO: Think about how we can handle a redeploy if only the env resources
-		// have changed and not the image itself.  Might want to add a manifest hash.
+		logger.V(5).Info("environment is already deployed, skipping")
+		return ctrl.Result{}, nil
+	case env.HasFailed():
+		logger.Info("environment has failed, stopping reconciliation")
 		return ctrl.Result{}, nil
 	}
 
