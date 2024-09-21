@@ -69,8 +69,28 @@ func Success(format string, a ...any) {
 	fmt.Printf(format, a...)
 }
 
-func Notice(format string, a ...any) {
+func ListNotice(format string, a ...any) {
 	format = "  " + chalk.Dim.TextStyle(Circle) + chalk.Cyan.String() + format + "\n" + chalk.Reset.String()
+	fmt.Printf(format, a...)
+}
+
+func ListWarning(format string, a ...any) {
+	format = "  " + chalk.Dim.TextStyle(Circle) + chalk.Yellow.String() + format + "\n" + chalk.Reset.String()
+	fmt.Printf(format, a...)
+}
+
+func ListError(format string, a ...any) {
+	format = "  " + chalk.Dim.TextStyle(Circle) + chalk.Red.String() + format + "\n" + chalk.Reset.String()
+	fmt.Printf(format, a...)
+}
+
+func ListFailed(format string, a ...any) {
+	format = "  " + chalk.Dim.TextStyle(BullsEye) + chalk.Red.String() + format + "\n" + chalk.Reset.String()
+	fmt.Printf(format, a...)
+}
+
+func ListSuccess(format string, a ...any) {
+	format = "  " + chalk.Dim.TextStyle(BullsEye) + chalk.Green.String() + format + "\n" + chalk.Reset.String()
 	fmt.Printf(format, a...)
 }
 

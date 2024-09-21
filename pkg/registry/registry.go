@@ -16,11 +16,10 @@ package registry
 
 import (
 	"fmt"
-	"net/url"
 )
 
 type API interface {
-	WithRegistry(*url.URL) API
+	WithRegistry(string) API
 	HasTag(string, string) (bool, error)
 }
 
@@ -38,8 +37,8 @@ func NewClient(connector Connector) API {
 }
 
 // WithRegistry creates a new client with a registry.
-func (c *Client) WithRegistry(reg *url.URL) API {
-	c.registry = reg.String()
+func (c *Client) WithRegistry(reg string) API {
+	c.registry = reg
 	return c
 }
 

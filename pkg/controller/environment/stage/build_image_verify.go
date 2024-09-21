@@ -16,13 +16,21 @@ type BuildImageVerify struct {
 	client.Client
 }
 
-func NewBuildImageVerify(client client.Client, collection *collector.Collection, reg registry.API) *BuildImageVerify {
+func NewBuildImageVerify(client client.Client, collection *collector.Collection) *BuildImageVerify {
+	config := collection.Observed.Config.Spec.SeawayConfigRegistrySpec
+	reg := registry.NewClient(registry.NewHTTPClient()).WithRegistry(config.URL)
+
 	return &BuildImageVerify{
 		observed: collection.Observed,
 		desired:  collection.Desired,
 		registry: reg,
 		Client:   client,
 	}
+}
+
+func (b *BuildImageVerify) WithRegistry(registry registry.API) *BuildImageVerify {
+	b.registry = registry
+	return b
 }
 
 func (b *BuildImageVerify) Do(ctx context.Context, status *v1beta1.EnvironmentStatus) (v1beta1.EnvironmentStage, error) {

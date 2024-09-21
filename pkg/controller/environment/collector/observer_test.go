@@ -7,32 +7,51 @@ import (
 
 	"ctx.sh/seaway/pkg/apis/seaway.ctx.sh/v1beta1"
 	"ctx.sh/seaway/pkg/mock"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/suite"
+	"go.uber.org/zap/zapcore"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
 
-func TestStateObserver_observe(t *testing.T) {
-	var client *mock.Client
+type ObserverTestSuite struct {
+	client *mock.Client
+	suite.Suite
+}
+
+func (s *ObserverTestSuite) SetupTest() {
+	logger := zap.New(zap.UseDevMode(true), zap.Level(zapcore.Level(-8)))
+	log.SetLogger(logger)
+
+	s.client = mock.NewClient().
+		WithLogger(logger).
+		WithFixtureDirectory(filepath.Join("..", "..", "..", "..", "fixtures"))
+
+	s.client.ApplyFixtureOrDie("shared", "required.yaml")
+}
+
+func (s *ObserverTestSuite) TearDownTest() {
+	s.client.Reset()
+}
+
+func TestObserverTestSuite(t *testing.T) {
+	suite.Run(t, new(ObserverTestSuite))
+}
+
+func (s *ObserverTestSuite) TestStateObserver_observe() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	h := mock.NewTestHarness()
-	log.IntoContext(ctx, h.Logger())
-
-	client = mock.NewClient().
-		WithLogger(h.Logger()).
-		WithFixtureDirectory(filepath.Join("..", "..", "..", "..", "fixtures", "controller_environment_collector"))
-	defer client.Reset()
-
-	client.ApplyFixtureOrDie("test_state_observer_observe_0.yaml")
-	client.ApplyFixtureOrDie("test_state_observer_observe_1.yaml")
+	s.client.ApplyFixtureOrDie(
+		"controller_environment_collector",
+		"test_state_observer_observe_1.yaml",
+	)
 
 	observed := NewObservedState()
 	observer := &StateObserver{
-		Client: client,
+		Client: s.client,
 		Request: ctrl.Request{
 			NamespacedName: types.NamespacedName{
 				Namespace: "default",
@@ -42,48 +61,45 @@ func TestStateObserver_observe(t *testing.T) {
 	}
 
 	err := observer.observe(ctx, observed)
-	assert.NoError(t, err)
+	s.NoError(err)
+	s.NotNil(observed.Env)
+	s.NotNil(observed.Config)
+	s.NotNil(observed.StorageCredentials)
 
-	assert.NotNil(t, observed.Env)
-	assert.NotNil(t, observed.UserSecret)
+	s.Nil(observed.EnvCredentials)
+	s.Nil(observed.Job)
+	s.Nil(observed.Deployment)
+	s.Nil(observed.Service)
+	s.Nil(observed.Ingress)
 
-	assert.Nil(t, observed.Job)
-	assert.Nil(t, observed.Deployment)
-	assert.Nil(t, observed.Service)
-	assert.Nil(t, observed.Ingress)
+	s.client.ApplyFixtureOrDie(
+		"controller_environment_collector",
+		"test_state_observer_observe_2.yaml",
+	)
 
-	client.ApplyFixtureOrDie("test_state_observer_observe_2.yaml")
-	assert.NoError(t, err)
+	s.NoError(err)
 
 	err = observer.observe(ctx, observed)
-	assert.NoError(t, err)
+	s.NoError(err)
 
-	assert.NotNil(t, observed.Env)
-	assert.NotNil(t, observed.UserSecret)
-
-	assert.NotNil(t, observed.Job)
-	assert.NotNil(t, observed.Deployment)
-	assert.NotNil(t, observed.Service)
-	assert.NotNil(t, observed.Ingress)
+	s.NotNil(observed.EnvCredentials)
+	s.NotNil(observed.Job)
+	s.NotNil(observed.Deployment)
+	s.NotNil(observed.Service)
+	s.NotNil(observed.Ingress)
 }
 
-func TestStateObserver_observeEnvironment(t *testing.T) {
-	var client *mock.Client
+func (s *ObserverTestSuite) TestStateObserver_observeEnvironment() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	h := mock.NewTestHarness()
-	log.IntoContext(ctx, h.Logger())
-
-	client = mock.NewClient().
-		WithLogger(h.Logger()).
-		WithFixtureDirectory(filepath.Join("..", "..", "..", "..", "fixtures", "controller_environment_collector"))
-	defer client.Reset()
-
-	client.ApplyFixtureOrDie("test_state_observer_observe_environment.yaml")
+	s.client.ApplyFixtureOrDie(
+		"controller_environment_collector",
+		"test_state_observer_observe_environment.yaml",
+	)
 
 	observer := &StateObserver{
-		Client: client,
+		Client: s.client,
 		Request: ctrl.Request{
 			NamespacedName: types.NamespacedName{
 				Namespace: "default",
@@ -93,8 +109,8 @@ func TestStateObserver_observeEnvironment(t *testing.T) {
 	}
 
 	env, err := observer.observeEnvironment(ctx)
-	assert.NoError(t, err)
-	assert.NotNil(t, env)
+	s.NoError(err)
+	s.NotNil(env)
 
 	// Ensure that the environment is found and defaulted.
 	expected := &v1beta1.Environment{
@@ -109,5 +125,5 @@ func TestStateObserver_observeEnvironment(t *testing.T) {
 	}
 	v1beta1.Defaulted(expected)
 
-	assert.Equal(t, expected.Spec, env.Spec)
+	s.Equal(expected.Spec, env.Spec)
 }

@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"strconv"
 
+	"ctx.sh/seaway/pkg/apis/seaway.ctx.sh/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -16,26 +17,33 @@ import (
 )
 
 type DesiredState struct {
-	Job        *batchv1.Job
-	Deployment *appsv1.Deployment
-	Service    *corev1.Service
-	Ingress    *networkingv1.Ingress
+	Job            *batchv1.Job
+	Deployment     *appsv1.Deployment
+	Service        *corev1.Service
+	Ingress        *networkingv1.Ingress
+	Config         *v1beta1.SeawayConfig
+	EnvCredentials *corev1.Secret
 }
 
 func NewDesiredState() *DesiredState {
 	return &DesiredState{
-		Job:        nil,
-		Deployment: nil,
-		Service:    nil,
-		Ingress:    nil,
+		Job:            nil,
+		Deployment:     nil,
+		Service:        nil,
+		Ingress:        nil,
+		Config:         nil,
+		EnvCredentials: nil,
 	}
 }
 
 type Builder struct {
 	observed *ObservedState
 	scheme   *runtime.Scheme
-	nodePort int32
-	registry *url.URL
+
+	registry    v1beta1.SeawayConfigRegistrySpec
+	registryURL *url.URL
+	storage     v1beta1.SeawayConfigStorageSpec
+	storageURL  *url.URL
 }
 
 func (b *Builder) desired(d *DesiredState) error {
@@ -44,6 +52,20 @@ func (b *Builder) desired(d *DesiredState) error {
 		return nil
 	}
 
+	var err error
+	b.storage = b.observed.Config.Spec.SeawayConfigStorageSpec
+	b.storageURL, err = url.Parse(b.storage.Endpoint)
+	if err != nil {
+		return err
+	}
+
+	b.registry = b.observed.Config.Spec.SeawayConfigRegistrySpec
+	b.registryURL, err = url.Parse(b.registry.URL)
+	if err != nil {
+		return err
+	}
+
+	d.EnvCredentials = b.buildEnvCredentials()
 	d.Job = b.buildJob()
 	d.Deployment = b.buildDeployment()
 
@@ -57,20 +79,42 @@ func (b *Builder) desired(d *DesiredState) error {
 	return nil
 }
 
+func (b *Builder) buildEnvCredentials() *corev1.Secret {
+	env := b.observed.Env
+	credentials := b.observed.EnvCredentials
+
+	if credentials == nil {
+		credentials = &corev1.Secret{}
+	}
+
+	metatdata := metav1.ObjectMeta{
+		Name:      env.Name + "-credentials",
+		Namespace: env.Namespace,
+		Annotations: mergeMap(map[string]string{
+			"seaway.ctx.sh/revision": env.GetRevision(),
+		}, credentials.Annotations),
+		OwnerReferences: []metav1.OwnerReference{
+			env.GetControllerReference(),
+		},
+	}
+
+	data := b.observed.StorageCredentials.Data
+
+	return &corev1.Secret{
+		ObjectMeta: metatdata,
+		Data:       data,
+	}
+}
+
 func (b *Builder) buildJob() *batchv1.Job { //nolint:funlen
 	env := b.observed.Env
-	job := b.observed.Job
-
-	if job == nil {
-		job = &batchv1.Job{}
-	}
 
 	metatdata := metav1.ObjectMeta{
 		Name:      env.Name + "-build",
 		Namespace: env.Namespace,
-		Annotations: mergeMap(map[string]string{
+		Annotations: map[string]string{
 			"seaway.ctx.sh/revision": env.GetRevision(),
-		}, job.Annotations),
+		},
 		OwnerReferences: []metav1.OwnerReference{
 			env.GetControllerReference(),
 		},
@@ -80,11 +124,11 @@ func (b *Builder) buildJob() *batchv1.Job { //nolint:funlen
 	if args == nil {
 		args = []string{
 			fmt.Sprintf("--dockerfile=%s", *env.Spec.Build.Dockerfile),
-			fmt.Sprintf("--context=s3://%s/%s", env.GetBucket(), env.GetKey()),
-			fmt.Sprintf("--destination=%s/%s:%s", b.registry.Host, env.GetName(), env.GetRevision()),
+			fmt.Sprintf("--context=s3://%s/%s", b.storage.Bucket, b.storage.GetArchiveKey(env.GetName(), env.GetNamespace())),
+			fmt.Sprintf("--destination=%s/%s:%s", b.registryURL.Host, env.GetName(), env.GetRevision()),
 			// TODO: toggle caching
 			"--cache=true",
-			fmt.Sprintf("--cache-repo=%s/build-cache", b.registry.Host),
+			fmt.Sprintf("--cache-repo=%s/build-cache", b.registryURL.Host),
 			fmt.Sprintf("--custom-platform=%s", *env.Spec.Build.Platform),
 			// TODO: Allow secure as well based on the registry uri parsing.
 			"--insecure",
@@ -97,17 +141,17 @@ func (b *Builder) buildJob() *batchv1.Job { //nolint:funlen
 	vars := []corev1.EnvVar{
 		{
 			Name:  "AWS_REGION",
-			Value: *env.Spec.Store.Region,
+			Value: b.storage.Region,
 		},
 		{
 			Name: "S3_ENDPOINT",
 			// Need to add the protocol...  Either force it and strip it when setting
 			// up the client or add it here.
-			Value: "http://" + *env.Spec.Store.Endpoint,
+			Value: b.storage.Endpoint,
 		},
 		{
 			Name:  "S3_FORCE_PATH_STYLE",
-			Value: strconv.FormatBool(*env.Spec.Store.ForcePathStyle),
+			Value: strconv.FormatBool(b.storage.ForcePathStyle),
 		},
 	}
 
@@ -121,7 +165,7 @@ func (b *Builder) buildJob() *batchv1.Job { //nolint:funlen
 			{
 				SecretRef: &corev1.SecretEnvSource{
 					LocalObjectReference: corev1.LocalObjectReference{
-						Name: b.observed.UserSecret.GetName(),
+						Name: env.Name + "-credentials",
 					},
 				},
 			},
@@ -191,7 +235,7 @@ func (b *Builder) buildDeployment() *appsv1.Deployment {
 
 	container := corev1.Container{
 		Name:           "app",
-		Image:          fmt.Sprintf("localhost:%d/%s:%s", b.nodePort, env.GetName(), env.GetRevision()),
+		Image:          fmt.Sprintf("localhost:%d/%s:%s", b.registry.NodePort, env.GetName(), env.GetRevision()),
 		Command:        env.Spec.Command,
 		Args:           env.Spec.Args,
 		WorkingDir:     env.Spec.WorkingDir,
@@ -309,25 +353,10 @@ func (b *Builder) buildIngress() *networkingv1.Ingress {
 		Service: &networkingv1.IngressServiceBackend{
 			Name: env.GetName(),
 			Port: networkingv1.ServiceBackendPort{
-				// TODO: Right now just take the first port. I need to allow building out for
-				// multiple ports in the future, but for a quick and dirty implementation,
-				// this will work for now.  Just doc it and move on.
 				Number: *env.Spec.Network.Ingress.Port,
 			},
 		},
 	}
-	// TODO: Messy.  Don't like the coupling here.
-	// if env.Spec.Networking.Ingress.Enabled && env.Spec.Networking.Service.Enabled {
-	// 	backend.Service = &networkingv1.IngressServiceBackend{
-	// 		Name: env.GetName(),
-	// 		Port: networkingv1.ServiceBackendPort{
-	// 			// TODO: Right now just take the first port. I need to allow building out for
-	// 			// multiple ports in the future, but for a quick and dirty implementation,
-	// 			// this will work for now.  Just doc it and move on.
-	// 			Number: *env.Spec.Networking.Ingress.Port,
-	// 		},
-	// 	}
-	// }
 
 	spec := networkingv1.IngressSpec{
 		DefaultBackend: backend,

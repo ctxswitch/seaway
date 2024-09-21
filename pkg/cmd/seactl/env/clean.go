@@ -20,8 +20,8 @@ import (
 	"ctx.sh/seaway/pkg/apis/seaway.ctx.sh/v1beta1"
 	"ctx.sh/seaway/pkg/console"
 	kube "ctx.sh/seaway/pkg/kube/client"
-	"ctx.sh/seaway/pkg/storage"
 	"github.com/spf13/cobra"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
@@ -52,13 +52,8 @@ func (c Clean) RunE(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("expected environment name")
 	}
 
-	creds, err := GetCredentials()
-	if err != nil {
-		console.Fatal("Unable to get credentials: %s", err)
-	}
-
 	var manifest v1beta1.Manifest
-	err = manifest.Load("manifest.yaml")
+	err := manifest.Load("manifest.yaml")
 	if err != nil {
 		console.Fatal("Unable to load manifest")
 	}
@@ -77,24 +72,14 @@ func (c Clean) RunE(cmd *cobra.Command, args []string) error {
 
 	obj := GetEnvironment(manifest.Name, env.Namespace)
 	err = client.Delete(ctx, obj, metav1.DeleteOptions{})
-	if err != nil {
+	if !errors.IsNotFound(err) {
 		console.Fatal("Unable to delete environment: %s", err)
 	}
 
 	console.Info("Deleting source archive")
 
-	store := storage.NewClient(env.Store.GetEndpoint(), env.Store.UseSSL())
-	err = store.Connect(ctx, creds)
-	if err != nil {
-		console.Fatal("Unable to connect to object storage: %s", err)
-	}
-
-	bucket := *env.Store.Bucket
-	key := ArchiveKey(manifest.Name, &env)
-	err = store.DeleteObject(ctx, bucket, key)
-	if err != nil {
-		console.Fatal("Unable to delete source archive: %s", err)
-	}
+	// TODO: Need a delete endpoint for the controller or force the controller to delete the
+	// archive when the environment is deleted as part of the finalizer.
 
 	return nil
 }

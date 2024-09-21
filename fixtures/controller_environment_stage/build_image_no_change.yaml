@@ -1,11 +1,11 @@
-# apiVersion: seaway.ctx.sh/v1beta1
-# kind: Environment
-# metadata:
-#   name: test
-#   namespace: default
-# spec:
-#   revision: 1
-# ---
+apiVersion: seaway.ctx.sh/v1beta1
+kind: Environment
+metadata:
+  name: test
+  namespace: default
+spec:
+  revision: 1
+---
 apiVersion: batch/v1
 kind: Job
 metadata:

@@ -6,12 +6,9 @@ commonAnnotations:
   ctx.sh/support: "https://github.com/ctxswitch/seaway/issues"
 resources: 
   - ../../base
-  # - ../../crd
-  # - ../../rbac
-  # - ../../webhook
-  - creds.yaml
+  - ingress.yaml
 patches:
-  - path: deployment.yaml
+  - path: controller.yaml
     target:
       kind: Deployment
       name: seaway-controller

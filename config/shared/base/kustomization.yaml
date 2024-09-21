@@ -5,7 +5,6 @@ commonAnnotations:
   ctx.sh/license: "Apache"
   ctx.sh/support: "https://github.com/ctxswitch/seaway/issues"
 resources:
-  # - ../cert-manager
-  # - ../minio
+  - namespace.yaml
   - ../minio-tenant
   - ../registry

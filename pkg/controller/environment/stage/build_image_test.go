@@ -15,6 +15,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
+var envCredentials = corev1.Secret{
+	ObjectMeta: metav1.ObjectMeta{
+		Name:      "test-build-credentials",
+		Namespace: "default",
+	},
+}
+
 func TestBuildImage_NoChange(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -27,6 +34,7 @@ func TestBuildImage_NoChange(t *testing.T) {
 
 	collection := collector.Collection{
 		Observed: &collector.ObservedState{
+			EnvCredentials: &envCredentials,
 			Job: &batchv1.Job{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-build",
@@ -50,6 +58,7 @@ func TestBuildImage_NoChange(t *testing.T) {
 			},
 		},
 		Desired: &collector.DesiredState{
+			EnvCredentials: &envCredentials,
 			Job: &batchv1.Job{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-build",
@@ -93,9 +102,11 @@ func TestBuildImage_ChangeNoJob(t *testing.T) {
 
 	collection := collector.Collection{
 		Observed: &collector.ObservedState{
-			Job: nil,
+			EnvCredentials: &envCredentials,
+			Job:            nil,
 		},
 		Desired: &collector.DesiredState{
+			EnvCredentials: &envCredentials,
 			Job: &batchv1.Job{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-build",
@@ -147,6 +158,7 @@ func TestBuildImage_JobDeletedAfterObserve(t *testing.T) {
 
 	collection := collector.Collection{
 		Observed: &collector.ObservedState{
+			EnvCredentials: &envCredentials,
 			Job: &batchv1.Job{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-build",
@@ -170,6 +182,7 @@ func TestBuildImage_JobDeletedAfterObserve(t *testing.T) {
 			},
 		},
 		Desired: &collector.DesiredState{
+			EnvCredentials: &envCredentials,
 			Job: &batchv1.Job{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-build",
@@ -222,6 +235,7 @@ func TestBuildImage_PreviousJob(t *testing.T) {
 
 	collection := collector.Collection{
 		Observed: &collector.ObservedState{
+			EnvCredentials: &envCredentials,
 			Job: &batchv1.Job{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-build",
@@ -245,6 +259,7 @@ func TestBuildImage_PreviousJob(t *testing.T) {
 			},
 		},
 		Desired: &collector.DesiredState{
+			EnvCredentials: &envCredentials,
 			Job: &batchv1.Job{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-build",

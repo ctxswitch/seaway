@@ -6,3 +6,4 @@ commonAnnotations:
   ctx.sh/support: "https://github.com/ctxswitch/seaway/issues"
 resources:
   - seaway.ctx.sh_environments.yaml
+  - seaway.ctx.sh_seawayconfigs.yaml

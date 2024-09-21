@@ -6,4 +6,4 @@ commonAnnotations:
   ctx.sh/support: "https://github.com/ctxswitch/seaway/issues"
 resources:
   - creds.yaml
-  - registry.yaml
+  - config.yaml

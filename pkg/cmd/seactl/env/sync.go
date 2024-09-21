@@ -17,6 +17,8 @@ package env
 import (
 	"archive/tar"
 	"compress/gzip"
+	"context"
+	"crypto/md5" //nolint:gosec
 	"fmt"
 	"io"
 	"io/fs"
@@ -27,9 +29,9 @@ import (
 	"ctx.sh/seaway/pkg/apis/seaway.ctx.sh/v1beta1"
 	"ctx.sh/seaway/pkg/console"
 	kube "ctx.sh/seaway/pkg/kube/client"
-	"ctx.sh/seaway/pkg/storage"
 	"github.com/spf13/cobra"
 
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
@@ -43,6 +45,7 @@ provided in the manifest.  This will trigger a new development deployment if the
 
 type Sync struct {
 	logLevel int8
+	force    bool
 }
 
 func NewSync() *Sync {
@@ -61,13 +64,8 @@ func (s *Sync) RunE(cmd *cobra.Command, args []string) error { //nolint:funlen,g
 		return fmt.Errorf("expected environment name")
 	}
 
-	creds, err := GetCredentials()
-	if err != nil {
-		console.Fatal("Unable to get credentials: %s", err)
-	}
-
 	var manifest v1beta1.Manifest
-	err = manifest.Load("manifest.yaml")
+	err := manifest.Load("manifest.yaml")
 	if err != nil {
 		console.Fatal("Unable to load manifest")
 	}
@@ -75,12 +73,6 @@ func (s *Sync) RunE(cmd *cobra.Command, args []string) error { //nolint:funlen,g
 	env, err := manifest.GetEnvironment(args[0])
 	if err != nil {
 		console.Fatal("Build context '%s' not found in the manifest", args[0])
-	}
-
-	store := storage.NewClient(env.Store.GetEndpoint(), env.Store.UseSSL())
-	err = store.Connect(ctx, creds)
-	if err != nil {
-		console.Fatal("Unable to connect to object storage: %s", err)
 	}
 
 	console.Info("Creating archive")
@@ -91,41 +83,50 @@ func (s *Sync) RunE(cmd *cobra.Command, args []string) error { //nolint:funlen,g
 	defer os.Remove(archive)
 
 	console.Info("Uploading archive")
-	bucket := *env.Store.Bucket
-	key := ArchiveKey(manifest.Name, &env)
 
-	info, err := store.PutObject(ctx, bucket, key, archive)
+	etag, err := checksum(archive)
 	if err != nil {
-		console.Fatal("Unable to upload the archive: %s", err)
+		console.Fatal("Unable to calculate the archive checksum: %s", err)
 	}
 
-	console.Notice("Source: %s", archive)
-	console.Notice("Destination: s3://%s/%s", bucket, key)
-	console.Notice("Size: %d", info.Size)
-	console.Notice("ETag: %s", info.ETag)
+	upload := v1beta1.NewClient(*env.Endpoint + "/upload")
+	resp, err := upload.Upload(ctx, archive, map[string]string{
+		"name":      manifest.Name,
+		"namespace": env.Namespace,
+		"etag":      etag,
+		"config":    env.Config,
+	})
+	if err != nil {
+		console.Fatal("Unable to upload the archive: %v", err)
+	}
 
-	console.Info("Updating environment")
+	if resp.Code != 200 {
+		console.Fatal("Upload failed: %s", resp.Error)
+	}
+
+	// console.Notice("Source: %s", archive)
+	console.ListNotice("Size: %d", resp.Size)
+	console.ListNotice("Revision: %s", resp.ETag)
+
+	console.Info("Deploying")
+
 	client, err := kube.NewSeawayClient("", kubeContext)
 	if err != nil {
 		console.Fatal("error getting seaway client: %s", err.Error())
 	}
 
-	secret := GetSecret(manifest.Name, env.Namespace)
-	_, err = client.CreateOrUpdate(ctx, secret, func() error {
-		secret.StringData = map[string]string{
-			"AWS_ACCESS_KEY_ID":     creds.GetAccessKey(),
-			"AWS_SECRET_ACCESS_KEY": creds.GetSecretKey(),
+	obj := GetEnvironment(manifest.Name, env.Namespace)
+
+	if s.force {
+		derr := client.Delete(ctx, obj, metav1.DeleteOptions{})
+		if !errors.IsNotFound(derr) {
+			console.Fatal("error deleting environment: %s", derr.Error())
 		}
-		return nil
-	})
-	if err != nil {
-		console.Fatal("error modifying secret: %s", err.Error())
 	}
 
-	obj := GetEnvironment(manifest.Name, env.Namespace)
 	op, err := client.CreateOrUpdate(ctx, obj, func() error {
 		env.EnvironmentSpec.DeepCopyInto(&obj.Spec)
-		obj.Spec.Revision = info.ETag
+		obj.Spec.Revision = resp.ETag
 		return nil
 	})
 	if err != nil {
@@ -134,17 +135,17 @@ func (s *Sync) RunE(cmd *cobra.Command, args []string) error { //nolint:funlen,g
 
 	switch op {
 	case kube.OperationResultNone:
-		console.Success("No changes detected")
+		console.ListNotice("No changes detected")
 		return nil
 	case kube.OperationResultUpdated:
-		console.Info("Environment updated")
+		console.ListNotice("Environment updated")
 	case kube.OperationResultCreated:
-		console.Info("Environment created")
+		console.ListNotice("Environment created")
 	}
 
 	// TODO: timeout should be configurable
-	// ctx, cancel := context.WithTimeout(ctx, DefaultTimeout)
-	// defer cancel()
+	ctx, cancel := context.WithTimeout(ctx, DefaultTimeout)
+	defer cancel()
 
 	status := ""
 
@@ -160,20 +161,20 @@ func (s *Sync) RunE(cmd *cobra.Command, args []string) error { //nolint:funlen,g
 			if err := client.Get(ctx, obj, metav1.GetOptions{}); err != nil {
 				console.Fatal("Unable to get the environment: %s", err)
 			}
-
-			if obj.IsDeployed() {
-				console.Success("Revision has been deployed")
-				return nil
-			}
-
-			if obj.HasFailed() {
-				console.Error(obj.Status.Reason)
-				console.Fatal("Environment failed to deploy")
-			}
-
 			if status != string(obj.Status.Stage) {
 				status = string(obj.Status.Stage)
-				console.Notice(status)
+				switch {
+				case obj.IsFailing():
+					console.ListWarning(status)
+				case obj.HasFailed():
+					console.ListFailed(status)
+					return nil
+				case obj.IsDeployed():
+					console.ListSuccess(status)
+					return nil
+				default:
+					console.ListNotice(status)
+				}
 			}
 		}
 	}
@@ -250,6 +251,22 @@ func (s *Sync) add(tw *tar.Writer, filename string) error {
 	return nil
 }
 
+func checksum(filename string) (string, error) {
+	h := md5.New() //nolint:gosec
+	file, err := os.Open(filename)
+	if err != nil {
+		return "", err
+	}
+	defer file.Close()
+
+	_, err = io.Copy(h, file)
+	if err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf("%x", h.Sum(nil)), nil
+}
+
 // Command creates the sync command.
 func (s *Sync) Command() *cobra.Command {
 	cmd := &cobra.Command{
@@ -260,6 +277,6 @@ func (s *Sync) Command() *cobra.Command {
 	}
 
 	cmd.PersistentFlags().Int8VarP(&s.logLevel, "log-level", "", DefaultLogLevel, "set the log level (integer value)")
-
+	cmd.PersistentFlags().BoolVarP(&s.force, "force", "", false, "force a resync even if no changes are detected")
 	return cmd
 }

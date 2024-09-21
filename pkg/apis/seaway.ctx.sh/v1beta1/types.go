@@ -101,29 +101,6 @@ type EnvironmentNetwork struct {
 	Service *EnvironmentService `json:"service" yaml:"service"`
 }
 
-type EnvironmentStore struct {
-	// Bucket is the name of the S3 bucket where the source artifacts stored.
-	// +optional
-	Bucket *string `json:"bucket" yaml:"bucket"`
-	// Prefix is the path prefix within the bucket where the source artifacts stored.
-	// +optional
-	Prefix *string `json:"prefix" yaml:"prefix"`
-	// Region is the AWS region where the S3 bucket is located.  This is required by
-	// the minio client will always be set even for non-AWS S3 compatible services.
-	// +optional
-	Region *string `json:"region" yaml:"region"`
-	// Engpoint is the URL for the S3 service.
-	// +optional
-	Endpoint *string `json:"endpoint" yaml:"endpoint"`
-	// ForcePathStyle represents whether or not the bucket name is a part of the
-	// hostname.  This should be set for true for non-AWS S3 compatible services.
-	// +optional
-	ForcePathStyle *bool `json:"forcePathStyle" yaml:"forcePathStyle"`
-	// LocalPort represents a port on the local machine that is forwarded to the S3 service.
-	// +optional
-	LocalPort *int32 `json:"localPort" yaml:"localPort"`
-}
-
 type EnvironmentBuild struct {
 	// Args are the command arguments that will be passed to the build job.
 	// +optional
@@ -189,10 +166,17 @@ type EnvironmentSpec struct {
 	// Build is the build spec for the environment.
 	// +optional
 	Build *EnvironmentBuild `json:"build" yaml:"build"`
+	// Config
+	// +optional
+	Config string `json:"config" yaml:"config"`
 	// Command is the command that will be used to start the deployed application.
 	// +optional
 	// +nullable
 	Command []string `json:"command" yaml:"command"`
+	// Endpoint is the Seaway API endpoint that the client will use to interact
+	// with the environment.
+	// +optional
+	Endpoint *string `json:"endpoint" yaml:"endpoint"`
 	// Lifecycle is the lifecycle spec for the deployed application.
 	// +optional
 	// +nullable
@@ -222,10 +206,6 @@ type EnvironmentSpec struct {
 	// +optional
 	// +nullable
 	SecurityContext *corev1.SecurityContext `json:"securityContext" yaml:"securityContext"`
-	// Store represents the storage configuration where artifacts are uploaded
-	// and stored.
-	// +optional
-	Store *EnvironmentStore `json:"store" yaml:"store"`
 
 	// StartupProbe is the startup probe for the deployed application.
 	// +optional
@@ -336,4 +316,66 @@ type Manifest struct {
 	Version      string                    `yaml:"version"`
 	Description  string                    `yaml:"description"`
 	Environments []ManifestEnvironmentSpec `yaml:"environments"`
+}
+
+// SeawayConfigStorageSpec is the storage configuration for the controller.
+type SeawayConfigStorageSpec struct {
+	// Bucket is the name of the bucket to use for storage.
+	// +required
+	Bucket string `json:"bucket"`
+	// Endpoint is the endpoint for the storage service.
+	// +required
+	Endpoint string `json:"endpoint"`
+	// Prefix is the prefix to use for the storage objects.
+	// +optional
+	Prefix string `json:"prefix"`
+	// Region is the region to use for the storage service.
+	// +required
+	Region string `json:"region"`
+	// Credentials is the name of the secret that contains the credentials
+	// for the storage service.
+	// +required
+	Credentials string `json:"credentials"`
+	// ForcePathStyle is a flag to force path style addressing for the storage
+	// service.
+	// +optional
+	ForcePathStyle bool `json:"forcePathStyle"`
+}
+
+// SeawayConfigRegistrySpec is the registry configuration for the controller.
+type SeawayConfigRegistrySpec struct {
+	// URL is the URL for the registry service.
+	// +required
+	URL string `json:"url"`
+	// NodePort is the node port for the registry service.
+	// +required
+	NodePort int32 `json:"nodePort"`
+}
+
+// SeawayConfigSpec is configuration for a seawayconfig resource.
+type SeawayConfigSpec struct {
+	SeawayConfigStorageSpec  `json:"storage,omitempty"`
+	SeawayConfigRegistrySpec `json:"registry,omitempty"`
+}
+
+// +genclient
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +k8s:defaulter-gen=true
+// +kubebuilder:resource:scope=Namespaced,shortName=sconf,singular=seawayconfig
+// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
+
+// Config is the configuration that the controller will use.  It contains the
+// global configurations for the controller.
+type SeawayConfig struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+	Spec              SeawayConfigSpec `json:"spec,omitempty"`
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+type SeawayConfigList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []SeawayConfig `json:"items"`
 }

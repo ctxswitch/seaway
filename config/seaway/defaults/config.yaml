@@ -1,0 +1,16 @@
+apiVersion: seaway.ctx.sh/v1beta1
+kind: SeawayConfig
+metadata:
+  name: default
+  namespace: seaway-system
+spec:
+  storage:
+    endpoint: http://minio.seaway-system.svc.cluster.local:80
+    bucket: seaway
+    region: unused-for-minio
+    forcePathStyle: true
+    credentials: seaway-credentials
+    prefix: archives
+  registry:
+    url: http://registry.seaway-system.svc.cluster.local:5000
+    nodePort: 31555

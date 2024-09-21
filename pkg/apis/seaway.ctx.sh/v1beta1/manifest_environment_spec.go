@@ -49,12 +49,6 @@ func (me *ManifestEnvironmentSpec) UnmarshalYAML(unmarshal func(interface{}) err
 		return err
 	}
 
-	// When we use the manifest for syncing we only need the source information to
-	// be defaulted.  Other fields such as the build.platform need to be defaulted
-	// in the k8s environment that they will be built in to get the correct values.
-	// TODO: Default everything and take it out of the env.sync command (CreateOrUpdate)
-	defaultEnvironmentStore(out.Store)
-
 	tmpl := ManifestEnvironmentSpec(out)
 	*me = tmpl
 	return nil

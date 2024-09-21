@@ -4,17 +4,5 @@ commonAnnotations:
   ctx.sh/authors: "Seaway Authors"
   ctx.sh/license: "Apache"
   ctx.sh/support: "https://github.com/ctxswitch/seaway/issues"
-patches:
-  - target:
-      kind: StatefulSet
-      name: seaway-registry
-    patch: |-
-      - op: add
-        path: /spec/volumeClaimTemplates/0/spec/storageClassName
-        value: local-path
-      - op: add
-        path: /spec/volumeClaimTemplates/0/spec/volumeMode
-        value: Filesystem
 resources:
-  - pv.yaml
   - ../../base

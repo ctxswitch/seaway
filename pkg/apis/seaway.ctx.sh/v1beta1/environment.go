@@ -15,30 +15,49 @@
 package v1beta1
 
 import (
-	"fmt"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 )
-
-// GetKey returns the key for the archive object in the S3 bucket.
-func (e *Environment) GetKey() string {
-	return fmt.Sprintf("%s/%s-%s.tar.gz", *e.Spec.Store.Prefix, e.GetName(), e.GetNamespace())
-}
-
-// GetBucket returns the bucket where the archive object is stored.
-func (e *Environment) GetBucket() string {
-	return *e.Spec.Store.Bucket
-}
 
 // GetRevision returns the configured revision of the environment.
 func (e *Environment) GetRevision() string {
 	return e.Spec.Revision
 }
 
+// GetDeployRevision creates a hash of the fields that are relevant for deployment
+// configuration to allow for deployment updates while bypassing image builds if the
+// revision has not changed.
+// func (e *Environment) GetDeployRevision() string {
+// 	fields := EnvironmentSpec{
+// 		Args:            e.Spec.Args,
+// 		Command:         e.Spec.Command,
+// 		Lifecycle:       e.Spec.Lifecycle,
+// 		LivenessProbe:   e.Spec.LivenessProbe,
+// 		Network:         e.Spec.Network,
+// 		ReadinessProbe:  e.Spec.ReadinessProbe,
+// 		Replicas:        e.Spec.Replicas,
+// 		Resources:       e.Spec.Resources,
+// 		SecurityContext: e.Spec.SecurityContext,
+// 		StartupProbe:    e.Spec.StartupProbe,
+// 		Vars:            e.Spec.Vars,
+// 		WorkingDir:      e.Spec.WorkingDir,
+// 	}
+
+// 	hasher := md5.New()
+// 	fmt.Fprintf(hasher, "%v", dump.ForHash(fields))
+// 	return fmt.Sprintf("%x", hasher.Sum(nil))
+// }
+
 // HasFailed returns true if the environment has failed to build or deploy.
 func (e *Environment) HasFailed() bool {
-	return e.Status.Stage == EnvironmentStageBuildImageFailed || e.Status.Stage == EnvironmentStageDeployFailed
+	return e.Status.Stage == EnvironmentStageBuildImageFailed ||
+		e.Status.Stage == EnvironmentStageDeployFailed ||
+		e.Status.Stage == EnvironmentStageFailed
+}
+
+// IsFailing returns true if the environment is in the process of failing.
+func (e *Environment) IsFailing() bool {
+	return e.Status.Stage == EnvironmentStageBuildImageFailing
 }
 
 // IsDeployed returns true if the environment has been deployed.  At the end of the
@@ -49,11 +68,26 @@ func (e *Environment) IsDeployed() bool {
 	return e.Status.DeployedRevision == e.GetRevision()
 }
 
+// Returns true if we are in any stage except failure and deployed.
+// func (e *Environment) IsDeploying() bool {
+// 	return !e.HasFailed() && e.Status.Stage != EnvironmentStageDeployed
+// }
+
 // HasDeviated returns true if the configured revision has deviated from the deployed
 // revision.
 func (e *Environment) HasDeviated() bool {
 	return e.Status.ExpectedRevision != "" && e.Status.ExpectedRevision != e.GetRevision()
 }
+
+// IsDeployOnly returns true if and only if the fields that impact deployment have
+// changed.
+// func (e *Environment) IsDeployOnly() bool {
+// 	if e.HasDeviated() {
+// 		return false
+// 	}
+
+// 	if e.Status.DeployHash
+// }
 
 // GetControllerReference returns the controller reference for the environment.
 func (e *Environment) GetControllerReference() metav1.OwnerReference {

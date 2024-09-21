@@ -2,13 +2,14 @@ package stage
 
 import (
 	"context"
-	"net/url"
+	"path/filepath"
 	"testing"
 
 	"ctx.sh/seaway/pkg/apis/seaway.ctx.sh/v1beta1"
 	"ctx.sh/seaway/pkg/controller/environment/collector"
 	"ctx.sh/seaway/pkg/mock"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/suite"
+	"go.uber.org/zap/zapcore"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
@@ -17,402 +18,365 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
 
-func TestDeploy_DoNewEnvironmentAllComponents(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	h := mock.NewTestHarness()
-	log.IntoContext(ctx, h.Logger())
-
-	mc := mock.NewClient().WithFixtureDirectory(fixtures).WithLogger(h.Logger())
-	defer mc.Reset()
-
-	mc.ApplyFixtureOrDie("deploy_new_environment_1.yaml")
-
-	var collection collector.Collection
-
-	sc := &collector.StateCollector{
-		Client:           mc,
-		RegistryNodePort: 31555,
-		RegistryURL:      &url.URL{Scheme: "http", Host: "localhost:5000"},
-	}
-	err := sc.ObserveAndBuild(ctx, ctrl.Request{
-		NamespacedName: types.NamespacedName{
-			Name:      "test",
-			Namespace: "default",
-		},
-	}, &collection)
-	assert.NoError(t, err)
-	// Sanity check to make sure we loaded the env.
-	assert.NotNil(t, collection.Observed.Env)
-
-	d := NewDeploy(mc, &collection)
-	status := collection.Observed.Env.Status.DeepCopy()
-
-	stage, err := d.Do(ctx, status)
-	assert.NoError(t, err)
-
-	assert.Equal(t, v1beta1.EnvironmentStageDeployVerify, stage)
-
-	var deploy appsv1.Deployment
-	err = mc.Get(ctx, types.NamespacedName{
-		Name:      "test",
-		Namespace: "default",
-	}, &deploy)
-	assert.NoError(t, err)
-	assert.NotNil(t, deploy)
-
-	var service corev1.Service
-	err = mc.Get(ctx, types.NamespacedName{
-		Name:      "test",
-		Namespace: "default",
-	}, &service)
-	assert.NoError(t, err)
-	assert.NotNil(t, service)
-
-	var ingress networkingv1.Ingress
-	err = mc.Get(ctx, types.NamespacedName{
-		Name:      "test",
-		Namespace: "default",
-	}, &ingress)
-	assert.NoError(t, err)
-	assert.NotNil(t, ingress)
+type DeployTestSuite struct {
+	client *mock.Client
+	suite.Suite
 }
 
-func TestDeploy_DoNewEnvironmentOnlyDeploy(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+func (s *DeployTestSuite) SetupTest() {
+	logger := zap.New(zap.UseDevMode(true), zap.Level(zapcore.Level(-8)))
+	log.SetLogger(logger)
 
-	h := mock.NewTestHarness()
-	log.IntoContext(ctx, h.Logger())
+	s.client = mock.NewClient().
+		WithLogger(logger).
+		WithFixtureDirectory(filepath.Join("..", "..", "..", "..", "fixtures"))
 
-	mc := mock.NewClient().WithFixtureDirectory(fixtures).WithLogger(h.Logger())
-	defer mc.Reset()
-
-	mc.ApplyFixtureOrDie("deploy_new_environment_2.yaml")
-
-	var collection collector.Collection
-
-	sc := &collector.StateCollector{
-		Client:           mc,
-		RegistryNodePort: 31555,
-		RegistryURL:      &url.URL{Scheme: "http", Host: "localhost:5000"},
-	}
-	err := sc.ObserveAndBuild(ctx, ctrl.Request{
-		NamespacedName: types.NamespacedName{
-			Name:      "test",
-			Namespace: "default",
-		},
-	}, &collection)
-	assert.NoError(t, err)
-	// Sanity check to make sure we loaded the env.
-	assert.NotNil(t, collection.Observed.Env)
-
-	d := NewDeploy(mc, &collection)
-	status := collection.Observed.Env.Status.DeepCopy()
-
-	stage, err := d.Do(ctx, status)
-	assert.NoError(t, err)
-
-	assert.Equal(t, v1beta1.EnvironmentStageDeployVerify, stage)
-
-	var deploy appsv1.Deployment
-	err = mc.Get(ctx, types.NamespacedName{
-		Name:      "test",
-		Namespace: "default",
-	}, &deploy)
-	assert.NoError(t, err)
-	assert.NotNil(t, deploy)
-
-	var service corev1.Service
-	err = mc.Get(ctx, types.NamespacedName{
-		Name:      "test",
-		Namespace: "default",
-	}, &service)
-	assert.Error(t, err)
-	assert.NoError(t, client.IgnoreNotFound(err))
-
-	var ingress networkingv1.Ingress
-	err = mc.Get(ctx, types.NamespacedName{
-		Name:      "test",
-		Namespace: "default",
-	}, &ingress)
-	assert.Error(t, err)
-	assert.NoError(t, client.IgnoreNotFound(err))
+	s.client.ApplyFixtureOrDie("shared", "required.yaml")
 }
 
-func TestDeploy_DoNewEnvironmentOnlyService(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	h := mock.NewTestHarness()
-	log.IntoContext(ctx, h.Logger())
-
-	mc := mock.NewClient().WithFixtureDirectory(fixtures).WithLogger(h.Logger())
-	defer mc.Reset()
-
-	mc.ApplyFixtureOrDie("deploy_new_environment_3.yaml")
-
-	var collection collector.Collection
-
-	sc := &collector.StateCollector{
-		Client:           mc,
-		RegistryNodePort: 31555,
-		RegistryURL:      &url.URL{Scheme: "http", Host: "localhost:5000"},
-	}
-	err := sc.ObserveAndBuild(ctx, ctrl.Request{
-		NamespacedName: types.NamespacedName{
-			Name:      "test",
-			Namespace: "default",
-		},
-	}, &collection)
-	assert.NoError(t, err)
-	// Sanity check to make sure we loaded the env.
-	assert.NotNil(t, collection.Observed.Env)
-
-	d := NewDeploy(mc, &collection)
-	status := collection.Observed.Env.Status.DeepCopy()
-
-	stage, err := d.Do(ctx, status)
-	assert.NoError(t, err)
-
-	assert.Equal(t, v1beta1.EnvironmentStageDeployVerify, stage)
-
-	var deploy appsv1.Deployment
-	err = mc.Get(ctx, types.NamespacedName{
-		Name:      "test",
-		Namespace: "default",
-	}, &deploy)
-	assert.NoError(t, err)
-	assert.NotNil(t, deploy)
-
-	var service corev1.Service
-	err = mc.Get(ctx, types.NamespacedName{
-		Name:      "test",
-		Namespace: "default",
-	}, &service)
-	assert.NoError(t, err)
-	assert.NotNil(t, service)
-
-	var ingress networkingv1.Ingress
-	err = mc.Get(ctx, types.NamespacedName{
-		Name:      "test",
-		Namespace: "default",
-	}, &ingress)
-	assert.Error(t, err)
-	assert.NoError(t, client.IgnoreNotFound(err))
+func (s *DeployTestSuite) TearDownTest() {
+	s.client.Reset()
 }
 
-func TestDeploy_RemoveIngressIfNil(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	h := mock.NewTestHarness()
-	log.IntoContext(ctx, h.Logger())
-
-	mc := mock.NewClient().WithFixtureDirectory(fixtures).WithLogger(h.Logger())
-	defer mc.Reset()
-
-	mc.ApplyFixtureOrDie("deploy_ingress_cleanup.yaml")
-
-	var collection collector.Collection
-
-	sc := &collector.StateCollector{
-		Client:           mc,
-		RegistryNodePort: 31555,
-		RegistryURL:      &url.URL{Scheme: "http", Host: "localhost:5000"},
-	}
-	err := sc.ObserveAndBuild(ctx, ctrl.Request{
-		NamespacedName: types.NamespacedName{
-			Name:      "test",
-			Namespace: "default",
-		},
-	}, &collection)
-	assert.NoError(t, err)
-	// Sanity check to make sure we loaded the env.
-	assert.NotNil(t, collection.Observed.Env)
-	assert.Nil(t, collection.Desired.Ingress)
-
-	d := NewDeploy(mc, &collection)
-	status := collection.Observed.Env.Status.DeepCopy()
-
-	stage, err := d.Do(ctx, status)
-	assert.NoError(t, err)
-
-	assert.Equal(t, v1beta1.EnvironmentStageDeployVerify, stage)
-
-	var deploy appsv1.Deployment
-	err = mc.Get(ctx, types.NamespacedName{
-		Name:      "test",
-		Namespace: "default",
-	}, &deploy)
-	assert.NoError(t, err)
-	assert.NotNil(t, deploy)
-
-	var service corev1.Service
-	err = mc.Get(ctx, types.NamespacedName{
-		Name:      "test",
-		Namespace: "default",
-	}, &service)
-	assert.NoError(t, err)
-	assert.NotNil(t, service)
-
-	var ingress networkingv1.Ingress
-	err = mc.Get(ctx, types.NamespacedName{
-		Name:      "test",
-		Namespace: "default",
-	}, &ingress)
-	assert.Error(t, err)
-	assert.NoError(t, client.IgnoreNotFound(err))
+func TestDeployTestSuite(t *testing.T) {
+	suite.Run(t, new(DeployTestSuite))
 }
 
-func TestDeploy_RemoveServiceIfNil(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	h := mock.NewTestHarness()
-	log.IntoContext(ctx, h.Logger())
-
-	mc := mock.NewClient().WithFixtureDirectory(fixtures).WithLogger(h.Logger())
-	defer mc.Reset()
-
-	mc.ApplyFixtureOrDie("deploy_ingress_service_cleanup.yaml")
+func (s *DeployTestSuite) TestDeploy_DoNewEnvironmentAllComponents() {
+	s.client.ApplyFixtureOrDie("controller_environment_stage", "deploy_new_environment_1.yaml")
 
 	var collection collector.Collection
 
 	sc := &collector.StateCollector{
-		Client:           mc,
-		RegistryNodePort: 31555,
-		RegistryURL:      &url.URL{Scheme: "http", Host: "localhost:5000"},
+		Client: s.client,
 	}
-	err := sc.ObserveAndBuild(ctx, ctrl.Request{
+	err := sc.ObserveAndBuild(context.TODO(), ctrl.Request{
 		NamespacedName: types.NamespacedName{
 			Name:      "test",
 			Namespace: "default",
 		},
 	}, &collection)
-	assert.NoError(t, err)
-	// Sanity check to make sure we loaded the env since we are dependent on the observed state.
-	// Probably not the best to couple the deps in the test like this.
-	assert.NotNil(t, collection.Observed.Env)
-	assert.Nil(t, collection.Desired.Ingress)
-	assert.Nil(t, collection.Desired.Service)
+	s.NoError(err)
+	// Sanity check to make sure we loaded the required components.
+	s.NotNil(collection.Observed.Env)
+	s.NotNil(collection.Observed.Config)
+	s.NotNil(collection.Observed.StorageCredentials)
 
-	d := NewDeploy(mc, &collection)
+	d := NewDeploy(s.client, &collection)
 	status := collection.Observed.Env.Status.DeepCopy()
 
-	stage, err := d.Do(ctx, status)
-	assert.NoError(t, err)
+	stage, err := d.Do(context.TODO(), status)
+	s.NoError(err)
 
-	assert.Equal(t, v1beta1.EnvironmentStageDeployVerify, stage)
+	s.Equal(v1beta1.EnvironmentStageDeployVerify, stage)
 
 	var deploy appsv1.Deployment
-	err = mc.Get(ctx, types.NamespacedName{
+	err = s.client.Get(context.TODO(), types.NamespacedName{
 		Name:      "test",
 		Namespace: "default",
 	}, &deploy)
-	assert.NoError(t, err)
-	assert.NotNil(t, deploy)
+	s.NoError(err)
+	s.NotNil(deploy)
 
 	var service corev1.Service
-	err = mc.Get(ctx, types.NamespacedName{
+	err = s.client.Get(context.TODO(), types.NamespacedName{
 		Name:      "test",
 		Namespace: "default",
 	}, &service)
-	assert.Error(t, err)
-	assert.NoError(t, client.IgnoreNotFound(err))
+	s.NoError(err)
+	s.NotNil(service)
 
 	var ingress networkingv1.Ingress
-	err = mc.Get(ctx, types.NamespacedName{
+	err = s.client.Get(context.TODO(), types.NamespacedName{
 		Name:      "test",
 		Namespace: "default",
 	}, &ingress)
-	assert.Error(t, err)
-	assert.NoError(t, client.IgnoreNotFound(err))
+	s.NoError(err)
+	s.NotNil(ingress)
+}
+
+func (s *DeployTestSuite) TestDeploy_DoNewEnvironmentOnlyDeploy() {
+	s.client.ApplyFixtureOrDie("controller_environment_stage", "deploy_new_environment_2.yaml")
+
+	var collection collector.Collection
+
+	sc := &collector.StateCollector{
+		Client: s.client,
+	}
+	err := sc.ObserveAndBuild(context.TODO(), ctrl.Request{
+		NamespacedName: types.NamespacedName{
+			Name:      "test",
+			Namespace: "default",
+		},
+	}, &collection)
+	s.NoError(err)
+	// Sanity check to make sure we loaded the required components.
+	s.NotNil(collection.Observed.Env)
+	s.NotNil(collection.Observed.Config)
+	s.NotNil(collection.Observed.StorageCredentials)
+
+	d := NewDeploy(s.client, &collection)
+	status := collection.Observed.Env.Status.DeepCopy()
+
+	stage, err := d.Do(context.TODO(), status)
+	s.NoError(err)
+
+	s.Equal(v1beta1.EnvironmentStageDeployVerify, stage)
+
+	var deploy appsv1.Deployment
+	err = s.client.Get(context.TODO(), types.NamespacedName{
+		Name:      "test",
+		Namespace: "default",
+	}, &deploy)
+	s.NoError(err)
+	s.NotNil(deploy)
+
+	var service corev1.Service
+	err = s.client.Get(context.TODO(), types.NamespacedName{
+		Name:      "test",
+		Namespace: "default",
+	}, &service)
+	s.Error(err)
+	s.NoError(client.IgnoreNotFound(err))
+
+	var ingress networkingv1.Ingress
+	err = s.client.Get(context.TODO(), types.NamespacedName{
+		Name:      "test",
+		Namespace: "default",
+	}, &ingress)
+	s.Error(err)
+	s.NoError(client.IgnoreNotFound(err))
+}
+
+func (s *DeployTestSuite) TestDeploy_DoNewEnvironmentOnlyService() {
+	s.client.ApplyFixtureOrDie("controller_environment_stage", "deploy_new_environment_3.yaml")
+
+	var collection collector.Collection
+
+	sc := &collector.StateCollector{
+		Client: s.client,
+	}
+	err := sc.ObserveAndBuild(context.TODO(), ctrl.Request{
+		NamespacedName: types.NamespacedName{
+			Name:      "test",
+			Namespace: "default",
+		},
+	}, &collection)
+	s.NoError(err)
+	// Sanity check to make sure we loaded the required components.
+	s.NotNil(collection.Observed.Env)
+	s.NotNil(collection.Observed.Config)
+	s.NotNil(collection.Observed.StorageCredentials)
+
+	d := NewDeploy(s.client, &collection)
+	status := collection.Observed.Env.Status.DeepCopy()
+
+	stage, err := d.Do(context.TODO(), status)
+	s.NoError(err)
+
+	s.Equal(v1beta1.EnvironmentStageDeployVerify, stage)
+
+	var deploy appsv1.Deployment
+	err = s.client.Get(context.TODO(), types.NamespacedName{
+		Name:      "test",
+		Namespace: "default",
+	}, &deploy)
+	s.NoError(err)
+	s.NotNil(deploy)
+
+	var service corev1.Service
+	err = s.client.Get(context.TODO(), types.NamespacedName{
+		Name:      "test",
+		Namespace: "default",
+	}, &service)
+	s.NoError(err)
+	s.NotNil(service)
+
+	var ingress networkingv1.Ingress
+	err = s.client.Get(context.TODO(), types.NamespacedName{
+		Name:      "test",
+		Namespace: "default",
+	}, &ingress)
+	s.Error(err)
+	s.NoError(client.IgnoreNotFound(err))
+}
+
+func (s *DeployTestSuite) TestDeploy_RemoveIngressIfNil() {
+	s.client.ApplyFixtureOrDie("controller_environment_stage", "deploy_ingress_cleanup.yaml")
+
+	var collection collector.Collection
+
+	sc := &collector.StateCollector{
+		Client: s.client,
+	}
+	err := sc.ObserveAndBuild(context.TODO(), ctrl.Request{
+		NamespacedName: types.NamespacedName{
+			Name:      "test",
+			Namespace: "default",
+		},
+	}, &collection)
+	s.NoError(err)
+	// Sanity check to make sure we loaded the required components.
+	s.NotNil(collection.Observed.Env)
+	s.NotNil(collection.Observed.Config)
+	s.NotNil(collection.Observed.StorageCredentials)
+
+	s.Nil(collection.Desired.Ingress)
+
+	d := NewDeploy(s.client, &collection)
+	status := collection.Observed.Env.Status.DeepCopy()
+
+	stage, err := d.Do(context.TODO(), status)
+	s.NoError(err)
+
+	s.Equal(v1beta1.EnvironmentStageDeployVerify, stage)
+
+	var deploy appsv1.Deployment
+	err = s.client.Get(context.TODO(), types.NamespacedName{
+		Name:      "test",
+		Namespace: "default",
+	}, &deploy)
+	s.NoError(err)
+	s.NotNil(deploy)
+
+	var service corev1.Service
+	err = s.client.Get(context.TODO(), types.NamespacedName{
+		Name:      "test",
+		Namespace: "default",
+	}, &service)
+	s.NoError(err)
+	s.NotNil(service)
+
+	var ingress networkingv1.Ingress
+	err = s.client.Get(context.TODO(), types.NamespacedName{
+		Name:      "test",
+		Namespace: "default",
+	}, &ingress)
+	s.Error(err)
+	s.NoError(client.IgnoreNotFound(err))
+}
+
+func (s *DeployTestSuite) TestDeploy_RemoveServiceIfNil() {
+	s.client.ApplyFixtureOrDie("controller_environment_stage", "deploy_ingress_service_cleanup.yaml")
+
+	var collection collector.Collection
+
+	sc := &collector.StateCollector{
+		Client: s.client,
+	}
+	err := sc.ObserveAndBuild(context.TODO(), ctrl.Request{
+		NamespacedName: types.NamespacedName{
+			Name:      "test",
+			Namespace: "default",
+		},
+	}, &collection)
+	s.NoError(err)
+	// Sanity check to make sure we loaded the required components.
+	s.NotNil(collection.Observed.Env)
+	s.NotNil(collection.Observed.Config)
+	s.NotNil(collection.Observed.StorageCredentials)
+
+	s.Nil(collection.Desired.Ingress)
+	s.Nil(collection.Desired.Service)
+
+	d := NewDeploy(s.client, &collection)
+	status := collection.Observed.Env.Status.DeepCopy()
+
+	stage, err := d.Do(context.TODO(), status)
+	s.NoError(err)
+
+	s.Equal(v1beta1.EnvironmentStageDeployVerify, stage)
+
+	var deploy appsv1.Deployment
+	err = s.client.Get(context.TODO(), types.NamespacedName{
+		Name:      "test",
+		Namespace: "default",
+	}, &deploy)
+	s.NoError(err)
+	s.NotNil(deploy)
+
+	var service corev1.Service
+	err = s.client.Get(context.TODO(), types.NamespacedName{
+		Name:      "test",
+		Namespace: "default",
+	}, &service)
+	s.Error(err)
+	s.NoError(client.IgnoreNotFound(err))
+
+	var ingress networkingv1.Ingress
+	err = s.client.Get(context.TODO(), types.NamespacedName{
+		Name:      "test",
+		Namespace: "default",
+	}, &ingress)
+	s.Error(err)
+	s.NoError(client.IgnoreNotFound(err))
 }
 
 // TestDeploy_DontRemoveIngressIfNotObserved tests that the service does not attempt
 // to remove the ingress as part of it's cleanup if it was not observed.  Oops.
-func TestDeploy_DontRemoveIngressIfNotObserved(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	h := mock.NewTestHarness()
-	log.IntoContext(ctx, h.Logger())
-
-	mc := mock.NewClient().WithFixtureDirectory(fixtures).WithLogger(h.Logger())
-	defer mc.Reset()
-
-	mc.ApplyFixtureOrDie("deploy_service_no_ingress_cleanup.yaml")
+func (s *DeployTestSuite) TestDeploy_DontRemoveIngressIfNotObserved() {
+	s.client.ApplyFixtureOrDie("controller_environment_stage", "deploy_service_no_ingress_cleanup.yaml")
 
 	var collection collector.Collection
 
 	sc := &collector.StateCollector{
-		Client:           mc,
-		RegistryNodePort: 31555,
-		RegistryURL:      &url.URL{Scheme: "http", Host: "localhost:5000"},
+		Client: s.client,
 	}
-	err := sc.ObserveAndBuild(ctx, ctrl.Request{
+	err := sc.ObserveAndBuild(context.TODO(), ctrl.Request{
 		NamespacedName: types.NamespacedName{
 			Name:      "test",
 			Namespace: "default",
 		},
 	}, &collection)
-	assert.NoError(t, err)
-	// Sanity check to make sure we loaded the env since we are dependent on the observed state.
-	// Probably not the best to couple the deps in the test like this.
-	assert.NotNil(t, collection.Observed.Env)
-	assert.NotNil(t, collection.Observed.Service)
-	assert.Nil(t, collection.Observed.Ingress)
-	assert.Nil(t, collection.Desired.Ingress)
-	assert.Nil(t, collection.Desired.Service)
+	s.NoError(err)
+	// Sanity check to make sure we loaded the required components.
+	s.NotNil(collection.Observed.Env)
+	s.NotNil(collection.Observed.Config)
+	s.NotNil(collection.Observed.StorageCredentials)
 
-	d := NewDeploy(mc, &collection)
+	s.NotNil(collection.Observed.Service)
+	s.Nil(collection.Observed.Ingress)
+	s.Nil(collection.Desired.Ingress)
+	s.Nil(collection.Desired.Service)
+
+	d := NewDeploy(s.client, &collection)
 	status := collection.Observed.Env.Status.DeepCopy()
 
-	stage, err := d.Do(ctx, status)
-	assert.NoError(t, err)
+	stage, err := d.Do(context.TODO(), status)
+	s.NoError(err)
 
-	assert.Equal(t, v1beta1.EnvironmentStageDeployVerify, stage)
+	s.Equal(v1beta1.EnvironmentStageDeployVerify, stage)
 
 	var deploy appsv1.Deployment
-	err = mc.Get(ctx, types.NamespacedName{
+	err = s.client.Get(context.TODO(), types.NamespacedName{
 		Name:      "test",
 		Namespace: "default",
 	}, &deploy)
-	assert.NoError(t, err)
-	assert.NotNil(t, deploy)
+	s.NoError(err)
+	s.NotNil(deploy)
 
 	var service corev1.Service
-	err = mc.Get(ctx, types.NamespacedName{
+	err = s.client.Get(context.TODO(), types.NamespacedName{
 		Name:      "test",
 		Namespace: "default",
 	}, &service)
-	assert.Error(t, err)
-	assert.NoError(t, client.IgnoreNotFound(err))
+	s.Error(err)
+	s.NoError(client.IgnoreNotFound(err))
 
 	var ingress networkingv1.Ingress
-	err = mc.Get(ctx, types.NamespacedName{
+	err = s.client.Get(context.TODO(), types.NamespacedName{
 		Name:      "test",
 		Namespace: "default",
 	}, &ingress)
-	assert.Error(t, err)
-	assert.NoError(t, client.IgnoreNotFound(err))
+	s.Error(err)
+	s.NoError(client.IgnoreNotFound(err))
 }
 
-func TestDeploy_createOrUpdate(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	h := mock.NewTestHarness()
-	log.IntoContext(ctx, h.Logger())
-
-	mc := mock.NewClient().WithFixtureDirectory(fixtures).WithLogger(h.Logger())
-	defer mc.Reset()
-
-	d := NewDeploy(mc, &collector.Collection{})
+func (s *DeployTestSuite) TestDeploy_createOrUpdate() {
+	d := NewDeploy(s.client, &collector.Collection{})
 
 	deploy := appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -435,18 +399,18 @@ func TestDeploy_createOrUpdate(t *testing.T) {
 			},
 		},
 	}
-	op, err := d.createOrUpdate(ctx, nil, &deploy)
-	assert.NoError(t, err)
-	assert.Equal(t, OperationCreate, op)
+	op, err := d.createOrUpdate(context.TODO(), nil, &deploy)
+	s.NoError(err)
+	s.Equal(OperationCreate, op)
 
 	updatedDeploy := deploy.DeepCopy()
 	updatedDeploy.Spec.Template.Spec.Containers[0].Image = "nginx:1.19"
 
-	op, err = d.createOrUpdate(ctx, &deploy, updatedDeploy)
-	assert.NoError(t, err)
-	assert.Equal(t, OperationUpdate, op)
+	op, err = d.createOrUpdate(context.TODO(), &deploy, updatedDeploy)
+	s.NoError(err)
+	s.Equal(OperationUpdate, op)
 
-	op, err = d.createOrUpdate(ctx, updatedDeploy, updatedDeploy)
-	assert.NoError(t, err)
-	assert.Equal(t, OperationNone, op)
+	op, err = d.createOrUpdate(context.TODO(), updatedDeploy, updatedDeploy)
+	s.NoError(err)
+	s.Equal(OperationNone, op)
 }

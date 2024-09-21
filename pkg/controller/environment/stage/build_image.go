@@ -35,6 +35,23 @@ func (b *BuildImage) Do(ctx context.Context, status *v1beta1.EnvironmentStatus) 
 		return v1beta1.EnvironmentStageDeploy, nil
 	}
 
+	if b.desired.EnvCredentials == nil {
+		logger.V(4).Info("no credentials found, skipping job creation")
+		return v1beta1.EnvironmentStageBuildImageFailed, nil
+	}
+
+	if b.observed.EnvCredentials == nil {
+		err := b.Create(ctx, b.desired.EnvCredentials)
+		if err != nil {
+			return v1beta1.EnvironmentStageBuildImageFailed, err
+		}
+	} else if !equality.Semantic.DeepEqual(b.observed.EnvCredentials, b.desired.EnvCredentials) {
+		err := b.Update(ctx, b.desired.EnvCredentials)
+		if err != nil {
+			return v1beta1.EnvironmentStageBuildImageFailed, err
+		}
+	}
+
 	if b.observed.Job != nil {
 		logger.V(4).Info("deleting old job", "job", b.observed.Job.Name)
 		// if the job has changed, delete the old job
@@ -48,7 +65,7 @@ func (b *BuildImage) Do(ctx context.Context, status *v1beta1.EnvironmentStatus) 
 				return v1beta1.EnvironmentStageBuildImageFailed, err
 			}
 			// If the job was observed but deleted before we we could delete it, we
-			// don't faile the build since we are in the correct state.
+			// don't fail the build since we are in the correct state.
 			logger.V(4).Info("job was deleted before we could delete it", "job", b.observed.Job.Name)
 		}
 	}

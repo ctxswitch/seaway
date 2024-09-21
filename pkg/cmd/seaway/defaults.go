@@ -25,6 +25,7 @@ const (
 	DefaultSkipInsecureVerify   bool   = false
 	DefaultLogLevel             int8   = 0
 	DefaultNamespace            string = ""
+	DefaultConfigName           string = "default"
 
 	ConnectionTimeout time.Duration = 30 * time.Second
 

@@ -44,13 +44,6 @@ rules:
   - ""
   resources:
   - secrets
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - ""
-  resources:
   - services
   verbs:
   - create
@@ -112,3 +105,11 @@ rules:
   - get
   - patch
   - update
+- apiGroups:
+  - seaway.ctx.sh
+  resources:
+  - seawayconfigs
+  verbs:
+  - get
+  - list
+  - watch

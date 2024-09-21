@@ -16,11 +16,9 @@ package environment
 
 import (
 	"context"
-	"net/url"
 
 	"ctx.sh/seaway/pkg/apis/seaway.ctx.sh/v1beta1"
 	"ctx.sh/seaway/pkg/controller/environment/collector"
-	"ctx.sh/seaway/pkg/registry"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -30,20 +28,16 @@ import (
 )
 
 type Controller struct {
-	Scheme           *runtime.Scheme
-	Recorder         record.EventRecorder
-	RegistryURL      *url.URL
-	RegistryNodePort int32
+	Scheme   *runtime.Scheme
+	Recorder record.EventRecorder
 	client.Client
 }
 
-func SetupWithManager(mgr ctrl.Manager, regURL *url.URL, regNodePort int32) (err error) {
+func SetupWithManager(mgr ctrl.Manager) (err error) {
 	c := &Controller{
-		Scheme:           mgr.GetScheme(),
-		Client:           mgr.GetClient(),
-		Recorder:         mgr.GetEventRecorderFor("watch-controller"),
-		RegistryURL:      regURL,
-		RegistryNodePort: regNodePort,
+		Scheme:   mgr.GetScheme(),
+		Client:   mgr.GetClient(),
+		Recorder: mgr.GetEventRecorderFor("watch-controller"),
 	}
 
 	return ctrl.NewControllerManagedBy(mgr).
@@ -55,6 +49,7 @@ func SetupWithManager(mgr ctrl.Manager, regURL *url.URL, regNodePort int32) (err
 // +kubebuilder:rbac:groups=seaway.ctx.sh,resources=environments,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=seaway.ctx.sh,resources=environments/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=seaway.ctx.sh,resources=environments/finalizers,verbs=update
+// +kubebuilder:rbac:groups=seaway.ctx.sh,resources=seawayconfigs,verbs=get;list;watch
 // +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=apps,resources=deployments/status,verbs=get
 // +kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;list;watch;create;update;patch;delete
@@ -65,7 +60,7 @@ func SetupWithManager(mgr ctrl.Manager, regURL *url.URL, regNodePort int32) (err
 // +kubebuilder:rbac:groups=networking.k8s.io,resources=ingresses/status,verbs=get
 // +kubebuilder:rbac:groups=extensions,resources=ingresses,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=extensions,resources=ingresses/status,verbs=get
-// +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch
+// +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;update;patch;delete
 
 func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
@@ -74,10 +69,8 @@ func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	var collection collector.Collection
 
 	sc := &collector.StateCollector{
-		Client:           c.Client,
-		Scheme:           c.Scheme,
-		RegistryNodePort: c.RegistryNodePort,
-		RegistryURL:      c.RegistryURL,
+		Client: c.Client,
+		Scheme: c.Scheme,
 	}
 	if err := sc.ObserveAndBuild(ctx, req, &collection); err != nil {
 		return ctrl.Result{}, err
@@ -88,12 +81,9 @@ func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, nil
 	}
 
-	reg := registry.NewClient(registry.NewHTTPClient()).WithRegistry(c.RegistryURL)
-
 	handler := &Handler{
 		collection: &collection,
 		client:     c.Client,
-		registry:   reg,
 	}
 
 	return handler.reconcile(ctx)

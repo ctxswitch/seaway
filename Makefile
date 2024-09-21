@@ -87,6 +87,7 @@ clean-localdev-shared:
 .PHONY: install
 install: $(KUSTOMIZE) generate
 	@$(KUSTOMIZE) build config/seaway/overlays/$(ENV) | envsubst | kubectl apply -f -
+	@$(KUSTOMIZE) build config/seaway/defaults | envsubst | kubectl apply -f -
 
 .PHONY: uninstall
 uninstall:
@@ -115,6 +116,11 @@ license: $(ADDLICENSE)
 run:
 	$(eval POD := $(shell kubectl get pods -n seaway-system -l app=seaway-controller -o=custom-columns=:metadata.name --no-headers))
 	kubectl exec -it -n seaway-system pod/$(POD) -- bash -c "go run pkg/cmd/seaway/*.go controller --log-level=5"
+
+.PHONY: run-uploader
+run-uploader:
+	$(eval POD := $(shell kubectl get pods -n seaway-system -l app=seaway-controller -o=custom-columns=:metadata.name --no-headers))
+	kubectl exec -it -n seaway-system pod/$(POD) -- bash -c "go run pkg/cmd/seaway/*.go uploader --log-level=5"
 
 .PHONY: exec
 exec:

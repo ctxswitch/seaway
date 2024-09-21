@@ -25,6 +25,8 @@ func TestDefaulted(t *testing.T) {
 				Exclude:    []string{},
 			},
 			Command:       nil,
+			Config:        DefaultConfigName,
+			Endpoint:      ptr.To(DefaultEndpoint),
 			Lifecycle:     nil,
 			LivenessProbe: nil,
 			Network: &EnvironmentNetwork{
@@ -36,15 +38,7 @@ func TestDefaulted(t *testing.T) {
 			ReadinessProbe: nil,
 			Replicas:       ptr.To(int32(DefaultReplicas)),
 			Resources:      EnvironmentResources{},
-			Store: &EnvironmentStore{
-				Bucket:         ptr.To(DefaultBucket),
-				Prefix:         ptr.To(DefaultPrefix),
-				Region:         ptr.To(DefaultRegion),
-				Endpoint:       ptr.To(DefaultEndpoint),
-				ForcePathStyle: ptr.To(DefaultForcePathStyle),
-				LocalPort:      nil,
-			},
-			StartupProbe: nil,
+			StartupProbe:   nil,
 			Vars: &EnvironmentVars{
 				Env:     []corev1.EnvVar{},
 				EnvFrom: []corev1.EnvFromSource{},

@@ -22,16 +22,18 @@ import (
 )
 
 const (
-	DefaultReplicas          = 1
-	DefaultBucket            = "seaway"
-	DefaultRegion            = "us-east-1"
-	DefaultEndpoint          = "http://localhost:80"
-	DefaultForcePathStyle    = true
-	DefaultPrefix            = "artifacts"
-	DefaultBuildImage        = "gcr.io/kaniko-project/executor:latest"
-	DefaultDockerfile        = "Dockerfile"
-	DefaultPlatform          = runtime.GOOS + "/" + runtime.GOARCH
-	DefaultCredentialsSecret = "seaway-s3-credentials" //nolint:gosec
+	DefaultReplicas            = 1
+	DefaultBucket              = "seaway"
+	DefaultRegion              = "us-east-1"
+	DefaultEndpoint            = "http://localhost:8080"
+	DefaultForcePathStyle      = true
+	DefaultPrefix              = "artifacts"
+	DefaultBuildImage          = "gcr.io/kaniko-project/executor:latest"
+	DefaultDockerfile          = "Dockerfile"
+	DefaultPlatform            = runtime.GOOS + "/" + runtime.GOARCH
+	DefaultCredentialsSecret   = "seaway-s3-credentials" //nolint:gosec
+	DefaultControllerNamespace = "seaway-system"
+	DefaultConfigName          = "default"
 )
 
 func Defaulted(obj client.Object) {
@@ -54,6 +56,15 @@ func defaultEnvironmentSpec(obj *EnvironmentSpec) {
 		obj.Args = []string{}
 	}
 
+	if obj.Config == "" {
+		obj.Config = DefaultConfigName
+	}
+
+	if obj.Endpoint == nil {
+		obj.Endpoint = new(string)
+		*obj.Endpoint = DefaultEndpoint
+	}
+
 	if obj.Resources == nil {
 		obj.Resources = EnvironmentResources{}
 	}
@@ -64,7 +75,6 @@ func defaultEnvironmentSpec(obj *EnvironmentSpec) {
 	}
 
 	obj.Vars = defaultEnvironmentVars(obj.Vars)
-	obj.Store = defaultEnvironmentStore(obj.Store)
 	obj.Build = defaultEnvironmentBuild(obj.Build)
 	obj.Network = defaultEnvironmentNetwork(obj.Network)
 }
@@ -112,39 +122,6 @@ func defaultEnvironmentBuild(obj *EnvironmentBuild) *EnvironmentBuild {
 
 	if obj.Exclude == nil {
 		obj.Exclude = []string{}
-	}
-
-	return obj
-}
-
-func defaultEnvironmentStore(obj *EnvironmentStore) *EnvironmentStore {
-	if obj == nil {
-		obj = new(EnvironmentStore)
-	}
-
-	if obj.Bucket == nil {
-		obj.Bucket = new(string)
-		*obj.Bucket = DefaultBucket
-	}
-
-	if obj.Region == nil {
-		obj.Region = new(string)
-		*obj.Region = DefaultRegion
-	}
-
-	if obj.Endpoint == nil {
-		obj.Endpoint = new(string)
-		*obj.Endpoint = DefaultEndpoint
-	}
-
-	if obj.ForcePathStyle == nil {
-		obj.ForcePathStyle = new(bool)
-		*obj.ForcePathStyle = DefaultForcePathStyle
-	}
-
-	if obj.Prefix == nil {
-		obj.Prefix = new(string)
-		*obj.Prefix = DefaultPrefix
 	}
 
 	return obj
