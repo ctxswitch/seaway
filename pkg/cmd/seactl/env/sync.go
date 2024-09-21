@@ -119,7 +119,7 @@ func (s *Sync) RunE(cmd *cobra.Command, args []string) error { //nolint:funlen,g
 
 	if s.force {
 		derr := client.Delete(ctx, obj, metav1.DeleteOptions{})
-		if !errors.IsNotFound(derr) {
+		if err != nil && !errors.IsNotFound(derr) {
 			console.Fatal("error deleting environment: %s", derr.Error())
 		}
 	}
