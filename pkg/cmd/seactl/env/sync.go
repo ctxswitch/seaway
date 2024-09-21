@@ -172,6 +172,7 @@ func (s *Sync) RunE(cmd *cobra.Command, args []string) error { //nolint:funlen,g
 					os.Exit(1)
 				case obj.IsDeployed():
 					console.ListSuccess(status)
+					os.Exit(0)
 				default:
 					console.ListNotice(status)
 				}
