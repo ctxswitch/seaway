@@ -108,11 +108,6 @@ func (b *Builder) buildEnvCredentials() *corev1.Secret {
 
 func (b *Builder) buildJob() *batchv1.Job { //nolint:funlen
 	env := b.observed.Env
-	job := b.observed.Job
-
-	if job == nil {
-		job = &batchv1.Job{}
-	}
 
 	metatdata := metav1.ObjectMeta{
 		Name:      env.Name + "-build",

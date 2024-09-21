@@ -78,7 +78,8 @@ func (c Clean) RunE(cmd *cobra.Command, args []string) error {
 
 	console.Info("Deleting source archive")
 
-	// TODO: Need a delete endpoint for the controller.
+	// TODO: Need a delete endpoint for the controller or force the controller to delete the
+	// archive when the environment is deleted as part of the finalizer.
 
 	return nil
 }

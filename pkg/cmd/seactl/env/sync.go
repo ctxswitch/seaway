@@ -18,7 +18,7 @@ import (
 	"archive/tar"
 	"compress/gzip"
 	"context"
-	"crypto/md5"
+	"crypto/md5" //nolint:gosec
 	"fmt"
 	"io"
 	"io/fs"
@@ -118,10 +118,9 @@ func (s *Sync) RunE(cmd *cobra.Command, args []string) error { //nolint:funlen,g
 	obj := GetEnvironment(manifest.Name, env.Namespace)
 
 	if s.force {
-		if err := client.Delete(ctx, obj, metav1.DeleteOptions{}); err != nil {
-			if !errors.IsNotFound(err) {
-				console.Fatal("error deleting environment: %s", err.Error())
-			}
+		derr := client.Delete(ctx, obj, metav1.DeleteOptions{})
+		if !errors.IsNotFound(derr) {
+			console.Fatal("error deleting environment: %s", derr.Error())
 		}
 	}
 
@@ -169,10 +168,10 @@ func (s *Sync) RunE(cmd *cobra.Command, args []string) error { //nolint:funlen,g
 					console.ListWarning(status)
 				case obj.HasFailed():
 					console.ListFailed(status)
-					os.Exit(1)
+					return nil
 				case obj.IsDeployed():
 					console.ListSuccess(status)
-					os.Exit(0)
+					return nil
 				default:
 					console.ListNotice(status)
 				}
@@ -253,7 +252,7 @@ func (s *Sync) add(tw *tar.Writer, filename string) error {
 }
 
 func checksum(filename string) (string, error) {
-	h := md5.New()
+	h := md5.New() //nolint:gosec
 	file, err := os.Open(filename)
 	if err != nil {
 		return "", err

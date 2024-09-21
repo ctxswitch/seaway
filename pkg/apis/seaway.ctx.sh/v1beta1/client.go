@@ -55,7 +55,7 @@ func (u *Client) Upload(ctx context.Context, path string, params map[string]stri
 	if err != nil {
 		return nil, err
 	}
-	part.Write(data)
+	_, _ = part.Write(data)
 
 	// For the params I want to capture the name, namespace, and etag so we can verify.
 	for k, v := range params {
@@ -75,8 +75,8 @@ func (u *Client) Upload(ctx context.Context, path string, params map[string]stri
 
 	transport := http.DefaultTransport
 	transport.(*http.Transport).TLSClientConfig = &tls.Config{
-		// TODO: Allow configuration of this.
-		InsecureSkipVerify: true,
+		// TODO: Allow configuration of this.  For right now skip verification.
+		InsecureSkipVerify: true, // nolint:gosec
 	}
 	client := &http.Client{
 		Transport: transport,

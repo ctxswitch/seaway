@@ -48,7 +48,7 @@ func (h *Upload) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	logger := log.FromContext(ctx)
 
 	logger.Info("Received a file upload request")
-	r.ParseMultipartForm(200 << 20) // 200 MB
+	_ = r.ParseMultipartForm(200 << 20) // 200 MB
 	name := r.FormValue("name")
 	namespace := r.FormValue("namespace")
 	etag := r.FormValue("etag")
@@ -180,7 +180,7 @@ func (h *Upload) respond(w http.ResponseWriter, info minio.UploadInfo, err error
 			Code:  http.StatusInternalServerError,
 		}
 		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 		return
 	}
 
@@ -191,7 +191,7 @@ func (h *Upload) respond(w http.ResponseWriter, info minio.UploadInfo, err error
 		Size: info.Size,
 		Code: http.StatusOK,
 	}
-	json.NewEncoder(w).Encode(resp)
+	_ = json.NewEncoder(w).Encode(resp)
 }
 
 var _ http.Handler = &Upload{}

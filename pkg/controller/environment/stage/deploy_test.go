@@ -46,7 +46,6 @@ func TestDeployTestSuite(t *testing.T) {
 }
 
 func (s *DeployTestSuite) TestDeploy_DoNewEnvironmentAllComponents() {
-
 	s.client.ApplyFixtureOrDie("controller_environment_stage", "deploy_new_environment_1.yaml")
 
 	var collection collector.Collection
@@ -100,7 +99,6 @@ func (s *DeployTestSuite) TestDeploy_DoNewEnvironmentAllComponents() {
 }
 
 func (s *DeployTestSuite) TestDeploy_DoNewEnvironmentOnlyDeploy() {
-
 	s.client.ApplyFixtureOrDie("controller_environment_stage", "deploy_new_environment_2.yaml")
 
 	var collection collector.Collection
@@ -154,7 +152,6 @@ func (s *DeployTestSuite) TestDeploy_DoNewEnvironmentOnlyDeploy() {
 }
 
 func (s *DeployTestSuite) TestDeploy_DoNewEnvironmentOnlyService() {
-
 	s.client.ApplyFixtureOrDie("controller_environment_stage", "deploy_new_environment_3.yaml")
 
 	var collection collector.Collection
@@ -208,7 +205,6 @@ func (s *DeployTestSuite) TestDeploy_DoNewEnvironmentOnlyService() {
 }
 
 func (s *DeployTestSuite) TestDeploy_RemoveIngressIfNil() {
-
 	s.client.ApplyFixtureOrDie("controller_environment_stage", "deploy_ingress_cleanup.yaml")
 
 	var collection collector.Collection
@@ -264,7 +260,6 @@ func (s *DeployTestSuite) TestDeploy_RemoveIngressIfNil() {
 }
 
 func (s *DeployTestSuite) TestDeploy_RemoveServiceIfNil() {
-
 	s.client.ApplyFixtureOrDie("controller_environment_stage", "deploy_ingress_service_cleanup.yaml")
 
 	var collection collector.Collection
@@ -323,7 +318,6 @@ func (s *DeployTestSuite) TestDeploy_RemoveServiceIfNil() {
 // TestDeploy_DontRemoveIngressIfNotObserved tests that the service does not attempt
 // to remove the ingress as part of it's cleanup if it was not observed.  Oops.
 func (s *DeployTestSuite) TestDeploy_DontRemoveIngressIfNotObserved() {
-
 	s.client.ApplyFixtureOrDie("controller_environment_stage", "deploy_service_no_ingress_cleanup.yaml")
 
 	var collection collector.Collection
@@ -382,7 +376,6 @@ func (s *DeployTestSuite) TestDeploy_DontRemoveIngressIfNotObserved() {
 }
 
 func (s *DeployTestSuite) TestDeploy_createOrUpdate() {
-
 	d := NewDeploy(s.client, &collector.Collection{})
 
 	deploy := appsv1.Deployment{
