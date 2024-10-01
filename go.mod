@@ -3,7 +3,7 @@ module ctx.sh/seaway
 go 1.22.2
 
 require (
-	github.com/go-logr/logr v1.4.1
+	github.com/go-logr/logr v1.4.2
 	github.com/minio/minio-go/v7 v7.0.76
 	github.com/spf13/cobra v1.8.1
 	github.com/stretchr/testify v1.9.0
