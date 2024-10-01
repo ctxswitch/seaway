@@ -4,7 +4,7 @@ go 1.22.2
 
 require (
 	github.com/go-logr/logr v1.4.1
-	github.com/minio/minio-go/v7 v7.0.76
+	github.com/minio/minio-go/v7 v7.0.77
 	github.com/spf13/cobra v1.8.1
 	github.com/stretchr/testify v1.9.0
 	github.com/ttacon/chalk v0.0.0-20160626202418-22c06c80ed31
