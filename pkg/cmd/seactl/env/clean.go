@@ -72,8 +72,10 @@ func (c Clean) RunE(cmd *cobra.Command, args []string) error {
 
 	obj := GetEnvironment(manifest.Name, env.Namespace)
 	err = client.Delete(ctx, obj, metav1.DeleteOptions{})
-	if !errors.IsNotFound(err) {
-		console.Fatal("Unable to delete environment: %s", err)
+	if err != nil {
+		if !errors.IsNotFound(err) {
+			console.Fatal("Unable to delete environment: %s", err)
+		}
 	}
 
 	console.Info("Deleting source archive")
