@@ -19,6 +19,10 @@ import (
 	"strings"
 )
 
+const (
+	DefaultEndpoint = "http://localhost:8080"
+)
+
 var (
 	DefaultExcludes = []string{
 		"vendor/*",
@@ -42,6 +46,7 @@ func (me *ManifestEnvironmentSpec) UnmarshalYAML(unmarshal func(interface{}) err
 	type ManifestEnvironmentSpecDefaulted ManifestEnvironmentSpec
 	var defaults = ManifestEnvironmentSpecDefaulted{
 		Namespace: "default",
+		Endpoint:  DefaultEndpoint,
 	}
 
 	out := defaults

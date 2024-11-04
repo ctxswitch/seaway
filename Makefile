@@ -77,6 +77,10 @@ localdev-shared:
 	@$(KUBECTL) wait --for=condition=available --timeout=120s deploy/minio-operator -n minio-operator
 	@$(KUSTOMIZE) build config/shared/overlays/$(ENV) | envsubst | $(KUBECTL) apply -f -
 
+.PHONY: localdev-seaway
+localdev-seaway:
+	@$(KUSTOMIZE) build config/seaway/overlays/$(ENV) | envsubst | $(KUBECTL) apply -f -
+
 .PHONY: clean-localdev-shared
 clean-localdev-shared:
 	@$(KUBECTL) delete -k config/shared/overlays/$(ENV)

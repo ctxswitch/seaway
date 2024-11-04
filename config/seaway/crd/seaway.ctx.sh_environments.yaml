@@ -85,8 +85,6 @@ spec:
                 type: array
               config:
                 type: string
-              endpoint:
-                type: string
               lifecycle:
                 nullable: true
                 properties:
