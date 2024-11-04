@@ -36,7 +36,7 @@ environments:
     resources:
       memory: 2Gi
       cpu: 100m
-    dependencies:
-      - name: all
-        type: kustomize
-        base: k8s/overlays/local
+    # dependencies:
+    #   - name: all
+    #     type: kustomize
+    #     base: k8s/overlays/local
