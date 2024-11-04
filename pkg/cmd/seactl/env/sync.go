@@ -89,7 +89,7 @@ func (s *Sync) RunE(cmd *cobra.Command, args []string) error { //nolint:funlen,g
 		console.Fatal("Unable to calculate the archive checksum: %s", err)
 	}
 
-	upload := v1beta1.NewClient(*env.Endpoint + "/upload")
+	upload := v1beta1.NewClient(env.Endpoint + "/upload")
 	resp, err := upload.Upload(ctx, archive, map[string]string{
 		"name":      manifest.Name,
 		"namespace": env.Namespace,

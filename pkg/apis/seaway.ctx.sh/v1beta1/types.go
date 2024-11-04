@@ -173,10 +173,6 @@ type EnvironmentSpec struct {
 	// +optional
 	// +nullable
 	Command []string `json:"command" yaml:"command"`
-	// Endpoint is the Seaway API endpoint that the client will use to interact
-	// with the environment.
-	// +optional
-	Endpoint *string `json:"endpoint" yaml:"endpoint"`
 	// Lifecycle is the lifecycle spec for the deployed application.
 	// +optional
 	// +nullable
@@ -304,8 +300,12 @@ type ManifestDependency struct {
 // ManifestEnvironmentSpec is a spec for an environment in the manifest and
 // is used by the client.
 type ManifestEnvironmentSpec struct {
-	Name            string               `yaml:"name"`
-	Namespace       string               `yaml:"namespace"`
+	Name      string `yaml:"name"`
+	Namespace string `yaml:"namespace"`
+	// Endpoint is the Seaway API endpoint that the client will use to interact
+	// with the environment.
+	// +optional
+	Endpoint        string               `json:"endpoint" yaml:"endpoint"`
 	Dependencies    []ManifestDependency `yaml:"dependencies"`
 	EnvironmentSpec `yaml:",inline"`
 }

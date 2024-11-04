@@ -26,7 +26,6 @@ func TestDefaulted(t *testing.T) {
 			},
 			Command:       nil,
 			Config:        DefaultConfigName,
-			Endpoint:      ptr.To(DefaultEndpoint),
 			Lifecycle:     nil,
 			LivenessProbe: nil,
 			Network: &EnvironmentNetwork{

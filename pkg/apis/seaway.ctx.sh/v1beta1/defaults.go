@@ -25,7 +25,6 @@ const (
 	DefaultReplicas            = 1
 	DefaultBucket              = "seaway"
 	DefaultRegion              = "us-east-1"
-	DefaultEndpoint            = "http://localhost:8080"
 	DefaultForcePathStyle      = true
 	DefaultPrefix              = "artifacts"
 	DefaultBuildImage          = "gcr.io/kaniko-project/executor:latest"
@@ -58,11 +57,6 @@ func defaultEnvironmentSpec(obj *EnvironmentSpec) {
 
 	if obj.Config == "" {
 		obj.Config = DefaultConfigName
-	}
-
-	if obj.Endpoint == nil {
-		obj.Endpoint = new(string)
-		*obj.Endpoint = DefaultEndpoint
 	}
 
 	if obj.Resources == nil {

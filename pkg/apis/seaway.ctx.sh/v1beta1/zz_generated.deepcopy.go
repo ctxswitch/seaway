@@ -298,11 +298,6 @@ func (in *EnvironmentSpec) DeepCopyInto(out *EnvironmentSpec) {
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
-	if in.Endpoint != nil {
-		in, out := &in.Endpoint, &out.Endpoint
-		*out = new(string)
-		**out = **in
-	}
 	if in.Lifecycle != nil {
 		in, out := &in.Lifecycle, &out.Lifecycle
 		*out = new(corev1.Lifecycle)

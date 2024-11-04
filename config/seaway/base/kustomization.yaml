@@ -9,4 +9,5 @@ resources:
   - ../crd
   - ../rbac
   - ../webhook
+  - ../defaults
   - controller.yaml
