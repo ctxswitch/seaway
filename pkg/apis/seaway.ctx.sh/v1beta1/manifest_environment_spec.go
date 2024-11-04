@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	DefaultEndpoint = "http://localhost:8080"
+	DefaultEndpoint = "https://localhost:8080"
 )
 
 var (
