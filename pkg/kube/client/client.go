@@ -143,7 +143,7 @@ func (c *Client) ResourceInterfaceFor(obj Object, method string) (dynamic.Resour
 	return dr, nil
 }
 
-// ServerResourcesForGroupVersionKind returns the APIResource for the provided GroupVersionKind
+// ServerResourcesForGroupVersionKind returns the APIResource for the provided GroupVersionKind.
 func ServerResourcesForGroupVersionKind(dc discovery.DiscoveryInterface, gvk schema.GroupVersionKind, verb string) (*metav1.APIResource, error) {
 	resources, err := dc.ServerResourcesForGroupVersion(gvk.GroupVersion().String())
 	if err != nil {
@@ -169,7 +169,7 @@ func ServerResourcesForGroupVersionKind(dc discovery.DiscoveryInterface, gvk sch
 	)
 }
 
-// supportedVerb returns true if the provided verb is supported by the APIResource
+// supportedVerb returns true if the provided verb is supported by the APIResource.
 func supportedVerb(apiResource *metav1.APIResource, verb string) bool {
 	if verb == "" || verb == "*" {
 		return true
