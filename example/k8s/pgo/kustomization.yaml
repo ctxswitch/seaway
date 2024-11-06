@@ -1,0 +1,11 @@
+# kustomization.yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+helmCharts:
+- name: pgo
+  repo: oci://registry.developers.crunchydata.com/crunchydata
+  releaseName: pgo
+  namespace: database-system
+  version: 5.7.0
+  valuesFile: values.yaml

@@ -54,7 +54,12 @@ func NewKustomizer(opts *KustomizerOptions) (*Kustomizer, error) {
 		Reorder:           "none",
 		AddManagedbyLabel: false,
 		LoadRestrictions:  types.LoadRestrictionsRootOnly,
-		PluginConfig:      &types.PluginConfig{},
+		PluginConfig: &types.PluginConfig{
+			HelmConfig: types.HelmConfig{
+				Enabled: true,
+				Command: "helm",
+			},
+		},
 	})
 
 	target := filesys.MakeFsOnDisk()

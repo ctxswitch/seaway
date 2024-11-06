@@ -1,0 +1,3 @@
+debug: false
+singleNamespace: false
+disable_check_for_upgrades: false

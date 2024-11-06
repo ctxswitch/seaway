@@ -110,7 +110,7 @@ func (s *Sync) RunE(cmd *cobra.Command, args []string) error { //nolint:funlen,g
 
 	console.Info("Deploying")
 
-	client, err := kube.NewSeawayClient("", kubeContext)
+	client, err := kube.NewKubectlCmd("", kubeContext)
 	if err != nil {
 		console.Fatal("error getting seaway client: %s", err.Error())
 	}

@@ -27,13 +27,13 @@ import (
 	"k8s.io/client-go/dynamic"
 )
 
-// SeawayClient is the kubernetes client that is used by the seactl tool.
-type SeawayClient struct {
+// KubectlCmd is the kubernetes client that is used by the seactl tool.
+type KubectlCmd struct {
 	dc     dynamic.Interface
 	client *Client
 }
 
-func NewSeawayClient(ns, context string) (*SeawayClient, error) {
+func NewKubectlCmd(ns, context string) (*KubectlCmd, error) {
 	c, err := NewClient(ns, context)
 	if err != nil {
 		return nil, err
@@ -44,19 +44,19 @@ func NewSeawayClient(ns, context string) (*SeawayClient, error) {
 		return nil, err
 	}
 
-	return &SeawayClient{
+	return &KubectlCmd{
 		dc:     dc,
 		client: c,
 	}, nil
 }
 
-func (c *SeawayClient) Get(ctx context.Context, obj Object, opts metav1.GetOptions) error {
+func (c *KubectlCmd) Get(ctx context.Context, obj Object, opts metav1.GetOptions) error {
 	u := &unstructured.Unstructured{}
 	if err := toUnstructured(obj, u); err != nil {
 		return err
 	}
 
-	iface, err := c.client.ResourceInterfaceFor(u.GetNamespace(), obj)
+	iface, err := c.client.ResourceInterfaceFor(obj, "get")
 	if err != nil {
 		return err
 	}
@@ -73,27 +73,32 @@ func (c *SeawayClient) Get(ctx context.Context, obj Object, opts metav1.GetOptio
 	return nil
 }
 
-func (c *SeawayClient) Delete(ctx context.Context, obj Object, opts metav1.DeleteOptions) error {
+func (c *KubectlCmd) Delete(ctx context.Context, obj Object, opts metav1.DeleteOptions) error {
 	u := &unstructured.Unstructured{}
 	if err := toUnstructured(obj, u); err != nil {
 		return err
 	}
 
-	iface, err := c.client.ResourceInterfaceFor(u.GetNamespace(), obj)
+	iface, err := c.client.ResourceInterfaceFor(obj, "delete")
 	if err != nil {
 		return err
+	}
+
+	if opts.PropagationPolicy == nil {
+		propagationPolicy := metav1.DeletePropagationForeground
+		opts = metav1.DeleteOptions{PropagationPolicy: &propagationPolicy}
 	}
 
 	return iface.Delete(ctx, u.GetName(), opts)
 }
 
-func (c *SeawayClient) Create(ctx context.Context, obj Object, opts metav1.CreateOptions) error {
+func (c *KubectlCmd) Create(ctx context.Context, obj Object, opts metav1.CreateOptions) error {
 	u := &unstructured.Unstructured{}
 	if err := toUnstructured(obj, u); err != nil {
 		return err
 	}
 
-	iface, err := c.client.ResourceInterfaceFor(u.GetNamespace(), obj)
+	iface, err := c.client.ResourceInterfaceFor(obj, "create")
 	if err != nil {
 		return err
 	}
@@ -111,14 +116,14 @@ func (c *SeawayClient) Create(ctx context.Context, obj Object, opts metav1.Creat
 	return err
 }
 
-func (c *SeawayClient) Update(ctx context.Context, obj Object, opts metav1.UpdateOptions) error {
+func (c *KubectlCmd) Update(ctx context.Context, obj Object, opts metav1.UpdateOptions) error {
 	u := &unstructured.Unstructured{}
 	err := toUnstructured(obj, u)
 	if err != nil {
 		return err
 	}
 
-	iface, err := c.client.ResourceInterfaceFor(u.GetNamespace(), obj)
+	iface, err := c.client.ResourceInterfaceFor(obj, "update")
 	if err != nil {
 		return err
 	}
@@ -136,7 +141,7 @@ func (c *SeawayClient) Update(ctx context.Context, obj Object, opts metav1.Updat
 	return err
 }
 
-func (c *SeawayClient) CreateOrUpdate(ctx context.Context, obj Object, f MutateFn) (OperationResult, error) {
+func (c *KubectlCmd) CreateOrUpdate(ctx context.Context, obj Object, f MutateFn) (OperationResult, error) {
 	if err := c.Get(ctx, obj, metav1.GetOptions{}); err != nil {
 		if !errors.IsNotFound(err) {
 			return OperationResultNone, err
@@ -187,7 +192,7 @@ func (c *SeawayClient) CreateOrUpdate(ctx context.Context, obj Object, f MutateF
 }
 
 // Preserve some fields that are managed by the API. This is done to keep
-// the resource from being updated when it is not necessary.  If namaged fields
+// the resource from being updated when it is not necessary.  If managed fields
 // are not preserved the API will write them back to the resource and bump the
 // resource version and generation which makes the resource appear to be updated.
 // We only handle the metadata fields here.  There are some resources that have
@@ -200,6 +205,11 @@ func PreserveManagedFields(source, target Object) {
 	target.SetManagedFields(source.GetManagedFields())
 	annotations := target.GetAnnotations()
 	matcher := regexp.MustCompile(`^.*kubernetes.io\/.*$`)
+
+	if annotations == nil {
+		annotations = make(map[string]string)
+	}
+
 	for k, v := range source.GetAnnotations() {
 		if matcher.MatchString(k) {
 			annotations[k] = v
@@ -248,7 +258,8 @@ func mutate(f MutateFn, key ObjectKey, obj Object) error {
 		return err
 	}
 	if newKey := ObjectKeyFromObject(obj); key != newKey {
-		return fmt.Errorf("MutateFn cannot mutate object name and/or object namespace")
+		// I dont think I'll handle this
+		return nil
 	}
 	return nil
 }
