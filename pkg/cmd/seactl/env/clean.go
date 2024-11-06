@@ -65,7 +65,7 @@ func (c Clean) RunE(cmd *cobra.Command, args []string) error {
 
 	console.Info("Cleaning environment '%s'", env.Name)
 
-	client, err := kube.NewSeawayClient("", kubeContext)
+	client, err := kube.NewKubectlCmd("", kubeContext)
 	if err != nil {
 		console.Fatal(err.Error())
 	}

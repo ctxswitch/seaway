@@ -36,7 +36,8 @@ environments:
     resources:
       memory: 2Gi
       cpu: 100m
-    # dependencies:
-    #   - name: all
-    #     type: kustomize
-    #     base: k8s/overlays/local
+    dependencies:
+      - name: pgo
+        path: k8s/pgo
+      - name: base
+        path: k8s/base

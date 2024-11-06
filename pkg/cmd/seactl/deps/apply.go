@@ -65,7 +65,7 @@ func (a *Apply) RunE(cmd *cobra.Command, args []string) error {
 		console.Fatal("Build environment '%s' not found in the manifest", args[0])
 	}
 
-	client, err := kube.NewSeawayClient("", kubeContext)
+	client, err := kube.NewKubectlCmd("", kubeContext)
 	if err != nil {
 		console.Fatal(err.Error())
 	}
@@ -75,36 +75,37 @@ func (a *Apply) RunE(cmd *cobra.Command, args []string) error {
 	for _, dep := range env.Dependencies {
 		console.Info("Applying dependency '%s'", dep.Path)
 		if err := a.apply(ctx, client, dep.Path); err != nil {
-			console.Fatal(err.Error())
+			console.Fatal("unable to apply: %s", err.Error())
 		}
 	}
 
 	return nil
 }
 
-func (a *Apply) apply(ctx context.Context, client *kube.SeawayClient, path string) error {
+func (a *Apply) apply(ctx context.Context, client *kube.KubectlCmd, path string) error {
 	// Process the kustomize manifests from the base directory
 	krusty, err := kustomize.NewKustomizer(&kustomize.KustomizerOptions{
 		BaseDir: path,
 	})
 	if err != nil {
-		console.Fatal(err.Error())
+		console.Fatal("Unable to initialize kustomize: %s", err.Error())
 		return err
 	}
 
 	items, err := krusty.Resources()
 	if err != nil {
-		console.Fatal(err.Error())
+		console.Fatal("resources: ", err.Error())
 		return err
 	}
 
 	for _, item := range items {
 		expected := item.Resource
 
+		// TODO: make a dry-run option
 		obj := GetObject(expected)
 		op, err := client.CreateOrUpdate(ctx, obj, func() error {
 			// TODO: Ugly. Fix this.  We need to save the initial state of the
-			// object so we can preserve the managed fields after copying the
+			// object so we can preserve the api managed fields after copying the
 			// values from the expected object.
 			existing, can := obj.DeepCopyObject().(kube.Object)
 			if !can {
@@ -112,10 +113,12 @@ func (a *Apply) apply(ctx context.Context, client *kube.SeawayClient, path strin
 			}
 			expected.DeepCopyInto(obj)
 			kube.PreserveManagedFields(existing, obj)
+
 			return nil
 		})
 		if err != nil {
-			console.Fatal(err.Error())
+			api := strings.ToLower(obj.GetObjectKind().GroupVersionKind().GroupKind().String())
+			console.Fatal("error applying resource %s/%s: %s", api, obj.GetName(), err.Error())
 			return err
 		}
 

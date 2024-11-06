@@ -19,10 +19,14 @@ import (
 	"os"
 	"os/user"
 	"path/filepath"
+	"strings"
 
 	"ctx.sh/seaway/pkg/console"
+	corev1 "k8s.io/api/core/v1"
+	apierr "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
-	"k8s.io/apimachinery/pkg/runtime"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/discovery/cached/memory"
 	"k8s.io/client-go/dynamic"
@@ -106,18 +110,12 @@ func (c *Client) ToRESTConfig() (*rest.Config, error) {
 // is used to determine the group, version, and kind of the object which is then used to
 // configure the resource interface.  We use the mapping to determine the scope of the object
 // and if it is namespaced we create a namespaced resource interface.
-func (c *Client) ResourceInterfaceFor(ns string, obj runtime.Object) (dynamic.ResourceInterface, error) {
+func (c *Client) ResourceInterfaceFor(obj Object, method string) (dynamic.ResourceInterface, error) {
 	gvk := obj.GetObjectKind().GroupVersionKind()
 
 	dc, err := c.ToDiscoveryClient()
 	if err != nil {
 		return nil, err
-	}
-	mapper := restmapper.NewDeferredDiscoveryRESTMapper(memory.NewMemCacheClient(dc))
-
-	mapping, err := mapper.RESTMapping(gvk.GroupKind(), gvk.Version)
-	if err != nil {
-		console.Fatal(err.Error())
 	}
 
 	dyn, err := c.Factory().DynamicClient()
@@ -126,13 +124,63 @@ func (c *Client) ResourceInterfaceFor(ns string, obj runtime.Object) (dynamic.Re
 	}
 
 	var dr dynamic.ResourceInterface
-	if mapping.Scope.Name() == meta.RESTScopeNameNamespace {
-		dr = dyn.Resource(mapping.Resource).Namespace(ns)
+
+	resource, err := ServerResourcesForGroupVersionKind(dc, gvk, method)
+	if err != nil {
+		return nil, err
+	}
+
+	gvr := gvk.GroupVersion().WithResource(resource.Name)
+	if resource.Namespaced {
+		if obj.GetNamespace() == "" {
+			obj.SetNamespace(corev1.NamespaceDefault)
+		}
+		dr = dyn.Resource(gvr).Namespace(obj.GetNamespace())
 	} else {
-		dr = dyn.Resource(mapping.Resource)
+		dr = dyn.Resource(gvr)
 	}
 
 	return dr, nil
+}
+
+// ServerResourcesForGroupVersionKind returns the APIResource for the provided GroupVersionKind
+func ServerResourcesForGroupVersionKind(dc discovery.DiscoveryInterface, gvk schema.GroupVersionKind, verb string) (*metav1.APIResource, error) {
+	resources, err := dc.ServerResourcesForGroupVersion(gvk.GroupVersion().String())
+	if err != nil {
+		return nil, err
+	}
+
+	for _, r := range resources.APIResources {
+		if r.Kind == gvk.Kind {
+			if supportedVerb(&r, verb) {
+				return &r, nil
+			}
+
+			return nil, apierr.NewMethodNotSupported(
+				schema.GroupResource{Group: gvk.Group, Resource: gvk.Kind},
+				verb,
+			)
+		}
+	}
+
+	return nil, apierr.NewNotFound(
+		schema.GroupResource{Group: gvk.Group, Resource: gvk.Kind},
+		"",
+	)
+}
+
+// supportedVerb returns true if the provided verb is supported by the APIResource
+func supportedVerb(apiResource *metav1.APIResource, verb string) bool {
+	if verb == "" || verb == "*" {
+		return true
+	}
+
+	for _, v := range apiResource.Verbs {
+		if strings.EqualFold(v, verb) {
+			return true
+		}
+	}
+	return false
 }
 
 // loadConfig loads the kubernetes configuration from the provided kubeconfig file, Borrowed
@@ -147,7 +195,6 @@ func loadConfig(kubeconfig, context string) (clientcmd.ClientConfig, error) {
 
 	// TODO: Maybe support in-cluster configuration.  I don't think this will really be
 	// necessary or wanted at this point.
-
 	rules := clientcmd.NewDefaultClientConfigLoadingRules()
 	if _, ok := os.LookupEnv("HOME"); !ok {
 		u, err := user.Current()
