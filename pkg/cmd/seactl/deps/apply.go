@@ -46,6 +46,10 @@ func NewApply() *Apply {
 // RunE generates and applies the dependencies for a development environment.
 func (a *Apply) RunE(cmd *cobra.Command, args []string) error {
 	kubeContext := cmd.Root().Flags().Lookup("context").Value.String()
+	client, err := kube.NewKubectlCmd("", kubeContext)
+	if err != nil {
+		console.Fatal(err.Error())
+	}
 
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
@@ -56,18 +60,14 @@ func (a *Apply) RunE(cmd *cobra.Command, args []string) error {
 
 	// Load the manifest and grab the appropriate environment
 	var manifest v1beta1.Manifest
-	if err := manifest.Load("manifest.yaml"); err != nil {
+	err = manifest.Load("manifest.yaml")
+	if err != nil {
 		console.Fatal("Unable to load manifest")
 	}
 
 	env, err := manifest.GetEnvironment(args[0])
 	if err != nil {
 		console.Fatal("Build environment '%s' not found in the manifest", args[0])
-	}
-
-	client, err := kube.NewKubectlCmd("", kubeContext)
-	if err != nil {
-		console.Fatal(err.Error())
 	}
 
 	console.Info("Applying dependencies for the '%s' environment", env.Name)
