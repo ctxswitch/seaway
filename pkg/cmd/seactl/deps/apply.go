@@ -27,6 +27,7 @@ import (
 	kube "ctx.sh/seaway/pkg/kube/client"
 	"ctx.sh/seaway/pkg/util/kustomize"
 	"github.com/spf13/cobra"
+	apierr "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/wait"
 )
@@ -129,12 +130,13 @@ func (a *Apply) apply(ctx context.Context, client *kube.KubectlCmd, path string)
 		}
 
 		var op kube.OperationResult
-		err = wait.ExponentialBackoff(DefaultBackoff, func() (bool, error) {
+		err = wait.ExponentialBackoffWithContext(ctx, DefaultBackoff, func(context.Context) (bool, error) {
 			op, err = client.CreateOrUpdate(ctx, obj, opFunc)
 			if err == nil {
 				return true, nil
 			}
-			if err != nil {
+
+			if apierr.IsNotFound(err) {
 				return false, nil
 			}
 
