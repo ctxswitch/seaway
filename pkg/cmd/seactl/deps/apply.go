@@ -20,6 +20,7 @@ import (
 	"os/signal"
 	"strings"
 	"syscall"
+	"time"
 
 	"ctx.sh/seaway/pkg/apis/seaway.ctx.sh/v1beta1"
 	"ctx.sh/seaway/pkg/console"
@@ -27,12 +28,21 @@ import (
 	"ctx.sh/seaway/pkg/util/kustomize"
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/util/wait"
 )
 
 const (
 	ApplyUsage     = "apply [context]"
 	ApplyShortDesc = "Apply the dependencies to the target object storage using the configuration context"
 	ApplyLongDesc  = `Apply the dependencies to the target object storage based on the configuration context`
+)
+
+var (
+	DefaultBackoff = wait.Backoff{ //nolint:gochecknoglobals
+		Steps:    5,
+		Duration: 200 * time.Millisecond,
+		Factor:   2.0,
+	}
 )
 
 type Apply struct {
@@ -103,7 +113,8 @@ func (a *Apply) apply(ctx context.Context, client *kube.KubectlCmd, path string)
 
 		// TODO: make a dry-run option
 		obj := GetObject(expected)
-		op, err := client.CreateOrUpdate(ctx, obj, func() error {
+
+		opFunc := func() error {
 			// TODO: Ugly. Fix this.  We need to save the initial state of the
 			// object so we can preserve the api managed fields after copying the
 			// values from the expected object.
@@ -115,6 +126,19 @@ func (a *Apply) apply(ctx context.Context, client *kube.KubectlCmd, path string)
 			kube.PreserveManagedFields(existing, obj)
 
 			return nil
+		}
+
+		var op kube.OperationResult
+		err = wait.ExponentialBackoff(DefaultBackoff, func() (bool, error) {
+			op, err = client.CreateOrUpdate(ctx, obj, opFunc)
+			if err == nil {
+				return true, nil
+			}
+			if err != nil {
+				return false, nil
+			}
+
+			return false, err
 		})
 		if err != nil {
 			api := strings.ToLower(obj.GetObjectKind().GroupVersionKind().GroupKind().String())
