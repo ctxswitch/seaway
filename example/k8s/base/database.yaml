@@ -1,5 +1,5 @@
 apiVersion: postgres-operator.crunchydata.com/v1beta1
-kind: PostgresClustery
+kind: PostgresCluster
 metadata:
   name: example
 spec:
