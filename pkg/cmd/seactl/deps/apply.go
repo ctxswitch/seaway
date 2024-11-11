@@ -30,6 +30,7 @@ import (
 	apierr "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/wait"
+	watchtools "k8s.io/client-go/tools/watch"
 )
 
 const (
@@ -84,31 +85,43 @@ func (a *Apply) RunE(cmd *cobra.Command, args []string) error {
 	console.Info("Applying dependencies for the '%s' environment", env.Name)
 
 	for _, dep := range env.Dependencies {
+		// Process the kustomize manifests from the base directory
+		krusty, err := kustomize.NewKustomizer(&kustomize.KustomizerOptions{
+			BaseDir: dep.Path,
+		})
+		if err != nil {
+			console.Fatal("Unable to initialize kustomize: %s", err.Error())
+			return err
+		}
+
+		items, err := krusty.Resources()
+		if err != nil {
+			console.Fatal("resources: ", err.Error())
+			return err
+		}
+
 		console.Info("Applying dependency '%s'", dep.Path)
-		if err := a.apply(ctx, client, dep.Path); err != nil {
-			console.Fatal("unable to apply: %s", err.Error())
+		if err := a.apply(ctx, client, items); err != nil {
+			console.Fatal("error: %s", err.Error())
+		}
+
+		if len(dep.Wait) == 0 {
+			continue
+		}
+
+		console.Info("Waiting for resource conditions")
+		for _, cond := range dep.Wait {
+			err := a.wait(ctx, client, items, cond)
+			if err != nil {
+				console.Fatal("error: %s", err.Error())
+			}
 		}
 	}
 
 	return nil
 }
 
-func (a *Apply) apply(ctx context.Context, client *kube.KubectlCmd, path string) error {
-	// Process the kustomize manifests from the base directory
-	krusty, err := kustomize.NewKustomizer(&kustomize.KustomizerOptions{
-		BaseDir: path,
-	})
-	if err != nil {
-		console.Fatal("Unable to initialize kustomize: %s", err.Error())
-		return err
-	}
-
-	items, err := krusty.Resources()
-	if err != nil {
-		console.Fatal("resources: ", err.Error())
-		return err
-	}
-
+func (a *Apply) apply(ctx context.Context, client *kube.KubectlCmd, items []kustomize.KustomizerResource) error {
 	for _, item := range items {
 		expected := item.Resource
 
@@ -130,6 +143,8 @@ func (a *Apply) apply(ctx context.Context, client *kube.KubectlCmd, path string)
 		}
 
 		var op kube.OperationResult
+		var err error
+
 		err = wait.ExponentialBackoffWithContext(ctx, DefaultBackoff, func(context.Context) (bool, error) {
 			op, err = client.CreateOrUpdate(ctx, obj, opFunc)
 			if err == nil {
@@ -148,13 +163,7 @@ func (a *Apply) apply(ctx context.Context, client *kube.KubectlCmd, path string)
 			return err
 		}
 
-		api := strings.ToLower(obj.GetObjectKind().GroupVersionKind().GroupKind().String())
-		var out string
-		if obj.GetNamespace() == "" {
-			out = fmt.Sprintf("%s/%s", api, obj.GetName())
-		} else {
-			out = fmt.Sprintf("%s/%s/%s", api, obj.GetNamespace(), obj.GetName())
-		}
+		out := ToAPIString(obj)
 
 		switch op {
 		case kube.OperationResultNone:
@@ -164,6 +173,59 @@ func (a *Apply) apply(ctx context.Context, client *kube.KubectlCmd, path string)
 		case kube.OperationResultCreated:
 			console.Created(out)
 		}
+	}
+
+	return nil
+}
+
+type KindName struct {
+	Kind string
+	Name string
+}
+
+func (a *Apply) wait(ctx context.Context, client *kube.KubectlCmd, items []kustomize.KustomizerResource, cond v1beta1.ManifestWaitCondition) error {
+	ctx, cancel := watchtools.ContextWithOptionalTimeout(ctx, cond.Timeout)
+	defer cancel()
+
+	// Map all generated objects to NamespacedNames. The wait block will reference these objects
+	//
+	objs := make(map[KindName]*unstructured.Unstructured)
+
+	for _, item := range items {
+		resource := item.Resource
+		u := GetObject(resource)
+
+		// Add the labels for the selector
+		labels, found, err := unstructured.NestedMap(resource.Object, "metadata", "labels")
+		if err != nil {
+			return err
+		}
+
+		u.SetLabels(map[string]string{})
+		if found {
+			for k, v := range labels {
+				u.SetLabels(map[string]string{k: v.(string)})
+			}
+		}
+
+		objs[KindName{Kind: u.GroupVersionKind().Kind, Name: u.GetName()}] = u
+	}
+
+	// TODO: I think I may need to add in the namespace here to isolate objects in
+	// a specific namespace, otherwise we could get multiple objects with the same
+	// name in different namespaces.
+	obj, ok := objs[KindName{Kind: cond.Kind, Name: cond.Name}]
+	if !ok {
+		// TODO: Ignore?
+		return fmt.Errorf("object %s/%s not found", cond.Kind, cond.Name)
+	}
+
+	out := ToAPIString(obj)
+	console.Waiting(out)
+
+	err := client.WaitForCondition(ctx, obj, cond.For, cond.Timeout)
+	if err != nil {
+		return err
 	}
 
 	return nil
@@ -179,6 +241,19 @@ func GetObject(u *unstructured.Unstructured) *unstructured.Unstructured {
 	obj.SetGroupVersionKind(u.GroupVersionKind())
 
 	return obj
+}
+
+// ToAPIString returns the gvk, namespace, and name of the object as a string.
+func ToAPIString(obj *unstructured.Unstructured) string {
+	api := strings.ToLower(obj.GetObjectKind().GroupVersionKind().GroupKind().String())
+	var out string
+	if obj.GetNamespace() == "" {
+		out = fmt.Sprintf("%s/%s", api, obj.GetName())
+	} else {
+		out = fmt.Sprintf("%s/%s/%s", api, obj.GetNamespace(), obj.GetName())
+	}
+
+	return out
 }
 
 // Command returns the cobra command for the apply subcommand.
