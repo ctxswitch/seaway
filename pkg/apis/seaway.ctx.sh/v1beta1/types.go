@@ -17,6 +17,8 @@ package v1beta1
 // +kubebuilder:docs-gen:collapse=Apache License
 
 import (
+	"time"
+
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -295,6 +297,30 @@ type ManifestDependency struct {
 	// Path is the path to the directory containing the manifests.
 	// +required
 	Path string `yaml:"path"`
+	// Wait is a wait condition that the controller will use to determine if the
+	// dependency has been successfully applied.
+	// +optional
+	// +nullable
+	Wait []ManifestWaitCondition `yaml:"wait"`
+}
+
+type ManifestWaitCondition struct {
+	// Kind is the kind of resource that the controller will use to match the resources
+	// to the wait condition.
+	// +required
+	Kind string `yaml:"kind"`
+	// Name is the name of the resource that the controller will use to match the resources
+	// to the wait condition.
+	// +required
+	Name string `yaml:"name"`
+	// For is the condition that the controller will wait for.  Default is `ready` which is an
+	// alias for `condition=ready` for Deployment like resources, and `readyReplicas=replicas` for
+	// StatefulSets.
+	// +optional
+	For string `yaml:"for"`
+	// Timeout is the timeout that the controller will wait for the condition.
+	// +optional
+	Timeout time.Duration `yaml:"timeout"`
 }
 
 // ManifestEnvironmentSpec is a spec for an environment in the manifest and

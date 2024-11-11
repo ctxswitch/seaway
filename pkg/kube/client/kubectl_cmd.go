@@ -21,6 +21,7 @@ import (
 	"reflect"
 	"regexp"
 	"strings"
+	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	apierr "k8s.io/apimachinery/pkg/api/errors"
@@ -29,6 +30,10 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
+)
+
+const (
+	DefaultWaitPollInterval = 500 * time.Millisecond
 )
 
 // KubectlCmd is the kubernetes client that is used by the seactl tool.
@@ -186,6 +191,22 @@ func (c *KubectlCmd) CreateOrUpdate(ctx context.Context, obj Object, f MutateFn)
 	}
 
 	return OperationResultUpdated, nil
+}
+
+// WaitForCondition blocks until specified condition to be met on the object or
+// a timeout occurs.
+func (c *KubectlCmd) WaitForCondition(ctx context.Context, obj Object, conditionString string, timeout time.Duration) error {
+	resource, err := ResourceInterfaceFor(c.client, obj, "list")
+	if err != nil {
+		return err
+	}
+
+	kind := obj.GetObjectKind().GroupVersionKind().Kind
+	wait := NewWaitCondition(obj.GetName(), kind, conditionString)
+	return wait.WaitForCondition(ctx, WaitOptions{
+		client:  resource,
+		timeout: timeout,
+	})
 }
 
 // Preserve some fields that are managed by the API. This is done to keep

@@ -39,5 +39,10 @@ environments:
     dependencies:
       - name: pgo
         path: k8s/pgo
+        wait:
+          - kind: Deployment
+            name: pgo
+            for: ready
+            timeout: 30s
       - name: base
         path: k8s/base

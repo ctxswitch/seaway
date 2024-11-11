@@ -31,6 +31,7 @@ const (
 	ExBox      = "☒ "
 	EmptyBox   = "☐ "
 	CheckMark  = "✔ "
+	Ex         = "✘ "
 )
 
 //
@@ -59,7 +60,7 @@ func ListItem(format string, a ...any) {
 }
 
 func Fatal(format string, a ...any) {
-	format = chalk.Red.String() + format + "\n" + chalk.Reset.String()
+	format = chalk.Red.String() + Ex + format + "\n" + chalk.Reset.String()
 	fmt.Printf(format, a...)
 	os.Exit(1)
 }
@@ -110,5 +111,10 @@ func Updated(format string, a ...any) {
 
 func Unchanged(format string, a ...any) {
 	format = "  " + chalk.Blue.String() + CheckMark + chalk.Reset.String() + chalk.Inverse.String() + format + "\n" + chalk.Reset.String()
+	fmt.Printf(format, a...)
+}
+
+func Waiting(format string, a ...any) {
+	format = "  " + chalk.White.String() + CheckMark + chalk.Reset.String() + chalk.Inverse.String() + format + "\n" + chalk.Reset.String()
 	fmt.Printf(format, a...)
 }
