@@ -28,6 +28,15 @@ import (
 	utilyaml "k8s.io/apimachinery/pkg/util/yaml"
 )
 
+// ResourceKey is a struct that defines a unique map key to the resources.  It's
+// used to quickly access specific resources from parsed documents.
+// TODO: Might need to add namespace to this. May need APIVersion to distinguish kinds
+// with same names.  For right now, this will do.
+type ResourceKey struct {
+	Name string
+	Kind string
+}
+
 // KustomizerResource is a struct that contains an unstructured object and its
 // GroupVersionKind.
 type KustomizerResource struct {
@@ -45,6 +54,11 @@ type KustomizerOptions struct {
 // resources.
 type Kustomizer struct {
 	docs *utilyaml.YAMLReader
+
+	// TODO: consolidate these down to a list of strings and the map with the
+	// resources.  Turn into a generator for the apply.
+	resources   []KustomizerResource
+	resourceMap map[ResourceKey]KustomizerResource
 }
 
 // NewKustomizer creates, configures, and runs kustomize on the specified
@@ -75,24 +89,20 @@ func NewKustomizer(opts *KustomizerOptions) (*Kustomizer, error) {
 	}
 
 	return &Kustomizer{
-		docs: utilyaml.NewYAMLReader(bufio.NewReader(bytes.NewReader(yml))),
+		docs:        utilyaml.NewYAMLReader(bufio.NewReader(bytes.NewReader(yml))),
+		resources:   make([]KustomizerResource, 0),
+		resourceMap: make(map[ResourceKey]KustomizerResource),
 	}, nil
 }
 
-// Resources reads through all of the generated documents and decodes them into
-// unstructured objects.  It returns a list of KustomizerResource objects containing
-// the unstructured object and its GroupVersionKind.
-// TODO: Add the envsubst capability where we can substitute after reading the
-// doc.
-func (k *Kustomizer) Resources() ([]KustomizerResource, error) {
-	resources := []KustomizerResource{}
+func (k *Kustomizer) Build() error {
 	for {
 		doc, err := k.docs.Read()
 		if err != nil {
 			if err.Error() == "EOF" {
 				break
 			}
-			return nil, err
+			return err
 		}
 
 		decoder := yaml.NewDecodingSerializer(unstructured.UnstructuredJSONScheme)
@@ -100,14 +110,37 @@ func (k *Kustomizer) Resources() ([]KustomizerResource, error) {
 
 		_, gvk, err := decoder.Decode(doc, nil, decoded)
 		if err != nil {
-			return nil, err
+			return err
 		}
 
-		resources = append(resources, KustomizerResource{
+		resource := KustomizerResource{
 			Resource: decoded,
 			GVK:      gvk,
-		})
+		}
+
+		name := resource.Resource.GetName()
+		kind := resource.GVK.GroupKind().Kind
+
+		// TODO: clean me up.
+		k.resourceMap[ResourceKey{Name: name, Kind: kind}] = resource
+		k.resources = append(k.resources, resource)
 	}
 
-	return resources, nil
+	return nil
+}
+
+// Resources reads through all of the generated documents and decodes them into
+// unstructured objects.  It returns a list of KustomizerResource objects containing
+// the unstructured object and its GroupVersionKind.
+func (k *Kustomizer) Resources() []KustomizerResource {
+	return k.resources
+}
+
+func (k *Kustomizer) ResourceMap() map[ResourceKey]KustomizerResource {
+	return k.resourceMap
+}
+
+func (k *Kustomizer) GetResource(kind, name string) (res KustomizerResource, ok bool) {
+	res, ok = k.resourceMap[ResourceKey{Name: name, Kind: kind}]
+	return
 }
