@@ -85,33 +85,45 @@ func (a *Apply) RunE(cmd *cobra.Command, args []string) error {
 	console.Info("Applying dependencies for the '%s' environment", env.Name)
 
 	for _, dep := range env.Dependencies {
-		// Process the kustomize manifests from the base directory
-		krusty, err := kustomize.NewKustomizer(&kustomize.KustomizerOptions{
-			BaseDir: dep.Path,
-		})
-		if err != nil {
-			console.Fatal("Unable to initialize kustomize: %s", err.Error())
-			return err
-		}
+		a.do(ctx, client, dep)
+	}
 
-		items, err := krusty.Resources()
-		if err != nil {
-			console.Fatal("resources: ", err.Error())
-			return err
-		}
+	return nil
+}
 
-		console.Info("Applying dependency '%s'", dep.Path)
-		if err := a.apply(ctx, client, items); err != nil {
+func (a *Apply) do(ctx context.Context, client *kube.KubectlCmd, dep v1beta1.ManifestDependency) error {
+	// Process the kustomize manifests from the base directory
+	krusty, err := kustomize.NewKustomizer(&kustomize.KustomizerOptions{
+		BaseDir: dep.Path,
+	})
+	if err != nil {
+		console.Fatal("Unable to initialize kustomize: %s", err.Error())
+		return err
+	}
+
+	err = krusty.Build()
+	if err != nil {
+		console.Fatal("Unable to perform kustomize build: %s", err.Error())
+		return err
+	}
+
+	items := krusty.Resources()
+
+	console.Info("Applying dependency '%s'", dep.Path)
+	for _, item := range items {
+		if err := a.apply(ctx, client, item); err != nil {
 			console.Fatal("error: %s", err.Error())
 		}
+	}
 
-		if len(dep.Wait) == 0 {
-			continue
-		}
+	if len(dep.Wait) == 0 {
+		return nil
+	}
 
-		console.Info("Waiting for resource conditions")
-		for _, cond := range dep.Wait {
-			err := a.wait(ctx, client, items, cond)
+	console.Info("Waiting for resource conditions")
+	for _, cond := range dep.Wait {
+		if obj, ok := krusty.GetResource(cond.Kind, cond.Name); ok {
+			err := a.wait(ctx, client, obj, cond)
 			if err != nil {
 				console.Fatal("error: %s", err.Error())
 			}
@@ -121,58 +133,39 @@ func (a *Apply) RunE(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func (a *Apply) apply(ctx context.Context, client *kube.KubectlCmd, items []kustomize.KustomizerResource) error {
-	for _, item := range items {
-		expected := item.Resource
+func (a *Apply) apply(ctx context.Context, client *kube.KubectlCmd, k kustomize.KustomizerResource) error {
+	obj := k.Resource.DeepCopy()
+	api := ToAPIString(obj)
 
-		// TODO: make a dry-run option
-		obj := GetObject(expected)
+	var op kube.OperationResult
+	var err error
 
-		opFunc := func() error {
-			// TODO: Ugly. Fix this.  We need to save the initial state of the
-			// object so we can preserve the api managed fields after copying the
-			// values from the expected object.
-			existing, can := obj.DeepCopyObject().(kube.Object)
-			if !can {
-				return fmt.Errorf("could not cast existing object")
-			}
-			expected.DeepCopyInto(obj)
-			kube.PreserveManagedFields(existing, obj)
-
+	err = wait.ExponentialBackoffWithContext(ctx, DefaultBackoff, func(context.Context) (bool, error) {
+		op, err = client.CreateOrUpdate(ctx, obj, func() error {
 			return nil
-		}
-
-		var op kube.OperationResult
-		var err error
-
-		err = wait.ExponentialBackoffWithContext(ctx, DefaultBackoff, func(context.Context) (bool, error) {
-			op, err = client.CreateOrUpdate(ctx, obj, opFunc)
-			if err == nil {
-				return true, nil
-			}
-
-			if apierr.IsNotFound(err) {
-				return false, nil
-			}
-
-			return false, err
 		})
-		if err != nil {
-			api := strings.ToLower(obj.GetObjectKind().GroupVersionKind().GroupKind().String())
-			console.Fatal("error applying resource %s/%s: %s", api, obj.GetName(), err.Error())
-			return err
+		if err == nil {
+			return true, nil
 		}
 
-		out := ToAPIString(obj)
-
-		switch op {
-		case kube.OperationResultNone:
-			console.Unchanged(out)
-		case kube.OperationResultUpdated:
-			console.Updated(out)
-		case kube.OperationResultCreated:
-			console.Created(out)
+		if apierr.IsNotFound(err) {
+			return false, nil
 		}
+
+		return false, err
+	})
+	if err != nil {
+		console.Fatal("error applying resource %s: %s", api, err.Error())
+		return err
+	}
+
+	switch op {
+	case kube.OperationResultNone:
+		console.Unchanged(api)
+	case kube.OperationResultUpdated:
+		console.Updated(api)
+	case kube.OperationResultCreated:
+		console.Created(api)
 	}
 
 	return nil
@@ -183,42 +176,11 @@ type KindName struct {
 	Name string
 }
 
-func (a *Apply) wait(ctx context.Context, client *kube.KubectlCmd, items []kustomize.KustomizerResource, cond v1beta1.ManifestWaitCondition) error {
+func (a *Apply) wait(ctx context.Context, client *kube.KubectlCmd, k kustomize.KustomizerResource, cond v1beta1.ManifestWaitCondition) error {
 	ctx, cancel := watchtools.ContextWithOptionalTimeout(ctx, cond.Timeout)
 	defer cancel()
 
-	// Map all generated objects to NamespacedNames. The wait block will reference these objects
-	//
-	objs := make(map[KindName]*unstructured.Unstructured)
-
-	for _, item := range items {
-		resource := item.Resource
-		u := GetObject(resource)
-
-		// Add the labels for the selector
-		labels, found, err := unstructured.NestedMap(resource.Object, "metadata", "labels")
-		if err != nil {
-			return err
-		}
-
-		u.SetLabels(map[string]string{})
-		if found {
-			for k, v := range labels {
-				u.SetLabels(map[string]string{k: v.(string)})
-			}
-		}
-
-		objs[KindName{Kind: u.GroupVersionKind().Kind, Name: u.GetName()}] = u
-	}
-
-	// TODO: I think I may need to add in the namespace here to isolate objects in
-	// a specific namespace, otherwise we could get multiple objects with the same
-	// name in different namespaces.
-	obj, ok := objs[KindName{Kind: cond.Kind, Name: cond.Name}]
-	if !ok {
-		// TODO: Ignore?
-		return fmt.Errorf("object %s/%s not found", cond.Kind, cond.Name)
-	}
+	obj := k.Resource
 
 	out := ToAPIString(obj)
 	console.Waiting(out)

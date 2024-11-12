@@ -19,7 +19,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
-	"regexp"
 	"strings"
 	"time"
 
@@ -222,17 +221,19 @@ func PreserveManagedFields(source, target Object) {
 	target.SetFinalizers(source.GetFinalizers())
 	target.SetManagedFields(source.GetManagedFields())
 	annotations := target.GetAnnotations()
-	matcher := regexp.MustCompile(`^.*kubernetes.io\/.*$`)
+	// TODO: I don't think I want this.  I just realized that we could have some
+	// matches that we don't want to overwrite.
+	// matcher := regexp.MustCompile(`^.*kubernetes.io\/.*$`)
 
-	if annotations == nil {
-		annotations = make(map[string]string)
-	}
+	// if annotations == nil {
+	// 	annotations = make(map[string]string)
+	// }
 
-	for k, v := range source.GetAnnotations() {
-		if matcher.MatchString(k) {
-			annotations[k] = v
-		}
-	}
+	// for k, v := range source.GetAnnotations() {
+	// 	if matcher.MatchString(k) {
+	// 		annotations[k] = v
+	// 	}
+	// }
 	target.SetAnnotations(annotations)
 }
 
