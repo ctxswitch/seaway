@@ -85,7 +85,8 @@ func (a *Apply) RunE(cmd *cobra.Command, args []string) error {
 	console.Info("Applying dependencies for the '%s' environment", env.Name)
 
 	for _, dep := range env.Dependencies {
-		a.do(ctx, client, dep)
+		// TODO: pull the errors back to here.
+		_ = a.do(ctx, client, dep)
 	}
 
 	return nil
