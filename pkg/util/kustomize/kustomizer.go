@@ -93,7 +93,6 @@ func NewKustomizer(opts *KustomizerOptions) (*Kustomizer, error) {
 	}, nil
 }
 
-// Build reads and decodes the resources from
 func (k *Kustomizer) Build() error {
 	for {
 		doc, err := k.docs.Read()
