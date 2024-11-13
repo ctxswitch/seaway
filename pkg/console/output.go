@@ -17,6 +17,7 @@ package console
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/ttacon/chalk"
 )
@@ -32,6 +33,8 @@ const (
 	EmptyBox   = "☐ "
 	CheckMark  = "✔ "
 	Ex         = "✘ "
+
+	Line = "─"
 )
 
 //
@@ -39,8 +42,16 @@ const (
 // a quick hack to get something working.
 //
 
+func Section(format string, a ...any) {
+	line := fmt.Sprintf(format, a...)
+	sep := strings.Repeat(Line, len(line))
+	sec := chalk.Bold.TextStyle(chalk.Green.String() + line + "\n" + chalk.Reset.String())
+	sec += chalk.Dim.TextStyle(chalk.White.String() + sep + "\n" + chalk.Reset.String())
+	fmt.Print("\n" + sec)
+}
+
 func Info(format string, a ...any) {
-	format = chalk.Dim.TextStyle(Square) + chalk.Bold.TextStyle(chalk.Blue.String()+format+"\n"+chalk.Reset.String())
+	format = chalk.Dim.TextStyle(FishEye) + chalk.Bold.TextStyle(chalk.Blue.String()+format+"\n"+chalk.Reset.String())
 	fmt.Printf(format, a...)
 }
 
@@ -100,21 +111,24 @@ func Newline() {
 }
 
 func Created(format string, a ...any) {
-	format = "  " + chalk.Green.String() + CheckMark + chalk.Reset.String() + chalk.Inverse.String() + format + "\n" + chalk.Reset.String()
+	bullet := "  " + chalk.Green.String() + CheckBox + chalk.Reset.String()
+	format = bullet + format + "\n"
 	fmt.Printf(format, a...)
 }
 
 func Updated(format string, a ...any) {
-	format = "  " + chalk.Yellow.String() + CheckMark + chalk.Reset.String() + chalk.Inverse.String() + format + "\n" + chalk.Reset.String()
+	bullet := "  " + chalk.Yellow.String() + CheckBox + chalk.Reset.String()
+	format = bullet + format + "\n"
 	fmt.Printf(format, a...)
 }
 
 func Unchanged(format string, a ...any) {
-	format = "  " + chalk.Blue.String() + CheckMark + chalk.Reset.String() + chalk.Inverse.String() + format + "\n" + chalk.Reset.String()
+	bullet := "  " + chalk.Blue.String() + CheckBox + chalk.Reset.String()
+	format = bullet + chalk.Dim.TextStyle(format+"\n")
 	fmt.Printf(format, a...)
 }
 
 func Waiting(format string, a ...any) {
-	format = "  " + chalk.White.String() + CheckMark + chalk.Reset.String() + chalk.Inverse.String() + format + "\n" + chalk.Reset.String()
+	format = "  " + chalk.Green.String() + CheckBox + chalk.Reset.String() + chalk.Inverse.String() + format + "\n" + chalk.Reset.String()
 	fmt.Printf(format, a...)
 }

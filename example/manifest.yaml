@@ -37,6 +37,8 @@ environments:
       memory: 2Gi
       cpu: 100m
     dependencies:
+      - name: crds
+        path: k8s/crds
       - name: pgo
         path: k8s/pgo
         wait:
