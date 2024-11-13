@@ -82,7 +82,7 @@ func (a *Apply) RunE(cmd *cobra.Command, args []string) error {
 		console.Fatal("Build environment '%s' not found in the manifest", args[0])
 	}
 
-	console.Info("Applying dependencies for the '%s' environment", env.Name)
+	console.Section("Applying dependencies for the '%s' environment", env.Name)
 
 	for _, dep := range env.Dependencies {
 		// TODO: pull the errors back to here.

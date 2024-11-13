@@ -55,9 +55,7 @@ type KustomizerOptions struct {
 type Kustomizer struct {
 	docs *utilyaml.YAMLReader
 
-	// TODO: consolidate these down to a list of strings and the map with the
-	// resources.  Turn into a generator for the apply.
-	resources   []KustomizerResource
+	order       []ResourceKey
 	resourceMap map[ResourceKey]KustomizerResource
 }
 
@@ -90,11 +88,12 @@ func NewKustomizer(opts *KustomizerOptions) (*Kustomizer, error) {
 
 	return &Kustomizer{
 		docs:        utilyaml.NewYAMLReader(bufio.NewReader(bytes.NewReader(yml))),
-		resources:   make([]KustomizerResource, 0),
+		order:       make([]ResourceKey, 0),
 		resourceMap: make(map[ResourceKey]KustomizerResource),
 	}, nil
 }
 
+// Build reads and decodes the resources from
 func (k *Kustomizer) Build() error {
 	for {
 		doc, err := k.docs.Read()
@@ -104,6 +103,8 @@ func (k *Kustomizer) Build() error {
 			}
 			return err
 		}
+
+		// TODO: envsubst here or another template type maybe `{{ var }}`.
 
 		decoder := yaml.NewDecodingSerializer(unstructured.UnstructuredJSONScheme)
 		decoded := &unstructured.Unstructured{}
@@ -118,22 +119,27 @@ func (k *Kustomizer) Build() error {
 			GVK:      gvk,
 		}
 
-		name := resource.Resource.GetName()
-		kind := resource.GVK.GroupKind().Kind
+		key := ResourceKey{
+			Name: resource.Resource.GetName(),
+			Kind: resource.GVK.GroupKind().Kind,
+		}
 
 		// TODO: clean me up.
-		k.resourceMap[ResourceKey{Name: name, Kind: kind}] = resource
-		k.resources = append(k.resources, resource)
+		k.resourceMap[key] = resource
+		k.order = append(k.order, key)
 	}
 
 	return nil
 }
 
-// Resources reads through all of the generated documents and decodes them into
-// unstructured objects.  It returns a list of KustomizerResource objects containing
-// the unstructured object and its GroupVersionKind.
+// Resources returns a list of resources in the order they were parsed by kustomize.
 func (k *Kustomizer) Resources() []KustomizerResource {
-	return k.resources
+	resources := make([]KustomizerResource, 0)
+	for _, key := range k.order {
+		resources = append(resources, k.resourceMap[key])
+	}
+
+	return resources
 }
 
 func (k *Kustomizer) ResourceMap() map[ResourceKey]KustomizerResource {
