@@ -34,31 +34,37 @@ func Apply(ctx context.Context, client *kube.KubectlCmd, k kustomize.KustomizerR
 	var err error
 
 	expected, err := kube.ConvertToUnstructured(obj)
+
 	opFunc := func() error {
-		current, err := kube.ConvertToUnstructured(obj)
-		if err != nil {
+		var ferr error
+		current, ferr := kube.ConvertToUnstructured(obj)
+		if ferr != nil {
+			return ferr
+		}
+
+		currentJson, ferr := json.Marshal(current)
+		if ferr != nil {
+			return ferr
+		}
+		expectedJson, ferr := json.Marshal(expected)
+		if ferr != nil {
+			return ferr
+		}
+
+		modifiedJson, ferr := jsonpatch.MergeMergePatches(currentJson, expectedJson)
+		if ferr != nil {
 			return err
 		}
 
-		currentJson, err := json.Marshal(current)
-		if err != nil {
-			return err
-		}
-		expectedJson, err := json.Marshal(expected)
-		if err != nil {
-			return err
-		}
-
-		modifiedJson, err := jsonpatch.MergeMergePatches(currentJson, expectedJson)
 		var modified unstructured.Unstructured
-		err = json.Unmarshal(modifiedJson, &modified)
-		if err != nil {
-			return err
+		ferr = json.Unmarshal(modifiedJson, &modified)
+		if ferr != nil {
+			return ferr
 		}
 
-		err = kube.ConvertFromUnstructured(&modified, obj)
-		if err != nil {
-			return err
+		ferr = kube.ConvertFromUnstructured(&modified, obj)
+		if ferr != nil {
+			return ferr
 		}
 
 		return nil
@@ -77,8 +83,6 @@ func Apply(ctx context.Context, client *kube.KubectlCmd, k kustomize.KustomizerR
 		return false, err
 	})
 	if err != nil {
-		b, _ := json.Marshal(obj)
-		fmt.Println(string(b))
 		console.Fatal("error applying resource %s: %s", api, err.Error())
 		return err
 	}

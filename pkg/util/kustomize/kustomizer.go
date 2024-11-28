@@ -98,7 +98,7 @@ func NewKustomizer(opts *KustomizerOptions) (*Kustomizer, error) {
 	}, nil
 }
 
-// NewKustomizerFromBytes rehydrates previously kustomized raw bytes
+// NewKustomizerFromBytes rehydrates previously kustomized raw bytes.
 func NewKustomizerFromBytes(raw []byte) (*Kustomizer, error) {
 	return &Kustomizer{
 		raw:         raw,
@@ -160,7 +160,7 @@ func (k *Kustomizer) ResourceMap() map[ResourceKey]KustomizerResource {
 	return k.resourceMap
 }
 
-// GetResource returns a single resource from the resource map
+// GetResource returns a single resource from the resource map.
 func (k *Kustomizer) GetResource(kind, name string) (res KustomizerResource, ok bool) {
 	res, ok = k.resourceMap[ResourceKey{Name: name, Kind: kind}]
 	return
@@ -172,7 +172,7 @@ func (k *Kustomizer) SetResource(resource *unstructured.Unstructured) error {
 	key := ResourceKey{Name: resource.GetName(), Kind: resource.GetKind()}
 	res, ok := k.resourceMap[key]
 	if !ok {
-		return fmt.Errorf("unable to add resource: %s" + resource.GetName())
+		return fmt.Errorf("unable to add resource: %s", resource.GetName())
 	}
 
 	k.resourceMap[key] = KustomizerResource{

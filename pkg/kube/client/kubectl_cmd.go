@@ -117,7 +117,7 @@ func (c *KubectlCmd) CreateOrUpdate(ctx context.Context, obj Object, fn MutateFn
 			return OperationResultNone, err
 		}
 
-		err := fn()
+		err = fn()
 		if err != nil {
 			return OperationResultNone, err
 		}

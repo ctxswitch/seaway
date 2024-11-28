@@ -43,10 +43,6 @@ func ConvertToUnstructured(obj Object) (*unstructured.Unstructured, error) {
 
 	u := &unstructured.Unstructured{Object: o}
 	return u, nil
-
-	// GVK?
-	//
-	//if gvk := obj.GetObjectKind().GroupVersionKind(); gvk.Empty() {}
 }
 
 func ConvertFromUnstructured(u *unstructured.Unstructured, obj Object) error {

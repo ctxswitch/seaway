@@ -78,6 +78,9 @@ func (c *Command) RunE(cmd *cobra.Command, _ []string) error {
 				For:  "ready",
 			},
 		})
+		if err != nil {
+			return err
+		}
 	}
 
 	console.Info("Installing the seaway controller")
@@ -170,12 +173,15 @@ func (c *Command) modifyController(raw []byte) ([]byte, error) {
 	}
 
 	volumesIface, _, err := unstructured.NestedFieldCopy(obj, "spec", "template", "spec", "volumes")
+	if err != nil {
+		return nil, err
+	}
 
-	containers := containersIface.([]interface{})
-	container := containers[0].(map[string]interface{})
-	volumes := volumesIface.([]interface{})
+	containers, _ := containersIface.([]interface{})
+	container, _ := containers[0].(map[string]interface{})
+	volumes, _ := volumesIface.([]interface{})
 
-	if c.EnableDevMode {
+	if c.EnableDevMode { // nolint:nestif
 		// TODO: This is assuming that we will always have a single container.  It's a safe
 		//       assumption right now, but may not be in the future.  We should make this a
 		//       little more resilient.
@@ -194,12 +200,12 @@ func (c *Command) modifyController(raw []byte) ([]byte, error) {
 			return nil, err
 		}
 
-		volumeMountsIface, _, err := unstructured.NestedFieldNoCopy(container, "volumeMounts")
-		if err != nil {
-			return nil, err
+		volumeMountsIface, _, verr := unstructured.NestedFieldNoCopy(container, "volumeMounts")
+		if verr != nil {
+			return nil, verr
 		}
 
-		volumeMounts := volumeMountsIface.([]interface{})
+		volumeMounts, _ := volumeMountsIface.([]interface{})
 		volumeMounts = append(volumeMounts, map[string]interface{}{
 			"name":      "app",
 			"mountPath": "/usr/src/app",
