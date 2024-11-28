@@ -19,12 +19,8 @@ spec:
       serviceAccountName: seaway-system
       containers:
         - name: controller
-          # TODO: Automatic update of version to the latest version during release?
-          image: docker.io/ctxsh/seaway:${SEAWAY_VERSION}
+          image: docker.io/ctxsh/seaway:latest
           imagePullPolicy: IfNotPresent
-          envFrom:
-            - secretRef:
-                name: seaway-credentials
           securityContext:
             runAsUser: 0
             runAsGroup: 0

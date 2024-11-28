@@ -53,8 +53,12 @@ codegen: $(CONTROLLER_GEN)
 manifests: $(CONTROLLER_GEN)
 	$(CONTROLLER_GEN) paths="./pkg/..." $(CRD_OPTIONS) $(RBAC_OPTIONS) $(WEBHOOK_OPTIONS) $(OUTPUT_OPTIONS)
 
+.PHONY: installgen
+installgen:
+	go run hack/generator.go config/seaway pkg/cmd/seactl/install
+
 .PHONY: generate
-generate: codegen manifests
+generate: codegen manifests installgen
 
 ###
 ### Set up a local development environment

@@ -80,7 +80,9 @@ func (s *Sync) RunE(cmd *cobra.Command, args []string) error { //nolint:funlen,g
 	if err != nil {
 		console.Fatal("Unable to create archive: %s", err)
 	}
-	defer os.Remove(archive)
+	defer func() {
+		_ = os.Remove(archive)
+	}()
 
 	console.Info("Uploading archive")
 
@@ -158,9 +160,12 @@ func (s *Sync) RunE(cmd *cobra.Command, args []string) error { //nolint:funlen,g
 			console.Warn("Cancelled: %s", ctx.Err())
 			return nil
 		case <-ticker.C:
-			if err := client.Get(ctx, obj, metav1.GetOptions{}); err != nil {
+			err = client.Get(ctx, obj, metav1.GetOptions{})
+			if err != nil {
 				console.Fatal("Unable to get the environment: %s", err)
 			}
+
+			// TODO: fix me.  don't convert.
 			if status != string(obj.Status.Stage) {
 				status = string(obj.Status.Stage)
 				switch {
@@ -186,12 +191,18 @@ func (s *Sync) create(name string, env *v1beta1.ManifestEnvironmentSpec) (string
 	if err != nil {
 		console.Fatal("Unable to create the temporary archive: %s", err)
 	}
-	defer out.Close()
+	defer func() {
+		_ = out.Close()
+	}()
 
 	gw := gzip.NewWriter(out)
-	defer gw.Close()
+	defer func() {
+		_ = gw.Close()
+	}()
 	tw := tar.NewWriter(gw)
-	defer tw.Close()
+	defer func() {
+		_ = tw.Close()
+	}()
 
 	includes := env.Includes()
 	excludes := env.Excludes()
@@ -221,7 +232,9 @@ func (s *Sync) add(tw *tar.Writer, filename string) error {
 	if err != nil {
 		return err
 	}
-	defer file.Close()
+	defer func() {
+		_ = file.Close()
+	}()
 
 	info, err := file.Stat()
 	if err != nil {
@@ -257,7 +270,9 @@ func checksum(filename string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer file.Close()
+	defer func() {
+		_ = file.Close()
+	}()
 
 	_, err = io.Copy(h, file)
 	if err != nil {

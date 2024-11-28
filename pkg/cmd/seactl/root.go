@@ -18,28 +18,32 @@ import (
 	"ctx.sh/seaway/pkg/build"
 	depscmd "ctx.sh/seaway/pkg/cmd/seactl/deps"
 	envcmd "ctx.sh/seaway/pkg/cmd/seactl/env"
-	initcmd "ctx.sh/seaway/pkg/cmd/seactl/init"
+	"ctx.sh/seaway/pkg/cmd/seactl/install"
 	"ctx.sh/seaway/pkg/cmd/seactl/logs"
 	"github.com/spf13/cobra"
 )
 
 const (
-	RootUsage     = "seactl [command] [args...]"
-	RootShortDesc = "CLI utility for managing Seaway development environments."
-	RootLongDesc  = `CLI utility for managing Seaway development environments.`
-	// TODO: Make these descriptions more informational.
-	DepsUsage     = "deps [subcommand] [context]"
-	DepsShortDesc = "Utility to manage application dependencies"
-	DepsLongDesc  = `Utility to manage application dependencies`
-	EnvUsage      = "env [subcommand] [context]"
-	EnvShortDesc  = "Utility to manage development environments"
-	EnvLongDesc   = `Utility to manage development environments`
-	InitUsage     = "init [subcommand]"
-	InitShortDesc = "Utility to initialize Seaway resources"
-	InitLongDesc  = `Utility to initialize Seaway resources`
-	LogsUsage     = "logs [subcommand]"
-	LogsShortDesc = "Utility to stream logs from the development environment"
-	LogsLongDesc  = `Utility to stream logs from the development environment`
+	RootUsage        = "seactl [command] [args...]"
+	RootShortDesc    = "CLI utility for managing Seaway development environments."
+	RootLongDesc     = `CLI utility for managing Seaway development environments.`
+	DepsUsage        = "deps [subcommand] [context]"
+	DepsShortDesc    = "Utility to manage application dependencies"
+	DepsLongDesc     = `Utility to manage application dependencies`
+	EnvUsage         = "env [subcommand] [context]"
+	EnvShortDesc     = "Utility to manage development environments"
+	EnvLongDesc      = `Utility to manage development environments`
+	LogsUsage        = "logs [subcommand]"
+	LogsShortDesc    = "Utility to stream logs from the development environment"
+	LogsLongDesc     = `Utility to stream logs from the development environment`
+	InstallUsage     = "install"
+	InstallShortDesc = "Installs the controller, CRDs, and optional dependencies."
+	InstallLongDesc  = `Installs the controller, CRDs, and optional dependencies.`
+
+	DefaultInstallCrds        = true
+	DefaultInstallCertManager = false
+	DefaultInstallLocalstack  = false
+	DefaultEnableDevMode      = false
 )
 
 type Root struct{}
@@ -49,11 +53,7 @@ func NewRoot() *Root {
 }
 
 func (r *Root) Execute() error {
-	if err := r.Command().Execute(); err != nil {
-		return err
-	}
-
-	return nil
+	return r.Command().Execute()
 }
 
 func (r *Root) Command() *cobra.Command {
@@ -71,8 +71,8 @@ func (r *Root) Command() *cobra.Command {
 
 	rootCmd.AddCommand(EnvCommand())
 	rootCmd.AddCommand(DepsCommand())
-	rootCmd.AddCommand(InitCommand())
 	rootCmd.AddCommand(LogsCommand())
+	rootCmd.AddCommand(InstallCommand())
 
 	rootCmd.PersistentFlags().StringP("context", "", "", "set the Kubernetes context")
 	return rootCmd
@@ -113,22 +113,6 @@ func EnvCommand() *cobra.Command {
 	return cmd
 }
 
-func InitCommand() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   InitUsage,
-		Short: InitShortDesc,
-		Long:  InitLongDesc,
-		Run: func(cmd *cobra.Command, args []string) {
-			_ = cmd.Help()
-		},
-		SilenceUsage:  true,
-		SilenceErrors: false,
-	}
-
-	cmd.AddCommand(initcmd.NewShared().Command())
-	return cmd
-}
-
 func LogsCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   LogsUsage,
@@ -143,5 +127,22 @@ func LogsCommand() *cobra.Command {
 
 	cmd.AddCommand(logs.NewAppLogs().Command())
 	cmd.AddCommand(logs.NewBuildLogs().Command())
+	return cmd
+}
+
+func InstallCommand() *cobra.Command {
+	installer := install.Command{}
+
+	cmd := &cobra.Command{
+		Use:   InstallUsage,
+		Short: InstallShortDesc,
+		Long:  InstallLongDesc,
+		RunE:  installer.RunE,
+	}
+
+	cmd.PersistentFlags().BoolVarP(&installer.InstallCrds, "install-crds", "", DefaultInstallCrds, "enable crd installation")
+	cmd.PersistentFlags().BoolVarP(&installer.InstallCertManager, "install-cert-manager", "", DefaultInstallCertManager, "enable cert manager installation")
+	cmd.PersistentFlags().BoolVarP(&installer.InstallLocalStack, "install-localstack", "", DefaultInstallLocalstack, "enable localstack installation for object storage")
+	cmd.PersistentFlags().BoolVarP(&installer.EnableDevMode, "enable-dev-mode", "", DefaultEnableDevMode, "enable seaway development mode")
 	return cmd
 }

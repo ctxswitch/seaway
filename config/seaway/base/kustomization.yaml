@@ -6,8 +6,6 @@ commonAnnotations:
   ctx.sh/support: "https://github.com/ctxswitch/seaway/issues"
 resources:
   - namespace.yaml
-  - ../crd
   - ../rbac
   - ../webhook
-  - ../defaults
   - controller.yaml
