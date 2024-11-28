@@ -17,7 +17,10 @@ package kustomize
 import (
 	"bufio"
 	"bytes"
+	"fmt"
+	"strings"
 
+	yamlv3 "gopkg.in/yaml.v3"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer/yaml"
@@ -53,6 +56,7 @@ type KustomizerOptions struct {
 // Kustomizer processes a kustomize directory and returns the generated
 // resources.
 type Kustomizer struct {
+	raw  []byte
 	docs *utilyaml.YAMLReader
 
 	order       []ResourceKey
@@ -87,7 +91,18 @@ func NewKustomizer(opts *KustomizerOptions) (*Kustomizer, error) {
 	}
 
 	return &Kustomizer{
+		raw:         yml,
 		docs:        utilyaml.NewYAMLReader(bufio.NewReader(bytes.NewReader(yml))),
+		order:       make([]ResourceKey, 0),
+		resourceMap: make(map[ResourceKey]KustomizerResource),
+	}, nil
+}
+
+// NewKustomizerFromBytes rehydrates previously kustomized raw bytes.
+func NewKustomizerFromBytes(raw []byte) (*Kustomizer, error) {
+	return &Kustomizer{
+		raw:         raw,
+		docs:        utilyaml.NewYAMLReader(bufio.NewReader(bytes.NewReader(raw))),
 		order:       make([]ResourceKey, 0),
 		resourceMap: make(map[ResourceKey]KustomizerResource),
 	}, nil
@@ -145,7 +160,48 @@ func (k *Kustomizer) ResourceMap() map[ResourceKey]KustomizerResource {
 	return k.resourceMap
 }
 
+// GetResource returns a single resource from the resource map.
 func (k *Kustomizer) GetResource(kind, name string) (res KustomizerResource, ok bool) {
 	res, ok = k.resourceMap[ResourceKey{Name: name, Kind: kind}]
 	return
+}
+
+// SetResource modifies an existing resource from the map.  The resource is required to exist
+// to preserve any ordering that kustomize has set.
+func (k *Kustomizer) SetResource(resource *unstructured.Unstructured) error {
+	key := ResourceKey{Name: resource.GetName(), Kind: resource.GetKind()}
+	res, ok := k.resourceMap[key]
+	if !ok {
+		return fmt.Errorf("unable to add resource: %s", resource.GetName())
+	}
+
+	k.resourceMap[key] = KustomizerResource{
+		Resource: resource,
+		GVK:      res.GVK,
+	}
+
+	return nil
+}
+
+// Raw returns the raw yaml bytes that were generated with kustomize.
+func (k *Kustomizer) Raw() []byte {
+	return k.raw
+}
+
+// ToYamlBytes converts the kustomized objects back to their yaml form.  This is a temporary
+// solution to perform substitutions before the apply.
+func (k *Kustomizer) ToYamlBytes() ([]byte, error) {
+	resources := make([]string, 0)
+	for _, key := range k.order {
+		resource := k.resourceMap[key].Resource
+
+		y, err := yamlv3.Marshal(resource.Object)
+		if err != nil {
+			return nil, err
+		}
+
+		resources = append(resources, string(y))
+	}
+
+	return []byte(strings.Join(resources, "---\n")), nil
 }

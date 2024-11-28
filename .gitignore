@@ -1,5 +1,6 @@
 .creds
 .vscode/
+.idea/
 
 bin/
 tmp/
