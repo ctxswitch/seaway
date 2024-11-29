@@ -1,5 +1,5 @@
 apiVersion: seaway.ctx.sh/v1beta1
-kind: SeawayConfig
+kind: EnvironmentConfig
 metadata:
   name: default
   namespace: seaway-system

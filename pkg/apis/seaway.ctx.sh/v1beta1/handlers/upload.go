@@ -65,11 +65,11 @@ func (h *Upload) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	logger.Info("Uploading file", "name", name, "namespace", namespace, "etag", etag, "config", config)
 
-	var seawayConfig v1beta1.EnvironmentConfig
+	var envConfig v1beta1.EnvironmentConfig
 	err := h.Get(r.Context(), client.ObjectKey{
 		Name:      parts[1],
 		Namespace: parts[0],
-	}, &seawayConfig)
+	}, &envConfig)
 	if err != nil {
 		logger.Error(err, "Error retrieving the seaway config", "name", name, "namespace", namespace, "etag", etag)
 		h.respond(w, minio.UploadInfo{}, err)
@@ -83,7 +83,7 @@ func (h *Upload) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	info, err := h.store(ctx, seawayConfig.Spec.EnvironmentConfigStorageSpec, file, name, namespace)
+	info, err := h.store(ctx, envConfig.Spec.EnvironmentConfigStorageSpec, file, name, namespace)
 	if err != nil {
 		logger.Error(err, "Error storing the file", "name", name, "namespace", namespace, "etag", etag)
 		h.respond(w, minio.UploadInfo{}, err)

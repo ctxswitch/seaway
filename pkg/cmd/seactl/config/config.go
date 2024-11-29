@@ -36,7 +36,7 @@ func (c *Command) RunE(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	obj := GetSeawayConfig(name, c.Namespace)
+	obj := GetEnvironmentConfig(name, c.Namespace)
 
 	op, err := client.CreateOrUpdate(cmd.Context(), obj, func() error {
 		// TODO: With the way this command is structured, it would be nice to only
@@ -89,8 +89,8 @@ func (c *Command) RunE(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-// GetSeawayConfig returns a new seaway configuration object.
-func GetSeawayConfig(name, namespace string) *v1beta1.EnvironmentConfig {
+// GetEnvironmentConfig returns a new seaway configuration object.
+func GetEnvironmentConfig(name, namespace string) *v1beta1.EnvironmentConfig {
 	env := &v1beta1.EnvironmentConfig{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,

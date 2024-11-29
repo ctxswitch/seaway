@@ -82,6 +82,14 @@ rules:
 - apiGroups:
   - seaway.ctx.sh
   resources:
+  - environmentconfigs
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - seaway.ctx.sh
+  resources:
   - environments
   verbs:
   - create
@@ -105,11 +113,3 @@ rules:
   - get
   - patch
   - update
-- apiGroups:
-  - seaway.ctx.sh
-  resources:
-  - seawayconfigs
-  verbs:
-  - get
-  - list
-  - watch
