@@ -4,16 +4,16 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.16.1
-  name: seawayconfigs.seaway.ctx.sh
+  name: environmentconfigs.seaway.ctx.sh
 spec:
   group: seaway.ctx.sh
   names:
-    kind: SeawayConfig
-    listKind: SeawayConfigList
-    plural: seawayconfigs
+    kind: EnvironmentConfig
+    listKind: EnvironmentConfigList
+    plural: environmentconfigs
     shortNames:
-    - sconf
-    singular: seawayconfig
+    - econf
+    singular: environmentconfig
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
@@ -59,7 +59,6 @@ spec:
                     type: string
                 required:
                 - bucket
-                - credentials
                 - endpoint
                 - region
                 type: object

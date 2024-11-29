@@ -94,8 +94,7 @@ clean-localdev-shared:
 ###
 .PHONY: install
 install: $(KUSTOMIZE) generate
-	@$(KUSTOMIZE) build config/seaway/overlays/$(ENV) | envsubst | kubectl apply -f -
-	@$(KUSTOMIZE) build config/seaway/defaults | envsubst | kubectl apply -f -
+	@$(KUSTOMIZE) build config/seaway/crd | kubectl apply -f -
 
 .PHONY: uninstall
 uninstall:

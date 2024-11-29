@@ -18,6 +18,7 @@ type Command struct {
 	InstallCrds        bool
 	InstallCertManager bool
 	InstallLocalStack  bool
+	InstallRegistry    bool
 	EnableDevMode      bool
 }
 
@@ -81,6 +82,22 @@ func (c *Command) RunE(cmd *cobra.Command, _ []string) error {
 		if err != nil {
 			return err
 		}
+	}
+
+	if c.InstallRegistry {
+		console.Info("Installing registry")
+		raw, err := GetRegistryBytes()
+		if err != nil {
+			return err
+		}
+
+		err = c.install(ctx, raw, []v1beta1.ManifestWaitCondition{
+			{
+				Kind: "Deployment",
+				Name: "registry",
+				For:  "ready",
+			},
+		})
 	}
 
 	console.Info("Installing the seaway controller")

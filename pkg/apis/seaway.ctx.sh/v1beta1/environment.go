@@ -24,30 +24,6 @@ func (e *Environment) GetRevision() string {
 	return e.Spec.Revision
 }
 
-// GetDeployRevision creates a hash of the fields that are relevant for deployment
-// configuration to allow for deployment updates while bypassing image builds if the
-// revision has not changed.
-// func (e *Environment) GetDeployRevision() string {
-// 	fields := EnvironmentSpec{
-// 		Args:            e.Spec.Args,
-// 		Command:         e.Spec.Command,
-// 		Lifecycle:       e.Spec.Lifecycle,
-// 		LivenessProbe:   e.Spec.LivenessProbe,
-// 		Network:         e.Spec.Network,
-// 		ReadinessProbe:  e.Spec.ReadinessProbe,
-// 		Replicas:        e.Spec.Replicas,
-// 		Resources:       e.Spec.Resources,
-// 		SecurityContext: e.Spec.SecurityContext,
-// 		StartupProbe:    e.Spec.StartupProbe,
-// 		Vars:            e.Spec.Vars,
-// 		WorkingDir:      e.Spec.WorkingDir,
-// 	}
-
-// 	hasher := md5.New()
-// 	fmt.Fprintf(hasher, "%v", dump.ForHash(fields))
-// 	return fmt.Sprintf("%x", hasher.Sum(nil))
-// }
-
 // HasFailed returns true if the environment has failed to build or deploy.
 func (e *Environment) HasFailed() bool {
 	return e.Status.Stage == EnvironmentStageBuildImageFailed ||

@@ -22,17 +22,20 @@ import (
 )
 
 const (
-	DefaultReplicas            = 1
-	DefaultBucket              = "seaway"
-	DefaultRegion              = "us-east-1"
-	DefaultForcePathStyle      = true
-	DefaultPrefix              = "artifacts"
-	DefaultBuildImage          = "gcr.io/kaniko-project/executor:latest"
-	DefaultDockerfile          = "Dockerfile"
-	DefaultPlatform            = runtime.GOOS + "/" + runtime.GOARCH
-	DefaultCredentialsSecret   = "seaway-s3-credentials" //nolint:gosec
-	DefaultControllerNamespace = "seaway-system"
-	DefaultConfigName          = "default"
+	DefaultReplicas              = 1
+	DefaultStorageBucket         = "seaway"
+	DefaultStorageRegion         = "us-east-1"
+	DefaultStorageForcePathStyle = true
+	DefaultStoragePrefix         = "artifacts"
+	DefaultStorageCredentials    = "secret"
+	DefaultStorageEndpoint       = "http://localstack.seaway-system.svc.cluster.local:4566"
+	DefaultRegistryURL           = "http://registry.seaway-system.svc.cluster.local:5000"
+	DefaultRegistryNodeport      = 31555
+	DefaultBuildImage            = "gcr.io/kaniko-project/executor:latest"
+	DefaultDockerfile            = "Dockerfile"
+	DefaultPlatform              = runtime.GOOS + "/" + runtime.GOARCH
+	DefaultControllerNamespace   = "seaway-system"
+	DefaultConfigName            = "default"
 )
 
 func Defaulted(obj client.Object) {

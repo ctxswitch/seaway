@@ -36,6 +36,9 @@ var localstackYaml = {{ .LocalstackYAML }}
 // Generated YAML for cert-manager installation.
 var certManagerYaml = {{ .CertManagerYAML }}
 
+// Generated YAML for registry installation.
+var registryYaml = {{ .RegistryYAML }}
+
 func decodeYAML(enc string) ([]byte, error) {
 	return base64.StdEncoding.DecodeString(enc)
 }
@@ -54,6 +57,10 @@ func GetLocalstackBytes() ([]byte, error) {
 
 func GetCertManagerBytes() ([]byte, error) {
 	return decodeYAML(certManagerYaml)
+}
+
+func GetRegistryBytes() ([]byte, error) {
+	return decodeYAML(registryYaml)
 }
 `
 
@@ -83,6 +90,10 @@ func (g *InstallGenerator) Generate() error {
 	})
 	assertNoError(err)
 
+	registryDocs, err := kustomize.NewKustomizer(&kustomize.KustomizerOptions{
+		BaseDir: path.Join(g.ConfigDir, "registry"),
+	})
+
 	t := template.Must(template.New("generators").Parse(tmpl))
 
 	var buf bytes.Buffer
@@ -91,6 +102,7 @@ func (g *InstallGenerator) Generate() error {
 		"ControllerYAML":  "`\n" + encode(controllerDocs.Raw()) + "`\n",
 		"LocalstackYAML":  "`\n" + encode(localstackDocs.Raw()) + "`\n",
 		"CertManagerYAML": "`\n" + encode(certManagerDocs.Raw()) + "`\n",
+		"RegistryYAML":    "`\n" + encode(registryDocs.Raw()) + "`\n",
 	})
 	assertNoError(err)
 
