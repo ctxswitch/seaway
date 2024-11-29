@@ -54,13 +54,13 @@ func TestBuildImageVerify(t *testing.T) {
 	for _, tt := range tests {
 		collection := &collector.Collection{
 			Observed: &collector.ObservedState{
-				Config: &v1beta1.SeawayConfig{
+				Config: &v1beta1.EnvironmentConfig{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "test",
 						Namespace: v1beta1.DefaultControllerNamespace,
 					},
-					Spec: v1beta1.SeawayConfigSpec{
-						SeawayConfigRegistrySpec: v1beta1.SeawayConfigRegistrySpec{
+					Spec: v1beta1.EnvironmentConfigSpec{
+						EnvironmentConfigRegistrySpec: v1beta1.EnvironmentConfigRegistrySpec{
 							URL: "http://registry:5000",
 						},
 					},

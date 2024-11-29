@@ -18,9 +18,11 @@ type Command struct {
 	InstallCrds        bool
 	InstallCertManager bool
 	InstallLocalStack  bool
+	InstallRegistry    bool
 	EnableDevMode      bool
 }
 
+// nolint:funlen,gocognit
 func (c *Command) RunE(cmd *cobra.Command, _ []string) error {
 	ctx, cancel := signal.NotifyContext(cmd.Context(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
@@ -75,6 +77,25 @@ func (c *Command) RunE(cmd *cobra.Command, _ []string) error {
 			{
 				Kind: "Deployment",
 				Name: "localstack",
+				For:  "ready",
+			},
+		})
+		if err != nil {
+			return err
+		}
+	}
+
+	if c.InstallRegistry {
+		console.Info("Installing registry")
+		raw, err := GetRegistryBytes()
+		if err != nil {
+			return err
+		}
+
+		err = c.install(ctx, raw, []v1beta1.ManifestWaitCondition{
+			{
+				Kind: "Deployment",
+				Name: "registry",
 				For:  "ready",
 			},
 		})

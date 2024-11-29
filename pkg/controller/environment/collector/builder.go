@@ -21,7 +21,7 @@ type DesiredState struct {
 	Deployment     *appsv1.Deployment
 	Service        *corev1.Service
 	Ingress        *networkingv1.Ingress
-	Config         *v1beta1.SeawayConfig
+	Config         *v1beta1.EnvironmentConfig
 	EnvCredentials *corev1.Secret
 }
 
@@ -40,9 +40,9 @@ type Builder struct {
 	observed *ObservedState
 	scheme   *runtime.Scheme
 
-	registry    v1beta1.SeawayConfigRegistrySpec
+	registry    v1beta1.EnvironmentConfigRegistrySpec
 	registryURL *url.URL
-	storage     v1beta1.SeawayConfigStorageSpec
+	storage     v1beta1.EnvironmentConfigStorageSpec
 	storageURL  *url.URL
 }
 
@@ -53,13 +53,13 @@ func (b *Builder) desired(d *DesiredState) error {
 	}
 
 	var err error
-	b.storage = b.observed.Config.Spec.SeawayConfigStorageSpec
+	b.storage = b.observed.Config.Spec.EnvironmentConfigStorageSpec
 	b.storageURL, err = url.Parse(b.storage.Endpoint)
 	if err != nil {
 		return err
 	}
 
-	b.registry = b.observed.Config.Spec.SeawayConfigRegistrySpec
+	b.registry = b.observed.Config.Spec.EnvironmentConfigRegistrySpec
 	b.registryURL, err = url.Parse(b.registry.URL)
 	if err != nil {
 		return err

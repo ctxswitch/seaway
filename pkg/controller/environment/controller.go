@@ -49,7 +49,7 @@ func SetupWithManager(mgr ctrl.Manager) (err error) {
 // +kubebuilder:rbac:groups=seaway.ctx.sh,resources=environments,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=seaway.ctx.sh,resources=environments/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=seaway.ctx.sh,resources=environments/finalizers,verbs=update
-// +kubebuilder:rbac:groups=seaway.ctx.sh,resources=seawayconfigs,verbs=get;list;watch
+// +kubebuilder:rbac:groups=seaway.ctx.sh,resources=environmentconfigs,verbs=get;list;watch
 // +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=apps,resources=deployments/status,verbs=get
 // +kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;list;watch;create;update;patch;delete

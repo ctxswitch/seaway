@@ -26,13 +26,13 @@ import (
 )
 
 type EnvironmentPort struct {
-	// Name is a human readable name for the port.
+	// Name is a human-readable name for the port.
 	// +required
 	Name string `json:"name" yaml:"name"`
 	// Port is an integer representing the port number.
 	// +required
 	Port int32 `json:"port" yaml:"port"`
-	// Protocol is the protocol for the port.  By default this is set to TCP.
+	// Protocol is the protocol for the port.  By default, this is set to TCP.
 	// +optional
 	Protocol corev1.Protocol `json:"protocol" yaml:"protocol"`
 	// NodePort is the port on each node that the service is exposed on when the
@@ -55,7 +55,7 @@ type EnvironmentIngress struct {
 	// +nullable
 	ClassName *string `json:"className" yaml:"className"`
 	// Port is the port on the service that the ingress will route traffic to. By
-	// default this will pick the first port listed in the service.
+	// default, this will pick the first port listed in the service.
 	// +optional
 	// +nullable
 	Port *int32 `json:"port" yaml:"port"`
@@ -86,7 +86,7 @@ type EnvironmentService struct {
 	// +optional
 	// +nullable
 	Ports []EnvironmentPort `json:"ports" yaml:"ports"`
-	// Type is the type of service to create.  By default this is set to ClusterIP.
+	// Type is the type of service to create.  By default, this is set to ClusterIP.
 	// +optional
 	Type corev1.ServiceType `json:"type" yaml:"type"`
 }
@@ -239,7 +239,7 @@ type Environment struct {
 	Status EnvironmentStatus `json:"status,omitempty"`
 }
 
-// EnvironmentStageis a string representation of the reconciliation stage
+// EnvironmentStage is a string representation of the reconciliation stage
 // of the environment.
 type EnvironmentStage string
 
@@ -251,7 +251,6 @@ const (
 	EnvironmentStageBuildImageFailed  EnvironmentStage = "Build failed"
 	EnvironmentStageBuildImageVerify  EnvironmentStage = "Verifying the image"
 	EnvironmentStageDeploy            EnvironmentStage = "Deploying the revision"
-	EnvironmentStageDeployWaiting     EnvironmentStage = "Waiting for deployment to complete"
 	EnvironmentStageDeployVerify      EnvironmentStage = "Verifying the deployment"
 	EnvironmentStageDeployed          EnvironmentStage = "Revision deployed"
 	EnvironmentStageDeployFailed      EnvironmentStage = "Deployment failed"
@@ -280,10 +279,6 @@ type EnvironmentList struct {
 }
 
 type DependencyType string
-
-const (
-	Kustomize DependencyType = "kustomize"
-)
 
 // ManifestDependency is a dependency configuration that can be applied to
 // the environment.  Only kustomize is supported at this time.
@@ -344,8 +339,8 @@ type Manifest struct {
 	Environments []ManifestEnvironmentSpec `yaml:"environments"`
 }
 
-// SeawayConfigStorageSpec is the storage configuration for the controller.
-type SeawayConfigStorageSpec struct {
+// EnvironmentConfigStorageSpec is the storage configuration for the controller.
+type EnvironmentConfigStorageSpec struct {
 	// Bucket is the name of the bucket to use for storage.
 	// +required
 	Bucket string `json:"bucket"`
@@ -360,7 +355,7 @@ type SeawayConfigStorageSpec struct {
 	Region string `json:"region"`
 	// Credentials is the name of the secret that contains the credentials
 	// for the storage service.
-	// +required
+	// +optional
 	Credentials string `json:"credentials"`
 	// ForcePathStyle is a flag to force path style addressing for the storage
 	// service.
@@ -368,8 +363,8 @@ type SeawayConfigStorageSpec struct {
 	ForcePathStyle bool `json:"forcePathStyle"`
 }
 
-// SeawayConfigRegistrySpec is the registry configuration for the controller.
-type SeawayConfigRegistrySpec struct {
+// EnvironmentConfigRegistrySpec is the registry configuration for the controller.
+type EnvironmentConfigRegistrySpec struct {
 	// URL is the URL for the registry service.
 	// +required
 	URL string `json:"url"`
@@ -378,30 +373,30 @@ type SeawayConfigRegistrySpec struct {
 	NodePort int32 `json:"nodePort"`
 }
 
-// SeawayConfigSpec is configuration for a seawayconfig resource.
-type SeawayConfigSpec struct {
-	SeawayConfigStorageSpec  `json:"storage,omitempty"`
-	SeawayConfigRegistrySpec `json:"registry,omitempty"`
+// EnvironmentConfigSpec is configuration for a environmentconfig resource.
+type EnvironmentConfigSpec struct {
+	EnvironmentConfigStorageSpec  `json:"storage,omitempty"`
+	EnvironmentConfigRegistrySpec `json:"registry,omitempty"`
 }
 
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +k8s:defaulter-gen=true
-// +kubebuilder:resource:scope=Namespaced,shortName=sconf,singular=seawayconfig
+// +kubebuilder:resource:scope=Namespaced,shortName=econf,singular=environmentconfig
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 
-// Config is the configuration that the controller will use.  It contains the
+// EnvironmentConfig is the configuration that the controller will use.  It contains the
 // global configurations for the controller.
-type SeawayConfig struct {
+type EnvironmentConfig struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-	Spec              SeawayConfigSpec `json:"spec,omitempty"`
+	Spec              EnvironmentConfigSpec `json:"spec,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-type SeawayConfigList struct {
+type EnvironmentConfigList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []SeawayConfig `json:"items"`
+	Items           []EnvironmentConfig `json:"items"`
 }

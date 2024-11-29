@@ -3,6 +3,7 @@ package collector
 import (
 	"context"
 	"fmt"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"time"
 
 	"ctx.sh/seaway/pkg/apis/seaway.ctx.sh/v1beta1"
@@ -23,7 +24,7 @@ type ObservedState struct {
 	Ingress            *networkingv1.Ingress
 	StorageCredentials *corev1.Secret
 	EnvCredentials     *corev1.Secret
-	Config             *v1beta1.SeawayConfig
+	Config             *v1beta1.EnvironmentConfig
 	observeTime        time.Time
 }
 
@@ -55,14 +56,16 @@ func (o *StateObserver) observe(ctx context.Context, observed *ObservedState) er
 
 	observed.Env = env
 
-	config, err := o.observeConfig(ctx, env.Spec.Config, v1beta1.DefaultControllerNamespace)
+	// TODO: Allow user to define the namespace.
+	config, err := o.observeConfig(ctx, env, v1beta1.DefaultControllerNamespace)
 	if err != nil {
+		// Handle missing error more gracefully
 		return err
 	}
 
 	observed.Config = config
 
-	storageCredentials, err := o.observeStorageCredentials(ctx, config.Spec.SeawayConfigStorageSpec.Credentials, config.GetNamespace())
+	storageCredentials, err := o.observeStorageCredentials(ctx, config.Spec.EnvironmentConfigStorageSpec.Credentials, config.GetNamespace())
 	if err != nil {
 		return err
 	}
@@ -189,6 +192,20 @@ func (o *StateObserver) observeEnvCredentials(ctx context.Context, name string) 
 }
 
 func (o *StateObserver) observeStorageCredentials(ctx context.Context, name, namespace string) (*corev1.Secret, error) {
+	if name == "" {
+		// If there are no storage credentials defined, create our own anonymous secret
+		return &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "anonymous",
+				Namespace: namespace,
+			},
+			Data: map[string][]byte{
+				"AWS_ACCESS_KEY_ID":     []byte("anonymous"),
+				"AWS_SECRET_ACCESS_KEY": []byte("anonymous"),
+			},
+		}, nil
+	}
+
 	var secret corev1.Secret
 	if err := o.Client.Get(ctx, types.NamespacedName{
 		Namespace: namespace,
@@ -202,8 +219,14 @@ func (o *StateObserver) observeStorageCredentials(ctx context.Context, name, nam
 	return &secret, nil
 }
 
-func (o *StateObserver) observeConfig(ctx context.Context, name, namespace string) (*v1beta1.SeawayConfig, error) {
-	var config v1beta1.SeawayConfig
+func (o *StateObserver) observeConfig(ctx context.Context, env *v1beta1.Environment, namespace string) (*v1beta1.EnvironmentConfig, error) {
+	// TODO: How does this impact a multiuser environment?
+	name := env.GetName()
+	if env.Spec.Config != "" {
+		name = env.Spec.Config
+	}
+
+	var config v1beta1.EnvironmentConfig
 	if err := o.Client.Get(ctx, client.ObjectKey{
 		Namespace: namespace,
 		Name:      name,
