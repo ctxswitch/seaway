@@ -93,6 +93,7 @@ func (g *InstallGenerator) Generate() error {
 	registryDocs, err := kustomize.NewKustomizer(&kustomize.KustomizerOptions{
 		BaseDir: path.Join(g.ConfigDir, "registry"),
 	})
+	assertNoError(err)
 
 	t := template.Must(template.New("generators").Parse(tmpl))
 

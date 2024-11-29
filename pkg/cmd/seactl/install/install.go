@@ -22,6 +22,7 @@ type Command struct {
 	EnableDevMode      bool
 }
 
+// nolint:funlen,gocognit
 func (c *Command) RunE(cmd *cobra.Command, _ []string) error {
 	ctx, cancel := signal.NotifyContext(cmd.Context(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
@@ -98,6 +99,9 @@ func (c *Command) RunE(cmd *cobra.Command, _ []string) error {
 				For:  "ready",
 			},
 		})
+		if err != nil {
+			return err
+		}
 	}
 
 	console.Info("Installing the seaway controller")
