@@ -10,6 +10,7 @@ import (
 	"fmt"
 	jsonpatch "gopkg.in/evanphx/json-patch.v4"
 	apierr "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/wait"
 	watchtools "k8s.io/client-go/tools/watch"
@@ -128,4 +129,20 @@ func ToAPIString(obj *unstructured.Unstructured) string {
 	}
 
 	return out
+}
+
+// GetEnvironment returns a new environment object.
+func GetEnvironment(name, namespace string) *v1beta1.Environment {
+	env := &v1beta1.Environment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+	}
+	// TODO: We actually need this with the client at this point because we use
+	// the gvk to get the resource interface. Revisit this later and refactor it
+	// out.  It's not horrible but it's not great either.
+	env.SetGroupVersionKind(v1beta1.SchemeGroupVersion.WithKind("Environment"))
+
+	return env
 }

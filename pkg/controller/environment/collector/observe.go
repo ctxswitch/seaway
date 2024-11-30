@@ -212,7 +212,16 @@ func (o *StateObserver) observeStorageCredentials(ctx context.Context, name, nam
 		Name:      name,
 	}, &secret); err != nil {
 		if client.IgnoreNotFound(err) == nil {
-			return nil, fmt.Errorf("storage credentials not found: %s/%s", name, namespace)
+			return &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "anonymous",
+					Namespace: namespace,
+				},
+				Data: map[string][]byte{
+					"AWS_ACCESS_KEY_ID":     []byte("anonymous"),
+					"AWS_SECRET_ACCESS_KEY": []byte("anonymous"),
+				},
+			}, nil
 		}
 		return nil, err
 	}
@@ -221,18 +230,13 @@ func (o *StateObserver) observeStorageCredentials(ctx context.Context, name, nam
 
 func (o *StateObserver) observeConfig(ctx context.Context, env *v1beta1.Environment, namespace string) (*v1beta1.EnvironmentConfig, error) {
 	// TODO: How does this impact a multiuser environment?
-	name := env.GetName()
-	if env.Spec.Config != "" {
-		name = env.Spec.Config
-	}
-
 	var config v1beta1.EnvironmentConfig
 	if err := o.Client.Get(ctx, client.ObjectKey{
 		Namespace: namespace,
-		Name:      name,
+		Name:      env.Spec.Config,
 	}, &config); err != nil {
 		if client.IgnoreNotFound(err) == nil {
-			return nil, fmt.Errorf("seaway config not found: %s/%s", name, namespace)
+			return nil, fmt.Errorf("seaway config not found: %s/%s", env.Spec.Config, namespace)
 		}
 		return nil, err
 	}

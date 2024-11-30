@@ -12,18 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package env
+package sync
 
 import (
 	"archive/tar"
 	"compress/gzip"
 	"context"
 	"crypto/md5" //nolint:gosec
+	"ctx.sh/seaway/pkg/cmd/util"
 	"fmt"
 	"io"
 	"io/fs"
 	"os"
+	"os/signal"
 	"path/filepath"
+	"syscall"
 	"time"
 
 	"ctx.sh/seaway/pkg/apis/seaway.ctx.sh/v1beta1"
@@ -33,32 +36,27 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 const (
-	SyncUsage     = "sync [context]"
-	SyncShortDesc = "Sync to the target object storage using the configuration context"
-	SyncLongDesc  = `Sync the code to the target object storage based on the configuration context
-provided in the manifest.  This will trigger a new development deployment if there was a change.`
+	DefaultTimeout = 10 * time.Minute
 )
 
-type Sync struct {
-	logLevel int8
-	force    bool
-}
-
-func NewSync() *Sync {
-	return &Sync{}
+type Command struct {
+	OnlyDeps bool
+	WithDeps bool
+	LogLevel int8
+	Force    bool
 }
 
 // RunE is the main function for the sync command which syncs the code to the target
 // object storage and creates or updates the development environment.
 // TODO: address the linting issues.
-func (s *Sync) RunE(cmd *cobra.Command, args []string) error { //nolint:funlen,gocognit
+func (c *Command) RunE(cmd *cobra.Command, args []string) error { //nolint:funlen,gocognit
 	kubeContext := cmd.Root().Flags().Lookup("context").Value.String()
 
-	ctx := ctrl.SetupSignalHandler()
+	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer cancel()
 
 	if len(args) != 1 {
 		return fmt.Errorf("expected environment name")
@@ -75,8 +73,29 @@ func (s *Sync) RunE(cmd *cobra.Command, args []string) error { //nolint:funlen,g
 		console.Fatal("Build context '%s' not found in the manifest", args[0])
 	}
 
+	client, err := kube.NewKubectlCmd("", kubeContext)
+	if err != nil {
+		console.Fatal(err.Error())
+	}
+
+	if c.WithDeps || c.OnlyDeps {
+		err := doApply(ctx, client, env)
+		if c.OnlyDeps || err != nil {
+			return err
+		}
+	}
+
+	return doSync(ctx, client, manifest.Name, env, c.Force)
+}
+
+func doApply(ctx context.Context, client *kube.KubectlCmd, env v1beta1.ManifestEnvironmentSpec) error {
+	return apply(ctx, client, env)
+}
+
+//nolint:funlen,gocognit
+func doSync(ctx context.Context, client *kube.KubectlCmd, name string, env v1beta1.ManifestEnvironmentSpec, force bool) error {
 	console.Info("Creating archive")
-	archive, err := s.create(manifest.Name, &env)
+	archive, err := create(name, env)
 	if err != nil {
 		console.Fatal("Unable to create archive: %s", err)
 	}
@@ -93,10 +112,10 @@ func (s *Sync) RunE(cmd *cobra.Command, args []string) error { //nolint:funlen,g
 
 	upload := v1beta1.NewClient(env.Endpoint + "/upload")
 	resp, err := upload.Upload(ctx, archive, map[string]string{
-		"name":      manifest.Name,
+		"name":      name,
 		"namespace": env.Namespace,
 		"etag":      etag,
-		"config":    env.Config,
+		"config":    env.Name,
 	})
 	if err != nil {
 		console.Fatal("Unable to upload the archive: %v", err)
@@ -112,14 +131,9 @@ func (s *Sync) RunE(cmd *cobra.Command, args []string) error { //nolint:funlen,g
 
 	console.Info("Deploying")
 
-	client, err := kube.NewKubectlCmd("", kubeContext)
-	if err != nil {
-		console.Fatal("error getting seaway client: %s", err.Error())
-	}
+	obj := util.GetEnvironment(name, env.Namespace)
 
-	obj := GetEnvironment(manifest.Name, env.Namespace)
-
-	if s.force {
+	if force {
 		derr := client.Delete(ctx, obj, metav1.DeleteOptions{})
 		if err != nil && !errors.IsNotFound(derr) {
 			console.Fatal("error deleting environment: %s", derr.Error())
@@ -129,6 +143,7 @@ func (s *Sync) RunE(cmd *cobra.Command, args []string) error { //nolint:funlen,g
 	op, err := client.CreateOrUpdate(ctx, obj, func() error {
 		env.EnvironmentSpec.DeepCopyInto(&obj.Spec)
 		obj.Spec.Revision = resp.ETag
+		obj.Spec.Config = env.Name
 		return nil
 	})
 	if err != nil {
@@ -186,7 +201,7 @@ func (s *Sync) RunE(cmd *cobra.Command, args []string) error { //nolint:funlen,g
 }
 
 // create builds the tar/gzip archive that will be uploaded to the object storage.
-func (s *Sync) create(name string, env *v1beta1.ManifestEnvironmentSpec) (string, error) {
+func create(name string, env v1beta1.ManifestEnvironmentSpec) (string, error) {
 	out, err := os.CreateTemp("", name+"-*.tar.gz")
 	if err != nil {
 		console.Fatal("Unable to create the temporary archive: %s", err)
@@ -212,7 +227,7 @@ func (s *Sync) create(name string, env *v1beta1.ManifestEnvironmentSpec) (string
 		exclude := excludes.MatchString(f)
 		if include && !exclude {
 			console.ListItem(f)
-			if aerr := s.add(tw, f); aerr != nil {
+			if aerr := add(tw, f); aerr != nil {
 				return aerr
 			}
 		}
@@ -227,7 +242,7 @@ func (s *Sync) create(name string, env *v1beta1.ManifestEnvironmentSpec) (string
 }
 
 // add adds a file to the archive.
-func (s *Sync) add(tw *tar.Writer, filename string) error {
+func add(tw *tar.Writer, filename string) error {
 	file, err := os.Open(filename)
 	if err != nil {
 		return err
@@ -280,18 +295,4 @@ func checksum(filename string) (string, error) {
 	}
 
 	return fmt.Sprintf("%x", h.Sum(nil)), nil
-}
-
-// Command creates the sync command.
-func (s *Sync) Command() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   SyncUsage,
-		Short: SyncShortDesc,
-		Long:  SyncLongDesc,
-		RunE:  s.RunE,
-	}
-
-	cmd.PersistentFlags().Int8VarP(&s.logLevel, "log-level", "", DefaultLogLevel, "set the log level (integer value)")
-	cmd.PersistentFlags().BoolVarP(&s.force, "force", "", false, "force a resync even if no changes are detected")
-	return cmd
 }

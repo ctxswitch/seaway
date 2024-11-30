@@ -17,11 +17,11 @@ package main
 import (
 	"ctx.sh/seaway/pkg/apis/seaway.ctx.sh/v1beta1"
 	"ctx.sh/seaway/pkg/build"
+	"ctx.sh/seaway/pkg/cmd/seactl/clean"
 	"ctx.sh/seaway/pkg/cmd/seactl/config"
-	depscmd "ctx.sh/seaway/pkg/cmd/seactl/deps"
-	envcmd "ctx.sh/seaway/pkg/cmd/seactl/env"
 	"ctx.sh/seaway/pkg/cmd/seactl/install"
 	"ctx.sh/seaway/pkg/cmd/seactl/logs"
+	"ctx.sh/seaway/pkg/cmd/seactl/sync"
 	"github.com/spf13/cobra"
 )
 
@@ -29,12 +29,6 @@ const (
 	RootUsage        = "seactl [command] [args...]"
 	RootShortDesc    = "CLI utility for managing Seaway development environments."
 	RootLongDesc     = `CLI utility for managing Seaway development environments.`
-	DepsUsage        = "deps [subcommand] [context]"
-	DepsShortDesc    = "Utility to manage application dependencies"
-	DepsLongDesc     = `Utility to manage application dependencies`
-	EnvUsage         = "env [subcommand] [context]"
-	EnvShortDesc     = "Utility to manage development environments"
-	EnvLongDesc      = `Utility to manage development environments`
 	LogsUsage        = "logs [subcommand]"
 	LogsShortDesc    = "Utility to stream logs from the development environment"
 	LogsLongDesc     = `Utility to stream logs from the development environment`
@@ -45,12 +39,22 @@ const (
 	ConfigShortDesc  = "Creates a new seaway configuration file."
 	ConfigLongDesc   = `Creates a new seaway configuration file that is used by the environments
 to configure build dependencies.`
+	SyncUsage     = "sync"
+	SyncShortDesc = "Sync to the target object storage using the configuration context"
+	SyncLongDesc  = `Sync the code to the target object storage based on the configuration context
+provided in the manifest.  This will trigger a new development deployment if there was a change.`
+	CleanUsage     = "clean"
+	CleanShortDesc = "Clean all development environment resources."
+	CleanLongDesc  = `Cleans all development environment resources for the specified context.`
 
 	DefaultInstallCrds        = true
 	DefaultInstallCertManager = false
 	DefaultInstallLocalstack  = false
 	DefaultInstallRegistry    = false
 	DefaultEnableDevMode      = false
+	DefaultSyncOnlyDeps       = false
+	DefaultSyncWithDeps       = false
+	DefaultSyncForce          = false
 )
 
 type Root struct{}
@@ -76,49 +80,14 @@ func (r *Root) Command() *cobra.Command {
 		SilenceErrors: false,
 	}
 
-	rootCmd.AddCommand(EnvCommand())
-	rootCmd.AddCommand(DepsCommand())
+	rootCmd.AddCommand(SyncCommand())
+	rootCmd.AddCommand(CleanCommand())
 	rootCmd.AddCommand(LogsCommand())
 	rootCmd.AddCommand(InstallCommand())
 	rootCmd.AddCommand(ConfigCommand())
 
 	rootCmd.PersistentFlags().StringP("context", "", "", "set the Kubernetes context")
 	return rootCmd
-}
-
-func DepsCommand() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   DepsUsage,
-		Short: DepsShortDesc,
-		Long:  DepsLongDesc,
-		Run: func(cmd *cobra.Command, args []string) {
-			_ = cmd.Help()
-		},
-		SilenceUsage:  true,
-		SilenceErrors: false,
-	}
-
-	cmd.AddCommand(depscmd.NewApply().Command())
-	cmd.AddCommand(depscmd.NewDelete().Command())
-
-	return cmd
-}
-
-func EnvCommand() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   EnvUsage,
-		Short: EnvShortDesc,
-		Long:  EnvLongDesc,
-		Run: func(cmd *cobra.Command, args []string) {
-			_ = cmd.Help()
-		},
-		SilenceUsage:  true,
-		SilenceErrors: false,
-	}
-
-	cmd.AddCommand(envcmd.NewSync().Command())
-	cmd.AddCommand(envcmd.NewClean().Command())
-	return cmd
 }
 
 func LogsCommand() *cobra.Command {
@@ -178,4 +147,33 @@ func ConfigCommand() *cobra.Command {
 	return cmd
 }
 
-// seactl create config <name> --storage-forced-path-style --storage-credentials --storage-prefix --registry-url --registry-nodeport
+func SyncCommand() *cobra.Command {
+	s := sync.Command{}
+	cmd := &cobra.Command{
+		Use:   SyncUsage,
+		Short: SyncShortDesc,
+		Long:  SyncLongDesc,
+		RunE:  s.RunE,
+	}
+
+	cmd.PersistentFlags().Int8VarP(&s.LogLevel, "log-level", "", DefaultLogLevel, "set the log level (integer value)")
+	cmd.PersistentFlags().BoolVarP(&s.Force, "force", "", DefaultSyncForce, "force a resync even if no changes are detected")
+	cmd.PersistentFlags().BoolVarP(&s.WithDeps, "with-deps", "", DefaultSyncWithDeps, "apply dependencies before syncing the application")
+	cmd.PersistentFlags().BoolVarP(&s.OnlyDeps, "only-deps", "", DefaultSyncOnlyDeps, "apply the dependencies without syncing the application")
+	return cmd
+}
+
+func CleanCommand() *cobra.Command {
+	c := clean.Command{}
+
+	cmd := &cobra.Command{
+		Use:   CleanUsage,
+		Short: CleanShortDesc,
+		Long:  CleanLongDesc,
+		RunE:  c.RunE,
+	}
+
+	cmd.PersistentFlags().Int8VarP(&c.LogLevel, "log-level", "", DefaultLogLevel, "set the log level (integer value)")
+
+	return cmd
+}

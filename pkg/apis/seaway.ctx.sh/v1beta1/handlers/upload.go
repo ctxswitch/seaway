@@ -55,7 +55,7 @@ func (h *Upload) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	config := r.FormValue("config")
 
 	if config == "" {
-		config = h.namespace + "/" + v1beta1.DefaultConfigName
+		h.respond(w, minio.UploadInfo{}, fmt.Errorf("config was not specified"))
 	}
 
 	parts := strings.Split(config, "/")
