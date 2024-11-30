@@ -12,41 +12,34 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package env
+package clean
 
 import (
-	"fmt"
-
+	"context"
 	"ctx.sh/seaway/pkg/apis/seaway.ctx.sh/v1beta1"
+	"ctx.sh/seaway/pkg/cmd/util"
 	"ctx.sh/seaway/pkg/console"
 	kube "ctx.sh/seaway/pkg/kube/client"
+	"fmt"
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	ctrl "sigs.k8s.io/controller-runtime"
+	"os/signal"
+	"syscall"
 )
 
-const (
-	CleanUsage     = "clean [context]"
-	CleanShortDesc = "Clean all development environment resources."
-	CleanLongDesc  = `Cleans all development environment resources for the specified context.`
-)
-
-type Clean struct {
-	logLevel int8
-}
-
-func NewClean() *Clean {
-	return &Clean{}
+type Command struct {
+	LogLevel int8
 }
 
 // RunE is the main function for the clean command which removes all artifacts
 // and objects associated with a development environment.
 // TODO: Implement the clean command.
-func (c Clean) RunE(cmd *cobra.Command, args []string) error {
+func (c *Command) RunE(cmd *cobra.Command, args []string) error {
 	kubeContext := cmd.Root().Flags().Lookup("context").Value.String()
 
-	ctx := ctrl.SetupSignalHandler()
+	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer cancel()
 
 	if len(args) != 1 {
 		return fmt.Errorf("expected environment name")
@@ -70,7 +63,7 @@ func (c Clean) RunE(cmd *cobra.Command, args []string) error {
 		console.Fatal(err.Error())
 	}
 
-	obj := GetEnvironment(manifest.Name, env.Namespace)
+	obj := util.GetEnvironment(manifest.Name, env.Namespace)
 	err = client.Delete(ctx, obj, metav1.DeleteOptions{})
 	if err != nil {
 		if !errors.IsNotFound(err) {
@@ -83,19 +76,5 @@ func (c Clean) RunE(cmd *cobra.Command, args []string) error {
 	// TODO: Need a delete endpoint for the controller or force the controller to delete the
 	// archive when the environment is deleted as part of the finalizer.
 
-	return nil
-}
-
-// Command creates the clean command.
-func (c *Clean) Command() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   CleanUsage,
-		Short: CleanShortDesc,
-		Long:  CleanLongDesc,
-		RunE:  c.RunE,
-	}
-
-	cmd.PersistentFlags().Int8VarP(&c.logLevel, "log-level", "", DefaultLogLevel, "set the log level (integer value)")
-
-	return cmd
+	return delete(ctx, client, env)
 }
