@@ -99,11 +99,11 @@ func (g *InstallGenerator) Generate() error {
 
 	var buf bytes.Buffer
 	err = t.Execute(&buf, map[string]string{
-		"CrdYAML":         "`\n" + encode(crdDocs.Raw()) + "\n`",
-		"ControllerYAML":  "`\n" + encode(controllerDocs.Raw()) + "`\n",
-		"LocalstackYAML":  "`\n" + encode(localstackDocs.Raw()) + "`\n",
-		"CertManagerYAML": "`\n" + encode(certManagerDocs.Raw()) + "`\n",
-		"RegistryYAML":    "`\n" + encode(registryDocs.Raw()) + "`\n",
+		"CrdYAML":         "`\n" + encode(crdDocs.Raw()) + "`",
+		"ControllerYAML":  "`\n" + encode(controllerDocs.Raw()) + "`",
+		"LocalstackYAML":  "`\n" + encode(localstackDocs.Raw()) + "`",
+		"CertManagerYAML": "`\n" + encode(certManagerDocs.Raw()) + "`",
+		"RegistryYAML":    "`\n" + encode(registryDocs.Raw()) + "`",
 	})
 	assertNoError(err)
 
