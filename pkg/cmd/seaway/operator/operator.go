@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package operator
 
 import (
 	"crypto/tls"
@@ -33,30 +33,25 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
 
-const (
-	ControllerUsage     = "controller [ARG...]"
-	ControllerShortDesc = "Starts the seaway controller."
-	ControllerLongDesc  = `Starts the seaway controller providing management of the seaway resources and services in kubernetes.`
-)
-
-type Controller struct {
-	certs              string
-	certName           string
-	keyName            string
-	clientCAName       string
-	leaderElection     bool
-	skipInsecureVerify bool
-	logLevel           int8
-	namespace          string
-	defaultConfig      string
+type Command struct {
+	Certs              string
+	CertName           string
+	KeyName            string
+	ClientCAName       string
+	LeaderElection     bool
+	SkipInsecureVerify bool
+	LogLevel           int8
+	Namespace          string
+	DefaultConfig      string
+	BuildNamespace     string
 }
 
-func NewController() *Controller {
-	return &Controller{}
+func NewCommand() *Command {
+	return &Command{}
 }
 
 // RunE configures and starts the seaway controller.
-func (c *Controller) RunE(cmd *cobra.Command, args []string) error {
+func (c *Command) RunE(cmd *cobra.Command, args []string) error {
 	scheme := runtime.NewScheme()
 
 	_ = v1beta1.AddToScheme(scheme)
@@ -67,7 +62,7 @@ func (c *Controller) RunE(cmd *cobra.Command, args []string) error {
 
 	// TODO: more configurations.
 	log := zap.New(
-		zap.Level(zapcore.Level(c.logLevel) * -1),
+		zap.Level(zapcore.Level(c.LogLevel) * -1),
 	)
 
 	ctx := ctrl.SetupSignalHandler()
@@ -75,7 +70,7 @@ func (c *Controller) RunE(cmd *cobra.Command, args []string) error {
 
 	hookServer := webhook.NewServer(webhook.Options{
 		Port:    9443,
-		CertDir: c.certs,
+		CertDir: c.Certs,
 		// TODO: One of these causes an error about 'client didn't provide a certificate'
 		// Look at these settings in more detail later.
 		// CertName:     DefaultCertName,
@@ -83,7 +78,7 @@ func (c *Controller) RunE(cmd *cobra.Command, args []string) error {
 		// ClientCAName: DefaultClientCAName,
 		TLSOpts: []func(*tls.Config){
 			func(config *tls.Config) {
-				config.InsecureSkipVerify = c.skipInsecureVerify
+				config.InsecureSkipVerify = c.SkipInsecureVerify
 			},
 		},
 	})
@@ -92,7 +87,7 @@ func (c *Controller) RunE(cmd *cobra.Command, args []string) error {
 	log.Info("initializing manager")
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:           scheme,
-		LeaderElection:   c.leaderElection,
+		LeaderElection:   c.LeaderElection,
 		LeaderElectionID: "seaway-leader-lock",
 		WebhookServer:    hookServer,
 	})
@@ -128,26 +123,4 @@ func (c *Controller) RunE(cmd *cobra.Command, args []string) error {
 	}
 
 	return err
-}
-
-// Command returns the cobra command for the controller.
-func (c *Controller) Command() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   ControllerUsage,
-		Short: ControllerShortDesc,
-		Long:  ControllerLongDesc,
-		RunE:  c.RunE,
-	}
-
-	cmd.PersistentFlags().StringVarP(&c.certs, "certs", "", DefaultCertDir, "specify the webhooks certs directory")
-	cmd.PersistentFlags().StringVarP(&c.certName, "cert-name", "", DefaultCertName, "specify the webhooks cert name")
-	cmd.PersistentFlags().StringVarP(&c.keyName, "key-name", "", DefaultKeyName, "specify the webhooks key name")
-	cmd.PersistentFlags().StringVarP(&c.clientCAName, "ca-name", "", DefaultClientCAName, "specify the webhooks client ca name")
-	cmd.PersistentFlags().BoolVarP(&c.leaderElection, "enable-leader-election", "", DefaultEnableLeaderElection, "enable leader election")
-	cmd.PersistentFlags().BoolVarP(&c.skipInsecureVerify, "skip-insecure-verify", "", DefaultSkipInsecureVerify, "skip certificate verification for the webhooks")
-	cmd.PersistentFlags().Int8VarP(&c.logLevel, "log-level", "", DefaultLogLevel, "set the log level (integer value)")
-	cmd.PersistentFlags().StringVarP(&c.namespace, "namespace", "", DefaultNamespace, "limit the controller to a specific namespace")
-	cmd.PersistentFlags().StringVarP(&c.defaultConfig, "default-config", "", DefaultConfigName, "specify the default seaway config that will be used if none is specified")
-
-	return cmd
 }

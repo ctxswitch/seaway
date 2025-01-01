@@ -16,6 +16,7 @@ package main
 
 import (
 	"ctx.sh/seaway/pkg/build"
+	"ctx.sh/seaway/pkg/cmd/seaway/operator"
 	"github.com/spf13/cobra"
 )
 
@@ -23,6 +24,10 @@ const (
 	RootUsage     = "seaway [command] [ARG...]"
 	RootShortDesc = "Build controller and image sync tool for kubernetes."
 	RootLongDesc  = `Build controller and image sync tool for kubernetes.`
+
+	OperatorUsage     = "operator [ARG...]"
+	OperatorShortDesc = "Run the seaway operator."
+	OperatorLongDesc  = `Run the seaway operator.`
 )
 
 type Root struct{}
@@ -52,6 +57,30 @@ func (r *Root) Command() *cobra.Command {
 		SilenceErrors: false,
 	}
 
-	rootCmd.AddCommand(NewController().Command())
+	rootCmd.AddCommand(OperatorCommand())
 	return rootCmd
+}
+
+// Command returns the cobra command for the controller.
+func OperatorCommand() *cobra.Command {
+	c := operator.Command{}
+
+	cmd := &cobra.Command{
+		Use:   OperatorUsage,
+		Short: OperatorShortDesc,
+		Long:  OperatorLongDesc,
+		RunE:  c.RunE,
+	}
+
+	cmd.PersistentFlags().StringVarP(&c.Certs, "certs", "", DefaultCertDir, "specify the webhooks certs directory")
+	cmd.PersistentFlags().StringVarP(&c.CertName, "cert-name", "", DefaultCertName, "specify the webhooks cert name")
+	cmd.PersistentFlags().StringVarP(&c.KeyName, "key-name", "", DefaultKeyName, "specify the webhooks key name")
+	cmd.PersistentFlags().StringVarP(&c.ClientCAName, "ca-name", "", DefaultClientCAName, "specify the webhooks client ca name")
+	cmd.PersistentFlags().BoolVarP(&c.LeaderElection, "enable-leader-election", "", DefaultEnableLeaderElection, "enable leader election")
+	cmd.PersistentFlags().BoolVarP(&c.SkipInsecureVerify, "skip-insecure-verify", "", DefaultSkipInsecureVerify, "skip certificate verification for the webhooks")
+	cmd.PersistentFlags().Int8VarP(&c.LogLevel, "log-level", "", DefaultLogLevel, "set the log level (integer value)")
+	cmd.PersistentFlags().StringVarP(&c.Namespace, "namespace", "", DefaultNamespace, "limit the controller to a specific namespace")
+	cmd.PersistentFlags().StringVarP(&c.DefaultConfig, "default-config", "", DefaultConfigName, "specify the default seaway config that will be used if none is specified")
+	cmd.PersistentFlags().StringVarP(&c.BuildNamespace, "build-namespace", "", DefaultBuildNamespace, "specify the namespace that will be used for application builds")
+	return cmd
 }

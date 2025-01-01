@@ -26,6 +26,7 @@ const (
 	DefaultLogLevel             int8   = 0
 	DefaultNamespace            string = ""
 	DefaultConfigName           string = "default"
+	DefaultBuildNamespace       string = "seaway-builds"
 
 	ConnectionTimeout time.Duration = 30 * time.Second
 
