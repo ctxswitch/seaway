@@ -22,7 +22,6 @@ type DesiredState struct {
 	Service        *corev1.Service
 	Ingress        *networkingv1.Ingress
 	Config         *v1beta1.EnvironmentConfig
-	EnvCredentials *corev1.Secret
 	BuildNamespace *corev1.Namespace
 }
 
@@ -33,7 +32,6 @@ func NewDesiredState() *DesiredState {
 		Service:        nil,
 		Ingress:        nil,
 		Config:         nil,
-		EnvCredentials: nil,
 		BuildNamespace: nil,
 	}
 }
@@ -71,7 +69,6 @@ func (b *Builder) desired(d *DesiredState) error {
 	}
 
 	d.BuildNamespace = b.buildNamespace(b.builderNamespace)
-	d.EnvCredentials = b.buildEnvCredentials()
 	d.Job = b.buildJob()
 	d.Deployment = b.buildDeployment()
 
@@ -93,39 +90,12 @@ func (b *Builder) buildNamespace(name string) *corev1.Namespace {
 	}
 }
 
-func (b *Builder) buildEnvCredentials() *corev1.Secret {
-	env := b.observed.Env
-	credentials := b.observed.EnvCredentials
-
-	if credentials == nil {
-		credentials = &corev1.Secret{}
-	}
-
-	metatdata := metav1.ObjectMeta{
-		Name:      env.Name + "-credentials",
-		Namespace: env.Namespace,
-		Annotations: mergeMap(map[string]string{
-			"seaway.ctx.sh/revision": env.GetRevision(),
-		}, credentials.Annotations),
-		OwnerReferences: []metav1.OwnerReference{
-			env.GetControllerReference(),
-		},
-	}
-
-	data := b.observed.StorageCredentials.Data
-
-	return &corev1.Secret{
-		ObjectMeta: metatdata,
-		Data:       data,
-	}
-}
-
 func (b *Builder) buildJob() *batchv1.Job { //nolint:funlen
 	env := b.observed.Env
 
 	metatdata := metav1.ObjectMeta{
 		Name:      env.Name + "-build",
-		Namespace: env.Namespace,
+		Namespace: b.builderNamespace,
 		Annotations: map[string]string{
 			"seaway.ctx.sh/revision": env.GetRevision(),
 		},

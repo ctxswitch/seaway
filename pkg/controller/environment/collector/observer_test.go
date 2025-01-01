@@ -58,6 +58,7 @@ func (s *ObserverTestSuite) TestStateObserver_observe() {
 				Name:      "test",
 			},
 		},
+		BuilderNamespace: "seaway-build",
 	}
 
 	// TODO: integrate builder namespace into tests.
@@ -68,7 +69,6 @@ func (s *ObserverTestSuite) TestStateObserver_observe() {
 	s.NotNil(observed.Config)
 	s.NotNil(observed.StorageCredentials)
 
-	s.Nil(observed.EnvCredentials)
 	s.Nil(observed.Job)
 	s.Nil(observed.Deployment)
 	s.Nil(observed.Service)
@@ -84,7 +84,6 @@ func (s *ObserverTestSuite) TestStateObserver_observe() {
 	err = observer.observe(ctx, observed)
 	s.NoError(err)
 
-	s.NotNil(observed.EnvCredentials)
 	s.NotNil(observed.Job)
 	s.NotNil(observed.Deployment)
 	s.NotNil(observed.Service)
@@ -108,6 +107,7 @@ func (s *ObserverTestSuite) TestStateObserver_observeEnvironment() {
 				Name:      "test",
 			},
 		},
+		BuilderNamespace: "seaway-build",
 	}
 
 	env, err := observer.observeEnvironment(ctx)

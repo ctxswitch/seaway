@@ -2,6 +2,7 @@ package stage
 
 import (
 	"context"
+	corev1 "k8s.io/api/core/v1"
 	"testing"
 
 	"ctx.sh/seaway/pkg/apis/seaway.ctx.sh/v1beta1"
@@ -90,6 +91,17 @@ func TestInitialize(t *testing.T) {
 			stage := NewInitialize(client, &collector.Collection{
 				Observed: &collector.ObservedState{
 					Env: test.environment,
+					StorageCredentials: &corev1.Secret{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "storage-credentials",
+							Namespace: "seaway-build",
+						},
+					},
+					BuilderNamespace: &corev1.Namespace{
+						ObjectMeta: metav1.ObjectMeta{
+							Name: "seaway-build",
+						},
+					},
 				},
 			})
 			status := test.environment.Status.DeepCopy()

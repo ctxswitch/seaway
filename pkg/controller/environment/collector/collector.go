@@ -14,15 +14,17 @@ type Collection struct {
 }
 
 type StateCollector struct {
-	Client client.Client
-	Scheme *runtime.Scheme
+	Client           client.Client
+	Scheme           *runtime.Scheme
+	BuilderNamespace string
 }
 
 func (sc *StateCollector) ObserveAndBuild(ctx context.Context, req ctrl.Request, c *Collection) error {
 	observed := NewObservedState()
 	observer := &StateObserver{
-		Client:  sc.Client,
-		Request: req,
+		Client:           sc.Client,
+		Request:          req,
+		BuilderNamespace: sc.BuilderNamespace,
 	}
 
 	err := observer.observe(ctx, observed)

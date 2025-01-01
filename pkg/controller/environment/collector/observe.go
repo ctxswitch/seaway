@@ -3,7 +3,6 @@ package collector
 import (
 	"context"
 	"fmt"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"time"
 
 	"ctx.sh/seaway/pkg/apis/seaway.ctx.sh/v1beta1"
@@ -23,7 +22,6 @@ type ObservedState struct {
 	Service            *corev1.Service
 	Ingress            *networkingv1.Ingress
 	StorageCredentials *corev1.Secret
-	EnvCredentials     *corev1.Secret
 	Config             *v1beta1.EnvironmentConfig
 	BuilderNamespace   *corev1.Namespace
 	observeTime        time.Time
@@ -77,15 +75,6 @@ func (o *StateObserver) observe(ctx context.Context, observed *ObservedState) er
 
 	observed.Config = config
 
-	// TODO: If the storage credentials are not found, we'll create them with default anonymous
-	// values.
-	storageCredentials, err := o.observeStorageCredentials(ctx, config.Spec.EnvironmentConfigStorageSpec.Credentials, config.GetNamespace())
-	if err != nil {
-		return err
-	}
-
-	observed.StorageCredentials = storageCredentials
-
 	// Observe the job
 	job, err := o.observeJob(ctx, o.Request.Name+"-build")
 	if err != nil {
@@ -118,26 +107,21 @@ func (o *StateObserver) observe(ctx context.Context, observed *ObservedState) er
 
 	observed.Ingress = ingress
 
-	// Observe the user secret
-	// TODO: This is going to end up being a copy of the storage credentials that
-	// lives in the environment namespace.  I'm not a huge fan of this from a security/
-	// isolation perspective, but it's the easiest way to keep the build jobs local to
-	// the environment namespace at the moment.  The alternative is just inject the
-	// creds directly into the build job's environment - which is even worse though
-	// I'm probably overthinking it at this early stage.
-	credentials, err := o.observeEnvCredentials(ctx, env.Name+"-credentials")
+	// TODO: Make the name configurable.
+	storageCredentials, err := o.observeStorageCredentials(ctx, o.BuilderNamespace, "storage-credentials")
 	if err != nil {
 		return err
 	}
 
-	observed.EnvCredentials = credentials
+	observed.StorageCredentials = storageCredentials
 
 	return nil
 }
 
-func (o *StateObserver) observeNamespace(ctx context.Context, namespace string) (*corev1.Namespace, error) {
+func (o *StateObserver) observeNamespace(ctx context.Context, name string) (*corev1.Namespace, error) {
 	ns := &corev1.Namespace{}
-	if err := o.Client.Get(ctx, client.ObjectKey{Name: namespace}, ns); err != nil {
+
+	if err := o.Client.Get(ctx, client.ObjectKey{Name: name}, ns); err != nil {
 		return nil, client.IgnoreNotFound(err)
 	}
 
@@ -200,51 +184,14 @@ func (o *StateObserver) observeIngress(ctx context.Context) (*networkingv1.Ingre
 	return &ingress, nil
 }
 
-func (o *StateObserver) observeEnvCredentials(ctx context.Context, name string) (*corev1.Secret, error) {
+func (o *StateObserver) observeStorageCredentials(ctx context.Context, ns, name string) (*corev1.Secret, error) {
 	var secret corev1.Secret
 	if err := o.Client.Get(ctx, types.NamespacedName{
-		Namespace: o.Request.Namespace,
+		Namespace: ns,
 		Name:      name,
 	}, &secret); err != nil {
 		if client.IgnoreNotFound(err) == nil {
-			return nil, nil
-		}
-		return nil, err
-	}
-	return &secret, nil
-}
-
-func (o *StateObserver) observeStorageCredentials(ctx context.Context, name, namespace string) (*corev1.Secret, error) {
-	if name == "" {
-		// If there are no storage credentials defined, create our own anonymous secret
-		return &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "anonymous",
-				Namespace: namespace,
-			},
-			Data: map[string][]byte{
-				"AWS_ACCESS_KEY_ID":     []byte("anonymous"),
-				"AWS_SECRET_ACCESS_KEY": []byte("anonymous"),
-			},
-		}, nil
-	}
-
-	var secret corev1.Secret
-	if err := o.Client.Get(ctx, types.NamespacedName{
-		Namespace: namespace,
-		Name:      name,
-	}, &secret); err != nil {
-		if client.IgnoreNotFound(err) == nil {
-			return &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "anonymous",
-					Namespace: namespace,
-				},
-				Data: map[string][]byte{
-					"AWS_ACCESS_KEY_ID":     []byte("anonymous"),
-					"AWS_SECRET_ACCESS_KEY": []byte("anonymous"),
-				},
-			}, nil
+			return nil, fmt.Errorf("missing storage secret %s/%s", ns, name)
 		}
 		return nil, err
 	}

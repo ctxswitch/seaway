@@ -17,8 +17,13 @@ spec:
 apiVersion: v1
 kind: Secret
 metadata:
-  name: seaway-credentials
-  namespace: seaway-system
+  name: seaway-build
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: storage-credentials
+  namespace: seaway-build
 stringData:
   AWS_ACCESS_KEY_ID: xxxxxx
   AWS_SECRET_ACCESS_KEY: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx

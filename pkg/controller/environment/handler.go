@@ -37,9 +37,6 @@ func (h *Handler) reconcile(ctx context.Context) (ctrl.Result, error) {
 
 	env := h.collection.Observed.Env
 
-	// TODO: If the seaway config has been updated, trigger a redeploy of
-	// any environments that are using it.
-
 	switch {
 	case env.HasDeviated():
 		logger.Info("environment been updated, redeploying")
