@@ -25,24 +25,27 @@ type ObservedState struct {
 	StorageCredentials *corev1.Secret
 	EnvCredentials     *corev1.Secret
 	Config             *v1beta1.EnvironmentConfig
+	BuilderNamespace   *corev1.Namespace
 	observeTime        time.Time
 }
 
 func NewObservedState() *ObservedState {
 	return &ObservedState{
-		Env:         nil,
-		Job:         nil,
-		Deployment:  nil,
-		Service:     nil,
-		Ingress:     nil,
-		Config:      nil,
-		observeTime: time.Now(),
+		Env:              nil,
+		Job:              nil,
+		Deployment:       nil,
+		Service:          nil,
+		Ingress:          nil,
+		Config:           nil,
+		BuilderNamespace: nil,
+		observeTime:      time.Now(),
 	}
 }
 
 type StateObserver struct {
-	Client  client.Client
-	Request ctrl.Request
+	Client           client.Client
+	Request          ctrl.Request
+	BuilderNamespace string
 }
 
 func (o *StateObserver) observe(ctx context.Context, observed *ObservedState) error {
@@ -56,7 +59,16 @@ func (o *StateObserver) observe(ctx context.Context, observed *ObservedState) er
 
 	observed.Env = env
 
-	// TODO: Allow user to define the namespace.
+	builderNamespace, err := o.observeNamespace(ctx, o.BuilderNamespace)
+	if err != nil {
+		return err
+	}
+
+	observed.BuilderNamespace = builderNamespace
+
+	// TODO: Remove me in favor of cobra, but initially only take command line and
+	// pass the relevant information to the builder.  After thought I think this is
+	// too messy
 	config, err := o.observeConfig(ctx, env, v1beta1.DefaultControllerNamespace)
 	if err != nil {
 		// Handle missing error more gracefully
@@ -65,6 +77,8 @@ func (o *StateObserver) observe(ctx context.Context, observed *ObservedState) er
 
 	observed.Config = config
 
+	// TODO: If the storage credentials are not found, we'll create them with default anonymous
+	// values.
 	storageCredentials, err := o.observeStorageCredentials(ctx, config.Spec.EnvironmentConfigStorageSpec.Credentials, config.GetNamespace())
 	if err != nil {
 		return err
@@ -119,6 +133,15 @@ func (o *StateObserver) observe(ctx context.Context, observed *ObservedState) er
 	observed.EnvCredentials = credentials
 
 	return nil
+}
+
+func (o *StateObserver) observeNamespace(ctx context.Context, namespace string) (*corev1.Namespace, error) {
+	ns := &corev1.Namespace{}
+	if err := o.Client.Get(ctx, client.ObjectKey{Name: namespace}, ns); err != nil {
+		return nil, client.IgnoreNotFound(err)
+	}
+
+	return ns, nil
 }
 
 func (o *StateObserver) observeEnvironment(ctx context.Context) (*v1beta1.Environment, error) {

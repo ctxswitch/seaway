@@ -23,6 +23,7 @@ type DesiredState struct {
 	Ingress        *networkingv1.Ingress
 	Config         *v1beta1.EnvironmentConfig
 	EnvCredentials *corev1.Secret
+	BuildNamespace *corev1.Namespace
 }
 
 func NewDesiredState() *DesiredState {
@@ -33,6 +34,7 @@ func NewDesiredState() *DesiredState {
 		Ingress:        nil,
 		Config:         nil,
 		EnvCredentials: nil,
+		BuildNamespace: nil,
 	}
 }
 
@@ -44,6 +46,8 @@ type Builder struct {
 	registryURL *url.URL
 	storage     v1beta1.EnvironmentConfigStorageSpec
 	storageURL  *url.URL
+
+	builderNamespace string
 }
 
 func (b *Builder) desired(d *DesiredState) error {
@@ -53,6 +57,7 @@ func (b *Builder) desired(d *DesiredState) error {
 	}
 
 	var err error
+
 	b.storage = b.observed.Config.Spec.EnvironmentConfigStorageSpec
 	b.storageURL, err = url.Parse(b.storage.Endpoint)
 	if err != nil {
@@ -65,6 +70,7 @@ func (b *Builder) desired(d *DesiredState) error {
 		return err
 	}
 
+	d.BuildNamespace = b.buildNamespace(b.builderNamespace)
 	d.EnvCredentials = b.buildEnvCredentials()
 	d.Job = b.buildJob()
 	d.Deployment = b.buildDeployment()
@@ -77,6 +83,14 @@ func (b *Builder) desired(d *DesiredState) error {
 	}
 
 	return nil
+}
+
+func (b *Builder) buildNamespace(name string) *corev1.Namespace {
+	return &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
+	}
 }
 
 func (b *Builder) buildEnvCredentials() *corev1.Secret {

@@ -60,6 +60,8 @@ func (s *ObserverTestSuite) TestStateObserver_observe() {
 		},
 	}
 
+	// TODO: integrate builder namespace into tests.
+
 	err := observer.observe(ctx, observed)
 	s.NoError(err)
 	s.NotNil(observed.Env)

@@ -22,6 +22,17 @@ func NewInitialize(client client.Client, collection *collector.Collection) *Init
 
 func (i *Initialize) Do(ctx context.Context, status *v1beta1.EnvironmentStatus) (v1beta1.EnvironmentStage, error) {
 	status.ExpectedRevision = i.observed.Env.GetRevision()
+
+	// Ensure that the builder namespace exists.
+	if i.observed.BuilderNamespace == nil {
+		err := i.Create(ctx, i.observed.BuilderNamespace)
+		if err != nil {
+			return v1beta1.EnvironmentStageInitialize, err
+		}
+	}
+
+	// TODO: ensure that the build secret exists.
+
 	return v1beta1.EnvironmentStageBuildImage, nil
 }
 
