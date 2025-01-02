@@ -66,7 +66,6 @@ func (s *ObserverTestSuite) TestStateObserver_observe() {
 	err := observer.observe(ctx, observed)
 	s.NoError(err)
 	s.NotNil(observed.Env)
-	s.NotNil(observed.Config)
 	s.NotNil(observed.StorageCredentials)
 
 	s.Nil(observed.Job)

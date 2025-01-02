@@ -22,7 +22,6 @@ type ObservedState struct {
 	Service            *corev1.Service
 	Ingress            *networkingv1.Ingress
 	StorageCredentials *corev1.Secret
-	Config             *v1beta1.EnvironmentConfig
 	BuilderNamespace   *corev1.Namespace
 	observeTime        time.Time
 }
@@ -34,7 +33,6 @@ func NewObservedState() *ObservedState {
 		Deployment:       nil,
 		Service:          nil,
 		Ingress:          nil,
-		Config:           nil,
 		BuilderNamespace: nil,
 		observeTime:      time.Now(),
 	}
@@ -63,17 +61,6 @@ func (o *StateObserver) observe(ctx context.Context, observed *ObservedState) er
 	}
 
 	observed.BuilderNamespace = builderNamespace
-
-	// TODO: Remove me in favor of cobra, but initially only take command line and
-	// pass the relevant information to the builder.  After thought I think this is
-	// too messy
-	config, err := o.observeConfig(ctx, env, v1beta1.DefaultControllerNamespace)
-	if err != nil {
-		// Handle missing error more gracefully
-		return err
-	}
-
-	observed.Config = config
 
 	// Observe the job
 	job, err := o.observeJob(ctx, o.Request.Name+"-build")
@@ -196,19 +183,4 @@ func (o *StateObserver) observeStorageCredentials(ctx context.Context, ns, name 
 		return nil, err
 	}
 	return &secret, nil
-}
-
-func (o *StateObserver) observeConfig(ctx context.Context, env *v1beta1.Environment, namespace string) (*v1beta1.EnvironmentConfig, error) {
-	// TODO: How does this impact a multiuser environment?
-	var config v1beta1.EnvironmentConfig
-	if err := o.Client.Get(ctx, client.ObjectKey{
-		Namespace: namespace,
-		Name:      env.Spec.Config,
-	}, &config); err != nil {
-		if client.IgnoreNotFound(err) == nil {
-			return nil, fmt.Errorf("seaway config not found: %s/%s", env.Spec.Config, namespace)
-		}
-		return nil, err
-	}
-	return &config, nil
 }

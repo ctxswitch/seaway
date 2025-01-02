@@ -34,16 +34,23 @@ import (
 )
 
 type Command struct {
-	Certs              string
-	CertName           string
-	KeyName            string
-	ClientCAName       string
-	LeaderElection     bool
-	SkipInsecureVerify bool
-	LogLevel           int8
-	Namespace          string
-	DefaultConfig      string
-	BuildNamespace     string
+	Certs                 string
+	CertName              string
+	KeyName               string
+	ClientCAName          string
+	LeaderElection        bool
+	SkipInsecureVerify    bool
+	LogLevel              int8
+	Namespace             string
+	DefaultConfig         string
+	BuildNamespace        string
+	RegistryURL           string
+	RegistryNodePort      uint32
+	StorageURL            string
+	StorageBucket         string
+	StoragePrefix         string
+	StorageRegion         string
+	StorageForcePathStyle bool
 }
 
 func NewCommand() *Command {
@@ -98,7 +105,11 @@ func (c *Command) RunE(cmd *cobra.Command, args []string) error {
 	}
 
 	hookServer.Register("/upload", handlers.NewUploadHandler(&handlers.UploadOptions{
-		Client: mgr.GetClient(),
+		Client:        mgr.GetClient(),
+		StorageURL:    c.StorageURL,
+		StorageBucket: c.StorageBucket,
+		StoragePrefix: c.StoragePrefix,
+		StorageRegion: c.StorageRegion,
 	}))
 
 	hookServer.Register("/ping", handlers.NewPingHandler())
@@ -108,7 +119,16 @@ func (c *Command) RunE(cmd *cobra.Command, args []string) error {
 		os.Exit(1)
 	}
 
-	if err = controller.SetupWithManager(mgr, &controller.Options{}); err != nil {
+	if err = controller.SetupWithManager(mgr, &controller.Options{
+		BuildNamespace:        c.BuildNamespace,
+		RegistryURL:           c.RegistryURL,
+		RegistryNodePort:      c.RegistryNodePort,
+		StorageURL:            c.StorageURL,
+		StorageBucket:         c.StorageBucket,
+		StoragePrefix:         c.StoragePrefix,
+		StorageRegion:         c.StorageRegion,
+		StorageForcePathStyle: c.StorageForcePathStyle,
+	}); err != nil {
 		log.Error(err, "unable to setup seaway controllers")
 		os.Exit(1)
 	}

@@ -63,7 +63,6 @@ func (s *DeployTestSuite) TestDeploy_DoNewEnvironmentAllComponents() {
 	s.Assert().NoError(err)
 	// Sanity check to make sure we loaded the required components.
 	s.Assert().NotNil(collection.Observed.Env)
-	s.Assert().NotNil(collection.Observed.Config)
 	s.Assert().NotNil(collection.Observed.StorageCredentials)
 
 	d := NewDeploy(s.client, &collection)
@@ -117,7 +116,6 @@ func (s *DeployTestSuite) TestDeploy_DoNewEnvironmentOnlyDeploy() {
 	s.Assert().NoError(err)
 	// Sanity check to make sure we loaded the required components.
 	s.Assert().NotNil(collection.Observed.Env)
-	s.Assert().NotNil(collection.Observed.Config)
 	s.Assert().NotNil(collection.Observed.StorageCredentials)
 
 	d := NewDeploy(s.client, &collection)
@@ -171,7 +169,6 @@ func (s *DeployTestSuite) TestDeploy_DoNewEnvironmentOnlyService() {
 	s.Assert().NoError(err)
 	// Sanity check to make sure we loaded the required components.
 	s.Assert().NotNil(collection.Observed.Env)
-	s.Assert().NotNil(collection.Observed.Config)
 	s.Assert().NotNil(collection.Observed.StorageCredentials)
 
 	d := NewDeploy(s.client, &collection)
@@ -225,7 +222,6 @@ func (s *DeployTestSuite) TestDeploy_RemoveIngressIfNil() {
 	s.Assert().NoError(err)
 	// Sanity check to make sure we loaded the required components.
 	s.Assert().NotNil(collection.Observed.Env)
-	s.Assert().NotNil(collection.Observed.Config)
 	s.Assert().NotNil(collection.Observed.StorageCredentials)
 
 	s.Nil(collection.Desired.Ingress)
@@ -281,7 +277,6 @@ func (s *DeployTestSuite) TestDeploy_RemoveServiceIfNil() {
 	s.Assert().NoError(err)
 	// Sanity check to make sure we loaded the required components.
 	s.Assert().NotNil(collection.Observed.Env)
-	s.Assert().NotNil(collection.Observed.Config)
 	s.Assert().NotNil(collection.Observed.StorageCredentials)
 
 	s.Nil(collection.Desired.Ingress)
@@ -340,7 +335,6 @@ func (s *DeployTestSuite) TestDeploy_DontRemoveIngressIfNotObserved() {
 	s.Assert().NoError(err)
 	// Sanity check to make sure we loaded the required components.
 	s.Assert().NotNil(collection.Observed.Env)
-	s.Assert().NotNil(collection.Observed.Config)
 	s.Assert().NotNil(collection.Observed.StorageCredentials)
 
 	s.Assert().NotNil(collection.Observed.Service)

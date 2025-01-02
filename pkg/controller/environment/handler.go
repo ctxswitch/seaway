@@ -30,11 +30,6 @@ func (h *Handler) reconcile(ctx context.Context) (ctrl.Result, error) {
 		return ctrl.Result{}, nil
 	}
 
-	if h.collection.Observed.Config == nil {
-		logger.Error(nil, "unable to reconcile environment without seaway config")
-		return ctrl.Result{}, nil
-	}
-
 	env := h.collection.Observed.Env
 
 	switch {
