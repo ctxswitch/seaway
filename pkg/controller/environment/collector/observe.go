@@ -96,16 +96,6 @@ func (o *StateObserver) observe(ctx context.Context, observed *ObservedState) er
 	return nil
 }
 
-func (o *StateObserver) observeNamespace(ctx context.Context, name string) (*corev1.Namespace, error) {
-	ns := &corev1.Namespace{}
-
-	if err := o.Client.Get(ctx, client.ObjectKey{Name: name}, ns); err != nil {
-		return nil, client.IgnoreNotFound(err)
-	}
-
-	return ns, nil
-}
-
 func (o *StateObserver) observeEnvironment(ctx context.Context) (*v1beta1.Environment, error) {
 	var env v1beta1.Environment
 	if err := o.Client.Get(ctx, o.Request.NamespacedName, &env); err != nil {

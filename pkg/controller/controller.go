@@ -32,8 +32,8 @@ type Options struct {
 type Controller struct{}
 
 // SetupWithManager sets up any known controllers.
-func SetupWithManager(mgr ctrl.Manager, opts *Options) (err error) {
-	if err = environment.SetupWithManager(mgr, &environment.Options{
+func SetupWithManager(mgr ctrl.Manager, opts *Options) error {
+	return environment.SetupWithManager(mgr, &environment.Options{
 		RegistryURL:           opts.RegistryURL,
 		RegistryNodePort:      opts.RegistryNodePort,
 		StorageURL:            opts.StorageURL,
@@ -41,9 +41,5 @@ func SetupWithManager(mgr ctrl.Manager, opts *Options) (err error) {
 		StoragePrefix:         opts.StoragePrefix,
 		StorageRegion:         opts.StorageRegion,
 		StorageForcePathStyle: opts.StorageForcePathStyle,
-	}); err != nil {
-		return
-	}
-
-	return
+	})
 }

@@ -2,19 +2,17 @@ package handlers
 
 import (
 	"context"
+	"ctx.sh/seaway/pkg/apis/seaway.ctx.sh/v1beta1"
 	"ctx.sh/seaway/pkg/util"
 	"encoding/json"
 	"fmt"
+	"github.com/minio/minio-go/v7"
+	"github.com/minio/minio-go/v7/pkg/credentials"
 	"io"
 	"mime/multipart"
 	"net/http"
 	"net/url"
 	"os"
-	"strings"
-
-	"ctx.sh/seaway/pkg/apis/seaway.ctx.sh/v1beta1"
-	"github.com/minio/minio-go/v7"
-	"github.com/minio/minio-go/v7/pkg/credentials"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
@@ -61,11 +59,6 @@ func (h *Upload) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	if config == "" {
 		h.respond(w, minio.UploadInfo{}, fmt.Errorf("config was not specified"))
-	}
-
-	parts := strings.Split(config, "/")
-	if len(parts) == 1 {
-		parts = append([]string{h.options.Namespace}, parts...)
 	}
 
 	logger.Info("Uploading file", "name", name, "namespace", namespace, "etag", etag, "config", config)
