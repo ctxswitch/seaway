@@ -2,6 +2,7 @@ package environment
 
 import (
 	"context"
+	"ctx.sh/seaway/pkg/registry"
 	"reflect"
 	"time"
 
@@ -15,8 +16,9 @@ import (
 )
 
 type Handler struct {
-	client     client.Client
-	collection *collector.Collection
+	client      client.Client
+	collection  *collector.Collection
+	registryURL string
 }
 
 func (h *Handler) reconcile(ctx context.Context) (ctrl.Result, error) {
@@ -79,7 +81,8 @@ func (h *Handler) getStage(current v1beta1.EnvironmentStage) stage.Stage {
 	case v1beta1.EnvironmentStageBuildImageFailing:
 		return stage.NewBuildImageWait(h.client, h.collection)
 	case v1beta1.EnvironmentStageBuildImageVerify:
-		return stage.NewBuildImageVerify(h.client, h.collection)
+		reg := registry.NewClient(registry.NewHTTPClient()).WithRegistry(h.registryURL)
+		return stage.NewBuildImageVerify(h.client, h.collection).WithRegistry(reg)
 	case v1beta1.EnvironmentStageDeploy:
 		return stage.NewDeploy(h.client, h.collection)
 	case v1beta1.EnvironmentStageDeployVerify:

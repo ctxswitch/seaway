@@ -22,26 +22,23 @@ type ObservedState struct {
 	Service            *corev1.Service
 	Ingress            *networkingv1.Ingress
 	StorageCredentials *corev1.Secret
-	BuilderNamespace   *corev1.Namespace
 	observeTime        time.Time
 }
 
 func NewObservedState() *ObservedState {
 	return &ObservedState{
-		Env:              nil,
-		Job:              nil,
-		Deployment:       nil,
-		Service:          nil,
-		Ingress:          nil,
-		BuilderNamespace: nil,
-		observeTime:      time.Now(),
+		Env:         nil,
+		Job:         nil,
+		Deployment:  nil,
+		Service:     nil,
+		Ingress:     nil,
+		observeTime: time.Now(),
 	}
 }
 
 type StateObserver struct {
-	Client           client.Client
-	Request          ctrl.Request
-	BuilderNamespace string
+	Client  client.Client
+	Request ctrl.Request
 }
 
 func (o *StateObserver) observe(ctx context.Context, observed *ObservedState) error {
@@ -54,13 +51,6 @@ func (o *StateObserver) observe(ctx context.Context, observed *ObservedState) er
 	}
 
 	observed.Env = env
-
-	builderNamespace, err := o.observeNamespace(ctx, o.BuilderNamespace)
-	if err != nil {
-		return err
-	}
-
-	observed.BuilderNamespace = builderNamespace
 
 	// Observe the job
 	job, err := o.observeJob(ctx, o.Request.Name+"-build")
@@ -94,8 +84,9 @@ func (o *StateObserver) observe(ctx context.Context, observed *ObservedState) er
 
 	observed.Ingress = ingress
 
-	// TODO: Make the name configurable.
-	storageCredentials, err := o.observeStorageCredentials(ctx, o.BuilderNamespace, "storage-credentials")
+	// TODO: Make the name configurable. I actually don't think that I need this other
+	// than for verification/validation.
+	storageCredentials, err := o.observeStorageCredentials(ctx, v1beta1.DefaultControllerNamespace, "storage-credentials")
 	if err != nil {
 		return err
 	}
@@ -127,7 +118,7 @@ func (o *StateObserver) observeEnvironment(ctx context.Context) (*v1beta1.Enviro
 func (o *StateObserver) observeJob(ctx context.Context, name string) (*batchv1.Job, error) {
 	var job batchv1.Job
 	if err := o.Client.Get(ctx, types.NamespacedName{
-		Namespace: o.Request.Namespace,
+		Namespace: v1beta1.DefaultControllerNamespace,
 		Name:      name,
 	}, &job); err != nil {
 		if client.IgnoreNotFound(err) == nil {

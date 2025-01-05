@@ -58,7 +58,6 @@ func (s *ObserverTestSuite) TestStateObserver_observe() {
 				Name:      "test",
 			},
 		},
-		BuilderNamespace: "seaway-build",
 	}
 
 	// TODO: integrate builder namespace into tests.
@@ -106,7 +105,6 @@ func (s *ObserverTestSuite) TestStateObserver_observeEnvironment() {
 				Name:      "test",
 			},
 		},
-		BuilderNamespace: "seaway-build",
 	}
 
 	env, err := observer.observeEnvironment(ctx)

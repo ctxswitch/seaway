@@ -20,7 +20,6 @@ import (
 )
 
 type Options struct {
-	BuildNamespace        string
 	RegistryURL           string
 	RegistryNodePort      uint32
 	StorageURL            string
@@ -35,7 +34,6 @@ type Controller struct{}
 // SetupWithManager sets up any known controllers.
 func SetupWithManager(mgr ctrl.Manager, opts *Options) (err error) {
 	if err = environment.SetupWithManager(mgr, &environment.Options{
-		BuildNamespace:        opts.BuildNamespace,
 		RegistryURL:           opts.RegistryURL,
 		RegistryNodePort:      opts.RegistryNodePort,
 		StorageURL:            opts.StorageURL,

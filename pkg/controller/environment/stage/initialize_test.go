@@ -94,12 +94,7 @@ func TestInitialize(t *testing.T) {
 					StorageCredentials: &corev1.Secret{
 						ObjectMeta: metav1.ObjectMeta{
 							Name:      "storage-credentials",
-							Namespace: "seaway-build",
-						},
-					},
-					BuilderNamespace: &corev1.Namespace{
-						ObjectMeta: metav1.ObjectMeta{
-							Name: "seaway-build",
+							Namespace: "seaway-system",
 						},
 					},
 				},

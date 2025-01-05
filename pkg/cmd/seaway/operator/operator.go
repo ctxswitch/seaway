@@ -43,7 +43,6 @@ type Command struct {
 	LogLevel              int8
 	Namespace             string
 	DefaultConfig         string
-	BuildNamespace        string
 	RegistryURL           string
 	RegistryNodePort      uint32
 	StorageURL            string
@@ -120,7 +119,6 @@ func (c *Command) RunE(cmd *cobra.Command, args []string) error {
 	}
 
 	if err = controller.SetupWithManager(mgr, &controller.Options{
-		BuildNamespace:        c.BuildNamespace,
 		RegistryURL:           c.RegistryURL,
 		RegistryNodePort:      c.RegistryNodePort,
 		StorageURL:            c.StorageURL,

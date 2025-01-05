@@ -137,3 +137,17 @@ func TestBuildImageWait(t *testing.T) {
 		})
 	}
 }
+
+func TestBuildImageWait_NilJob(t *testing.T) {
+	collection := collector.Collection{
+		Observed: &collector.ObservedState{
+			Job: nil,
+		},
+	}
+
+	mc := mock.NewClient()
+	bv := NewBuildImageWait(mc, &collection)
+	stage, err := bv.Do(context.TODO(), &v1beta1.EnvironmentStatus{})
+	assert.Error(t, err)
+	assert.Equal(t, v1beta1.EnvironmentStageBuildImageFailed, stage)
+}

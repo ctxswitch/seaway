@@ -28,7 +28,6 @@ import (
 )
 
 type Options struct {
-	BuildNamespace        string
 	RegistryURL           string
 	RegistryNodePort      uint32
 	StorageURL            string
@@ -50,7 +49,7 @@ func SetupWithManager(mgr ctrl.Manager, opts *Options) (err error) {
 		Options:  opts,
 		Scheme:   mgr.GetScheme(),
 		Client:   mgr.GetClient(),
-		Recorder: mgr.GetEventRecorderFor("seaway-controller"),
+		Recorder: mgr.GetEventRecorderFor("seaway-operator"),
 	}
 
 	return ctrl.NewControllerManagedBy(mgr).
@@ -74,6 +73,7 @@ func SetupWithManager(mgr ctrl.Manager, opts *Options) (err error) {
 // +kubebuilder:rbac:groups=extensions,resources=ingresses,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=extensions,resources=ingresses/status,verbs=get
 // +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=core,resources=namespaces,verbs=get;list;watch;create;update
 
 func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
@@ -84,7 +84,6 @@ func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	sc := &collector.StateCollector{
 		Client:                c.Client,
 		Scheme:                c.Scheme,
-		BuilderNamespace:      c.Options.BuildNamespace,
 		RegistryURL:           c.Options.RegistryURL,
 		RegistryNodePort:      c.Options.RegistryNodePort,
 		StorageURL:            c.Options.StorageURL,
@@ -103,8 +102,9 @@ func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 
 	handler := &Handler{
-		collection: &collection,
-		client:     c.Client,
+		collection:  &collection,
+		client:      c.Client,
+		registryURL: c.Options.RegistryURL,
 	}
 
 	return handler.reconcile(ctx)

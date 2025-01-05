@@ -5,5 +5,4 @@ commonAnnotations:
   ctx.sh/license: "Apache"
   ctx.sh/support: "https://github.com/ctxswitch/seaway/issues"
 resources:
-  - creds.yaml
   - registry.yaml

@@ -51,8 +51,7 @@ func (s *DeployTestSuite) TestDeploy_DoNewEnvironmentAllComponents() {
 	var collection collector.Collection
 
 	sc := &collector.StateCollector{
-		Client:           s.client,
-		BuilderNamespace: "seaway-build",
+		Client: s.client,
 	}
 	err := sc.ObserveAndBuild(context.TODO(), ctrl.Request{
 		NamespacedName: types.NamespacedName{
@@ -104,8 +103,7 @@ func (s *DeployTestSuite) TestDeploy_DoNewEnvironmentOnlyDeploy() {
 	var collection collector.Collection
 
 	sc := &collector.StateCollector{
-		Client:           s.client,
-		BuilderNamespace: "seaway-build",
+		Client: s.client,
 	}
 	err := sc.ObserveAndBuild(context.TODO(), ctrl.Request{
 		NamespacedName: types.NamespacedName{
@@ -157,8 +155,7 @@ func (s *DeployTestSuite) TestDeploy_DoNewEnvironmentOnlyService() {
 	var collection collector.Collection
 
 	sc := &collector.StateCollector{
-		Client:           s.client,
-		BuilderNamespace: "seaway-build",
+		Client: s.client,
 	}
 	err := sc.ObserveAndBuild(context.TODO(), ctrl.Request{
 		NamespacedName: types.NamespacedName{
@@ -210,8 +207,7 @@ func (s *DeployTestSuite) TestDeploy_RemoveIngressIfNil() {
 	var collection collector.Collection
 
 	sc := &collector.StateCollector{
-		Client:           s.client,
-		BuilderNamespace: "seaway-build",
+		Client: s.client,
 	}
 	err := sc.ObserveAndBuild(context.TODO(), ctrl.Request{
 		NamespacedName: types.NamespacedName{
@@ -265,8 +261,7 @@ func (s *DeployTestSuite) TestDeploy_RemoveServiceIfNil() {
 	var collection collector.Collection
 
 	sc := &collector.StateCollector{
-		Client:           s.client,
-		BuilderNamespace: "seaway-build",
+		Client: s.client,
 	}
 	err := sc.ObserveAndBuild(context.TODO(), ctrl.Request{
 		NamespacedName: types.NamespacedName{
@@ -323,8 +318,7 @@ func (s *DeployTestSuite) TestDeploy_DontRemoveIngressIfNotObserved() {
 	var collection collector.Collection
 
 	sc := &collector.StateCollector{
-		Client:           s.client,
-		BuilderNamespace: "seaway-build",
+		Client: s.client,
 	}
 	err := sc.ObserveAndBuild(context.TODO(), ctrl.Request{
 		NamespacedName: types.NamespacedName{

@@ -53,7 +53,7 @@ func (b *BuildImage) Do(ctx context.Context, status *v1beta1.EnvironmentStatus) 
 		}
 	}
 
-	logger.V(4).Info("creating new job", "job", b.desired.Job.Name)
+	logger.V(4).Info("creating new job", "job", b.desired.Job.ObjectMeta)
 	err := b.Create(ctx, b.desired.Job)
 	if err != nil {
 		return v1beta1.EnvironmentStageBuildImageFailed, err

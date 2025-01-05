@@ -1,6 +1,8 @@
 package collector
 
 import (
+	"ctx.sh/seaway/pkg/apis/seaway.ctx.sh/v1beta1"
+	"ctx.sh/seaway/pkg/util"
 	"fmt"
 	"net/url"
 	"strconv"
@@ -16,20 +18,18 @@ import (
 )
 
 type DesiredState struct {
-	Job            *batchv1.Job
-	Deployment     *appsv1.Deployment
-	Service        *corev1.Service
-	Ingress        *networkingv1.Ingress
-	BuildNamespace *corev1.Namespace
+	Job        *batchv1.Job
+	Deployment *appsv1.Deployment
+	Service    *corev1.Service
+	Ingress    *networkingv1.Ingress
 }
 
 func NewDesiredState() *DesiredState {
 	return &DesiredState{
-		Job:            nil,
-		Deployment:     nil,
-		Service:        nil,
-		Ingress:        nil,
-		BuildNamespace: nil,
+		Job:        nil,
+		Deployment: nil,
+		Service:    nil,
+		Ingress:    nil,
 	}
 }
 
@@ -37,7 +37,6 @@ type Builder struct {
 	observed *ObservedState
 	scheme   *runtime.Scheme
 
-	builderNamespace      string
 	registryURL           string
 	registryNodePort      uint32
 	storageURL            string
@@ -68,7 +67,6 @@ func (b *Builder) desired(d *DesiredState) error {
 		return err
 	}
 
-	d.BuildNamespace = b.buildNamespace(b.builderNamespace)
 	d.Job = b.buildJob()
 	d.Deployment = b.buildDeployment()
 
@@ -82,35 +80,24 @@ func (b *Builder) desired(d *DesiredState) error {
 	return nil
 }
 
-func (b *Builder) buildNamespace(name string) *corev1.Namespace {
-	return &corev1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
-		},
-	}
-}
-
 func (b *Builder) buildJob() *batchv1.Job { //nolint:funlen
 	env := b.observed.Env
 
 	metatdata := metav1.ObjectMeta{
+		// TODO: This will need to be more specific.
 		Name:      env.Name + "-build",
-		Namespace: b.builderNamespace,
+		Namespace: v1beta1.DefaultControllerNamespace,
 		Annotations: map[string]string{
 			"seaway.ctx.sh/revision": env.GetRevision(),
 		},
-		OwnerReferences: []metav1.OwnerReference{
-			env.GetControllerReference(),
-		},
+		// TODO: Use the controller as an owner reference.
 	}
-
-	archiveKey := fmt.Sprintf("%s/%s-%s.tar.gz", b.storagePrefix, env.GetName(), env.GetNamespace())
 
 	args := env.Spec.Build.Args
 	if args == nil {
 		args = []string{
 			fmt.Sprintf("--dockerfile=%s", *env.Spec.Build.Dockerfile),
-			fmt.Sprintf("--context=s3://%s/%s", b.storageBucket, archiveKey),
+			fmt.Sprintf("--context=s3://%s/%s", b.storageBucket, util.ArchiveKey(b.storagePrefix, env.GetNamespace(), env.GetName())),
 			fmt.Sprintf("--destination=%s/%s:%s", b.registry.Host, env.GetName(), env.GetRevision()),
 			// TODO: toggle caching
 			"--cache=true",
@@ -151,7 +138,7 @@ func (b *Builder) buildJob() *batchv1.Job { //nolint:funlen
 			{
 				SecretRef: &corev1.SecretEnvSource{
 					LocalObjectReference: corev1.LocalObjectReference{
-						Name: env.Name + "-credentials",
+						Name: "storage-credentials",
 					},
 				},
 			},

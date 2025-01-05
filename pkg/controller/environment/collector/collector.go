@@ -16,7 +16,6 @@ type Collection struct {
 type StateCollector struct {
 	Client                client.Client
 	Scheme                *runtime.Scheme
-	BuilderNamespace      string
 	RegistryURL           string
 	RegistryNodePort      uint32
 	StorageURL            string
@@ -29,9 +28,8 @@ type StateCollector struct {
 func (sc *StateCollector) ObserveAndBuild(ctx context.Context, req ctrl.Request, c *Collection) error {
 	observed := NewObservedState()
 	observer := &StateObserver{
-		Client:           sc.Client,
-		Request:          req,
-		BuilderNamespace: sc.BuilderNamespace,
+		Client:  sc.Client,
+		Request: req,
 	}
 
 	err := observer.observe(ctx, observed)
@@ -45,8 +43,8 @@ func (sc *StateCollector) ObserveAndBuild(ctx context.Context, req ctrl.Request,
 	build := &Builder{
 		observed:              observed,
 		scheme:                sc.Scheme,
-		builderNamespace:      sc.BuilderNamespace,
 		registryURL:           sc.RegistryURL,
+		registryNodePort:      sc.RegistryNodePort,
 		storageURL:            sc.StorageURL,
 		storageBucket:         sc.StorageBucket,
 		storagePrefix:         sc.StoragePrefix,

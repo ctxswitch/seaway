@@ -15,6 +15,7 @@
 package main
 
 import (
+	"ctx.sh/seaway/pkg/apis/seaway.ctx.sh/v1beta1"
 	"ctx.sh/seaway/pkg/build"
 	"ctx.sh/seaway/pkg/cmd/seaway/operator"
 	"github.com/spf13/cobra"
@@ -81,13 +82,12 @@ func OperatorCommand() *cobra.Command {
 	cmd.PersistentFlags().Int8VarP(&c.LogLevel, "log-level", "", DefaultLogLevel, "set the log level (integer value)")
 	cmd.PersistentFlags().StringVarP(&c.Namespace, "namespace", "", DefaultNamespace, "limit the controller to a specific namespace")
 	cmd.PersistentFlags().StringVarP(&c.DefaultConfig, "default-config", "", DefaultConfigName, "specify the default seaway config that will be used if none is specified")
-	cmd.PersistentFlags().StringVarP(&c.BuildNamespace, "build-namespace", "", DefaultBuildNamespace, "specify the namespace that will be used for application builds")
-	cmd.PersistentFlags().StringVarP(&c.RegistryURL, "registry-url", "", DefaultRegistryURL, "specify the url for the local registry")
-	cmd.PersistentFlags().Uint32VarP(&c.RegistryNodePort, "registry-nodeport", "", DefaultRegistryNodePort, "specify the node port used by the registry")
-	cmd.PersistentFlags().StringVarP(&c.StorageURL, "storage-url", "", DefaultStorageURL, "specify the url for the object storage")
-	cmd.PersistentFlags().StringVarP(&c.StorageBucket, "storage-bucket", "", DefaultStorageBucket, "specify the object storage bucket")
-	cmd.PersistentFlags().StringVarP(&c.StoragePrefix, "storage-prefix", "", DefaultStoragePrefix, "specify the object storage prefix")
-	cmd.PersistentFlags().StringVarP(&c.StorageRegion, "storage-region", "", DefaultStorageRegion, "specify the object storage region")
-	cmd.PersistentFlags().BoolVarP(&c.StorageForcePathStyle, "storage-force-path-style", "", DefaultStorageForcePathStyle, "specify the whenther the storage uses path style")
+	cmd.PersistentFlags().StringVarP(&c.RegistryURL, "registry-url", "", v1beta1.DefaultRegistryURL, "specify the url for the local registry")
+	cmd.PersistentFlags().Uint32VarP(&c.RegistryNodePort, "registry-nodeport", "", v1beta1.DefaultRegistryNodeport, "specify the node port used by the registry")
+	cmd.PersistentFlags().StringVarP(&c.StorageURL, "storage-url", "", v1beta1.DefaultStorageEndpoint, "specify the url for the object storage")
+	cmd.PersistentFlags().StringVarP(&c.StorageBucket, "storage-bucket", "", v1beta1.DefaultStorageBucket, "specify the object storage bucket")
+	cmd.PersistentFlags().StringVarP(&c.StoragePrefix, "storage-prefix", "", v1beta1.DefaultStoragePrefix, "specify the object storage prefix")
+	cmd.PersistentFlags().StringVarP(&c.StorageRegion, "storage-region", "", v1beta1.DefaultStorageRegion, "specify the object storage region")
+	cmd.PersistentFlags().BoolVarP(&c.StorageForcePathStyle, "storage-force-path-style", "", v1beta1.DefaultStorageForcePathStyle, "specify the whenther the storage uses path style")
 	return cmd
 }

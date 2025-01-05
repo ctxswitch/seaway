@@ -33,15 +33,10 @@ func TestBuildImage_NoChange(t *testing.T) {
 
 	collection := collector.Collection{
 		Observed: &collector.ObservedState{
-			BuilderNamespace: &corev1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "seaway-build",
-				},
-			},
 			Job: &batchv1.Job{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-build",
-					Namespace: "seaway-build",
+					Namespace: "seaway-system",
 					Annotations: map[string]string{
 						"seaway.ctx.sh/revision": "1",
 					},
@@ -64,7 +59,7 @@ func TestBuildImage_NoChange(t *testing.T) {
 			Job: &batchv1.Job{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-build",
-					Namespace: "seaway-build",
+					Namespace: "seaway-system",
 					Annotations: map[string]string{
 						"seaway.ctx.sh/revision": "1",
 					},
@@ -103,13 +98,7 @@ func TestBuildImage_ChangeNoJob(t *testing.T) {
 	defer mc.Reset()
 
 	collection := collector.Collection{
-		Observed: &collector.ObservedState{
-			BuilderNamespace: &corev1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "seaway-builder",
-				},
-			},
-		},
+		Observed: &collector.ObservedState{},
 		Desired: &collector.DesiredState{
 			Job: &batchv1.Job{
 				ObjectMeta: metav1.ObjectMeta{
@@ -162,11 +151,6 @@ func TestBuildImage_JobDeletedAfterObserve(t *testing.T) {
 
 	collection := collector.Collection{
 		Observed: &collector.ObservedState{
-			BuilderNamespace: &corev1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "seaway-builder",
-				},
-			},
 			Job: &batchv1.Job{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-build",
@@ -242,11 +226,6 @@ func TestBuildImage_PreviousJob(t *testing.T) {
 
 	collection := collector.Collection{
 		Observed: &collector.ObservedState{
-			BuilderNamespace: &corev1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "seaway-builder",
-				},
-			},
 			Job: &batchv1.Job{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-build",

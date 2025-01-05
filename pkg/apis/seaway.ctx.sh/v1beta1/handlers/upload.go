@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"ctx.sh/seaway/pkg/util"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -142,7 +143,7 @@ func (h *Upload) store(ctx context.Context, file multipart.File, name, namespace
 	archive := tmp.Name()
 
 	// Upload to minio.
-	archiveKey := fmt.Sprintf("%s/%s-%s.tar.gz", h.options.StoragePrefix, name, namespace)
+	archiveKey := util.ArchiveKey(h.options.StoragePrefix, namespace, name)
 	info, err := store.FPutObject(ctx, h.options.StorageBucket, archiveKey, archive, minio.PutObjectOptions{})
 	if err != nil {
 		return minio.UploadInfo{}, err
