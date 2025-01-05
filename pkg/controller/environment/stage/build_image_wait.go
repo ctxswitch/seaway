@@ -29,6 +29,13 @@ func (b *BuildImageWait) Do(ctx context.Context, status *v1beta1.EnvironmentStat
 	logger.V(4).Info("waiting for build job to complete")
 
 	job := b.observed.Job
+	if job == nil {
+		// TODO: we should probably check to see if the image exists before failing.  I
+		// 		 could just do this by passing on to the verification stage.
+		next := v1beta1.EnvironmentStageBuildImageFailed
+		return next, errors.New("build failed")
+	}
+
 	if job.Status.Active > 0 && job.Status.Failed > 0 {
 		return v1beta1.EnvironmentStageBuildImageFailing, nil
 	} else {

@@ -18,4 +18,4 @@ COPY --from=build /usr/src/app/dist/seaway /seaway
 EXPOSE 9443
 EXPOSE 9090
 
-CMD ["/seaway", "controller", "--log-level=5"]
+CMD ["/seaway", "operator", "--log-level=5"]

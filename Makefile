@@ -1,4 +1,4 @@
-ENV ?= "local"
+ENV ?= "dev"
 SYSTEM ?= $(shell uname -s | tr '[:upper:]' '[:lower:]' )
 ARCH ?= $(shell uname -m)
 ifeq ($(ARCH), "aarch64")
@@ -64,7 +64,7 @@ generate: codegen manifests installgen
 ### Set up a local development environment
 ###
 .PHONY: localdev
-localdev: localdev-cluster localdev-shared
+localdev: localdev-cluster localdev-shared install
 
 .PHONY: localdev-cluster
 localdev-cluster:
@@ -75,19 +75,12 @@ localdev-cluster:
 
 .PHONY: localdev-shared
 localdev-shared:
-	@$(KUSTOMIZE) build config/shared/cert-manager | envsubst | $(KUBECTL) apply -f -
+	@$(KUSTOMIZE) build config/seaway/cert-manager | envsubst | $(KUBECTL) apply -f -
 	@$(KUBECTL) wait --for=condition=available --timeout=120s deploy -l app.kubernetes.io/group=cert-manager -n cert-manager
-	@$(KUSTOMIZE) build config/shared/minio | envsubst | $(KUBECTL) apply -f -
-	@$(KUBECTL) wait --for=condition=available --timeout=120s deploy/minio-operator -n minio-operator
-	@$(KUSTOMIZE) build config/shared/overlays/$(ENV) | envsubst | $(KUBECTL) apply -f -
-
-.PHONY: localdev-seaway
-localdev-seaway:
-	@$(KUSTOMIZE) build config/seaway/overlays/$(ENV) | envsubst | $(KUBECTL) apply -f -
-
-.PHONY: clean-localdev-shared
-clean-localdev-shared:
-	@$(KUBECTL) delete -k config/shared/overlays/$(ENV)
+	@$(KUSTOMIZE) build config/seaway/localstack | envsubst | $(KUBECTL) apply -f -
+	@$(KUBECTL) wait --for=condition=available --timeout=120s deploy/localstack -n seaway-system
+	@$(KUSTOMIZE) build config/seaway/registry | envsubst | $(KUBECTL) apply -f -
+	@$(KUBECTL) wait --for=condition=available --timeout=120s deploy/registry -n seaway-system
 
 ###
 ### Build, install, run, and clean
@@ -95,10 +88,12 @@ clean-localdev-shared:
 .PHONY: install
 install: $(KUSTOMIZE) generate
 	@$(KUSTOMIZE) build config/seaway/crd | kubectl apply -f -
+	@$(KUSTOMIZE) build config/seaway/overlays/$(ENV) | envsubst | $(KUBECTL) apply -f -
 
 .PHONY: uninstall
 uninstall:
-	kubectl delete -k config/overlays/$(ENV)
+	@kubectl delete -k config/overlays/$(ENV)
+	@kubectl delete -k config/seaway/overlays/$(ENV)
 
 ###
 ### Tests/Utils
@@ -121,17 +116,12 @@ license: $(ADDLICENSE)
 
 .PHONY: run
 run:
-	$(eval POD := $(shell kubectl get pods -n seaway-system -l app=seaway-controller -o=custom-columns=:metadata.name --no-headers))
-	kubectl exec -it -n seaway-system pod/$(POD) -- bash -c "go run pkg/cmd/seaway/*.go controller --log-level=5"
-
-.PHONY: run-uploader
-run-uploader:
-	$(eval POD := $(shell kubectl get pods -n seaway-system -l app=seaway-controller -o=custom-columns=:metadata.name --no-headers))
-	kubectl exec -it -n seaway-system pod/$(POD) -- bash -c "go run pkg/cmd/seaway/*.go uploader --log-level=5"
+	$(eval POD := $(shell kubectl get pods -n seaway-system -l app=seaway-operator -o=custom-columns=:metadata.name --no-headers))
+	kubectl exec -it -n seaway-system pod/$(POD) -- bash -c "go run pkg/cmd/seaway/*.go operator --log-level=5"
 
 .PHONY: exec
 exec:
-	$(eval POD := $(shell kubectl get pods -n seaway-system -l app=seaway-controller -o=custom-columns=:metadata.name --no-headers))
+	$(eval POD := $(shell kubectl get pods -n seaway-system -l app=seaway-operator -o=custom-columns=:metadata.name --no-headers))
 	kubectl exec -n seaway-system -it pod/$(POD) -- bash
 
 ###

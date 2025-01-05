@@ -2,7 +2,6 @@ package stage
 
 import (
 	"context"
-
 	"ctx.sh/seaway/pkg/apis/seaway.ctx.sh/v1beta1"
 	"ctx.sh/seaway/pkg/controller/environment/collector"
 	"sigs.k8s.io/controller-runtime/pkg/client"

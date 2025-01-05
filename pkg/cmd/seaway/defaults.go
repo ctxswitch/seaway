@@ -26,11 +26,7 @@ const (
 	DefaultLogLevel             int8   = 0
 	DefaultNamespace            string = ""
 	DefaultConfigName           string = "default"
+	DefaulSystemNamespace       string = "seaway-system"
 
 	ConnectionTimeout time.Duration = 30 * time.Second
-
-	// We need the registry wrapper so we can set up the node ports for the registry.  By default,
-	// the install manifests will create a default registry called seaway-registry.
-	DefaultRegistryURL      string = "http://seaway.registries.svc.cluster.local:5000"
-	DefaultRegistryNodePort int32  = 31555
 )

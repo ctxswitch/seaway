@@ -27,17 +27,29 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
 
+type Options struct {
+	RegistryURL           string
+	RegistryNodePort      uint32
+	StorageURL            string
+	StorageBucket         string
+	StoragePrefix         string
+	StorageRegion         string
+	StorageForcePathStyle bool
+}
+
 type Controller struct {
+	Options  *Options
 	Scheme   *runtime.Scheme
 	Recorder record.EventRecorder
 	client.Client
 }
 
-func SetupWithManager(mgr ctrl.Manager) (err error) {
+func SetupWithManager(mgr ctrl.Manager, opts *Options) (err error) {
 	c := &Controller{
+		Options:  opts,
 		Scheme:   mgr.GetScheme(),
 		Client:   mgr.GetClient(),
-		Recorder: mgr.GetEventRecorderFor("watch-controller"),
+		Recorder: mgr.GetEventRecorderFor("seaway-operator"),
 	}
 
 	return ctrl.NewControllerManagedBy(mgr).
@@ -61,6 +73,7 @@ func SetupWithManager(mgr ctrl.Manager) (err error) {
 // +kubebuilder:rbac:groups=extensions,resources=ingresses,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=extensions,resources=ingresses/status,verbs=get
 // +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=core,resources=namespaces,verbs=get;list;watch;create;update
 
 func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
@@ -69,8 +82,15 @@ func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	var collection collector.Collection
 
 	sc := &collector.StateCollector{
-		Client: c.Client,
-		Scheme: c.Scheme,
+		Client:                c.Client,
+		Scheme:                c.Scheme,
+		RegistryURL:           c.Options.RegistryURL,
+		RegistryNodePort:      c.Options.RegistryNodePort,
+		StorageURL:            c.Options.StorageURL,
+		StorageBucket:         c.Options.StorageBucket,
+		StoragePrefix:         c.Options.StoragePrefix,
+		StorageRegion:         c.Options.StorageRegion,
+		StorageForcePathStyle: c.Options.StorageForcePathStyle,
 	}
 	if err := sc.ObserveAndBuild(ctx, req, &collection); err != nil {
 		return ctrl.Result{}, err
@@ -82,8 +102,9 @@ func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 
 	handler := &Handler{
-		collection: &collection,
-		client:     c.Client,
+		collection:  &collection,
+		client:      c.Client,
+		registryURL: c.Options.RegistryURL,
 	}
 
 	return handler.reconcile(ctx)

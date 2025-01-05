@@ -59,43 +59,42 @@ func (s *DeployTestSuite) TestDeploy_DoNewEnvironmentAllComponents() {
 			Namespace: "default",
 		},
 	}, &collection)
-	s.NoError(err)
+	s.Assert().NoError(err)
 	// Sanity check to make sure we loaded the required components.
-	s.NotNil(collection.Observed.Env)
-	s.NotNil(collection.Observed.Config)
-	s.NotNil(collection.Observed.StorageCredentials)
+	s.Assert().NotNil(collection.Observed.Env)
+	s.Assert().NotNil(collection.Observed.StorageCredentials)
 
 	d := NewDeploy(s.client, &collection)
 	status := collection.Observed.Env.Status.DeepCopy()
 
 	stage, err := d.Do(context.TODO(), status)
-	s.NoError(err)
+	s.Assert().NoError(err)
 
-	s.Equal(v1beta1.EnvironmentStageDeployVerify, stage)
+	s.Assert().Equal(v1beta1.EnvironmentStageDeployVerify, stage)
 
 	var deploy appsv1.Deployment
 	err = s.client.Get(context.TODO(), types.NamespacedName{
 		Name:      "test",
 		Namespace: "default",
 	}, &deploy)
-	s.NoError(err)
-	s.NotNil(deploy)
+	s.Assert().NoError(err)
+	s.Assert().NotNil(deploy)
 
 	var service corev1.Service
 	err = s.client.Get(context.TODO(), types.NamespacedName{
 		Name:      "test",
 		Namespace: "default",
 	}, &service)
-	s.NoError(err)
-	s.NotNil(service)
+	s.Assert().NoError(err)
+	s.Assert().NotNil(service)
 
 	var ingress networkingv1.Ingress
 	err = s.client.Get(context.TODO(), types.NamespacedName{
 		Name:      "test",
 		Namespace: "default",
 	}, &ingress)
-	s.NoError(err)
-	s.NotNil(ingress)
+	s.Assert().NoError(err)
+	s.Assert().NotNil(ingress)
 }
 
 func (s *DeployTestSuite) TestDeploy_DoNewEnvironmentOnlyDeploy() {
@@ -112,27 +111,26 @@ func (s *DeployTestSuite) TestDeploy_DoNewEnvironmentOnlyDeploy() {
 			Namespace: "default",
 		},
 	}, &collection)
-	s.NoError(err)
+	s.Assert().NoError(err)
 	// Sanity check to make sure we loaded the required components.
-	s.NotNil(collection.Observed.Env)
-	s.NotNil(collection.Observed.Config)
-	s.NotNil(collection.Observed.StorageCredentials)
+	s.Assert().NotNil(collection.Observed.Env)
+	s.Assert().NotNil(collection.Observed.StorageCredentials)
 
 	d := NewDeploy(s.client, &collection)
 	status := collection.Observed.Env.Status.DeepCopy()
 
 	stage, err := d.Do(context.TODO(), status)
-	s.NoError(err)
+	s.Assert().NoError(err)
 
-	s.Equal(v1beta1.EnvironmentStageDeployVerify, stage)
+	s.Assert().Equal(v1beta1.EnvironmentStageDeployVerify, stage)
 
 	var deploy appsv1.Deployment
 	err = s.client.Get(context.TODO(), types.NamespacedName{
 		Name:      "test",
 		Namespace: "default",
 	}, &deploy)
-	s.NoError(err)
-	s.NotNil(deploy)
+	s.Assert().NoError(err)
+	s.Assert().NotNil(deploy)
 
 	var service corev1.Service
 	err = s.client.Get(context.TODO(), types.NamespacedName{
@@ -165,35 +163,34 @@ func (s *DeployTestSuite) TestDeploy_DoNewEnvironmentOnlyService() {
 			Namespace: "default",
 		},
 	}, &collection)
-	s.NoError(err)
+	s.Assert().NoError(err)
 	// Sanity check to make sure we loaded the required components.
-	s.NotNil(collection.Observed.Env)
-	s.NotNil(collection.Observed.Config)
-	s.NotNil(collection.Observed.StorageCredentials)
+	s.Assert().NotNil(collection.Observed.Env)
+	s.Assert().NotNil(collection.Observed.StorageCredentials)
 
 	d := NewDeploy(s.client, &collection)
 	status := collection.Observed.Env.Status.DeepCopy()
 
 	stage, err := d.Do(context.TODO(), status)
-	s.NoError(err)
+	s.Assert().NoError(err)
 
-	s.Equal(v1beta1.EnvironmentStageDeployVerify, stage)
+	s.Assert().Equal(v1beta1.EnvironmentStageDeployVerify, stage)
 
 	var deploy appsv1.Deployment
 	err = s.client.Get(context.TODO(), types.NamespacedName{
 		Name:      "test",
 		Namespace: "default",
 	}, &deploy)
-	s.NoError(err)
-	s.NotNil(deploy)
+	s.Assert().NoError(err)
+	s.Assert().NotNil(deploy)
 
 	var service corev1.Service
 	err = s.client.Get(context.TODO(), types.NamespacedName{
 		Name:      "test",
 		Namespace: "default",
 	}, &service)
-	s.NoError(err)
-	s.NotNil(service)
+	s.Assert().NoError(err)
+	s.Assert().NotNil(service)
 
 	var ingress networkingv1.Ingress
 	err = s.client.Get(context.TODO(), types.NamespacedName{
@@ -218,11 +215,10 @@ func (s *DeployTestSuite) TestDeploy_RemoveIngressIfNil() {
 			Namespace: "default",
 		},
 	}, &collection)
-	s.NoError(err)
+	s.Assert().NoError(err)
 	// Sanity check to make sure we loaded the required components.
-	s.NotNil(collection.Observed.Env)
-	s.NotNil(collection.Observed.Config)
-	s.NotNil(collection.Observed.StorageCredentials)
+	s.Assert().NotNil(collection.Observed.Env)
+	s.Assert().NotNil(collection.Observed.StorageCredentials)
 
 	s.Nil(collection.Desired.Ingress)
 
@@ -230,25 +226,25 @@ func (s *DeployTestSuite) TestDeploy_RemoveIngressIfNil() {
 	status := collection.Observed.Env.Status.DeepCopy()
 
 	stage, err := d.Do(context.TODO(), status)
-	s.NoError(err)
+	s.Assert().NoError(err)
 
-	s.Equal(v1beta1.EnvironmentStageDeployVerify, stage)
+	s.Assert().Equal(v1beta1.EnvironmentStageDeployVerify, stage)
 
 	var deploy appsv1.Deployment
 	err = s.client.Get(context.TODO(), types.NamespacedName{
 		Name:      "test",
 		Namespace: "default",
 	}, &deploy)
-	s.NoError(err)
-	s.NotNil(deploy)
+	s.Assert().NoError(err)
+	s.Assert().NotNil(deploy)
 
 	var service corev1.Service
 	err = s.client.Get(context.TODO(), types.NamespacedName{
 		Name:      "test",
 		Namespace: "default",
 	}, &service)
-	s.NoError(err)
-	s.NotNil(service)
+	s.Assert().NoError(err)
+	s.Assert().NotNil(service)
 
 	var ingress networkingv1.Ingress
 	err = s.client.Get(context.TODO(), types.NamespacedName{
@@ -273,11 +269,10 @@ func (s *DeployTestSuite) TestDeploy_RemoveServiceIfNil() {
 			Namespace: "default",
 		},
 	}, &collection)
-	s.NoError(err)
+	s.Assert().NoError(err)
 	// Sanity check to make sure we loaded the required components.
-	s.NotNil(collection.Observed.Env)
-	s.NotNil(collection.Observed.Config)
-	s.NotNil(collection.Observed.StorageCredentials)
+	s.Assert().NotNil(collection.Observed.Env)
+	s.Assert().NotNil(collection.Observed.StorageCredentials)
 
 	s.Nil(collection.Desired.Ingress)
 	s.Nil(collection.Desired.Service)
@@ -286,17 +281,17 @@ func (s *DeployTestSuite) TestDeploy_RemoveServiceIfNil() {
 	status := collection.Observed.Env.Status.DeepCopy()
 
 	stage, err := d.Do(context.TODO(), status)
-	s.NoError(err)
+	s.Assert().NoError(err)
 
-	s.Equal(v1beta1.EnvironmentStageDeployVerify, stage)
+	s.Assert().Equal(v1beta1.EnvironmentStageDeployVerify, stage)
 
 	var deploy appsv1.Deployment
 	err = s.client.Get(context.TODO(), types.NamespacedName{
 		Name:      "test",
 		Namespace: "default",
 	}, &deploy)
-	s.NoError(err)
-	s.NotNil(deploy)
+	s.Assert().NoError(err)
+	s.Assert().NotNil(deploy)
 
 	var service corev1.Service
 	err = s.client.Get(context.TODO(), types.NamespacedName{
@@ -331,13 +326,12 @@ func (s *DeployTestSuite) TestDeploy_DontRemoveIngressIfNotObserved() {
 			Namespace: "default",
 		},
 	}, &collection)
-	s.NoError(err)
+	s.Assert().NoError(err)
 	// Sanity check to make sure we loaded the required components.
-	s.NotNil(collection.Observed.Env)
-	s.NotNil(collection.Observed.Config)
-	s.NotNil(collection.Observed.StorageCredentials)
+	s.Assert().NotNil(collection.Observed.Env)
+	s.Assert().NotNil(collection.Observed.StorageCredentials)
 
-	s.NotNil(collection.Observed.Service)
+	s.Assert().NotNil(collection.Observed.Service)
 	s.Nil(collection.Observed.Ingress)
 	s.Nil(collection.Desired.Ingress)
 	s.Nil(collection.Desired.Service)
@@ -346,17 +340,17 @@ func (s *DeployTestSuite) TestDeploy_DontRemoveIngressIfNotObserved() {
 	status := collection.Observed.Env.Status.DeepCopy()
 
 	stage, err := d.Do(context.TODO(), status)
-	s.NoError(err)
+	s.Assert().NoError(err)
 
-	s.Equal(v1beta1.EnvironmentStageDeployVerify, stage)
+	s.Assert().Equal(v1beta1.EnvironmentStageDeployVerify, stage)
 
 	var deploy appsv1.Deployment
 	err = s.client.Get(context.TODO(), types.NamespacedName{
 		Name:      "test",
 		Namespace: "default",
 	}, &deploy)
-	s.NoError(err)
-	s.NotNil(deploy)
+	s.Assert().NoError(err)
+	s.Assert().NotNil(deploy)
 
 	var service corev1.Service
 	err = s.client.Get(context.TODO(), types.NamespacedName{
@@ -400,17 +394,17 @@ func (s *DeployTestSuite) TestDeploy_createOrUpdate() {
 		},
 	}
 	op, err := d.createOrUpdate(context.TODO(), nil, &deploy)
-	s.NoError(err)
-	s.Equal(OperationCreate, op)
+	s.Assert().NoError(err)
+	s.Assert().Equal(OperationCreate, op)
 
 	updatedDeploy := deploy.DeepCopy()
 	updatedDeploy.Spec.Template.Spec.Containers[0].Image = "nginx:1.19"
 
 	op, err = d.createOrUpdate(context.TODO(), &deploy, updatedDeploy)
-	s.NoError(err)
-	s.Equal(OperationUpdate, op)
+	s.Assert().NoError(err)
+	s.Assert().Equal(OperationUpdate, op)
 
 	op, err = d.createOrUpdate(context.TODO(), updatedDeploy, updatedDeploy)
-	s.NoError(err)
-	s.Equal(OperationNone, op)
+	s.Assert().NoError(err)
+	s.Assert().Equal(OperationNone, op)
 }

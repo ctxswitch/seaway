@@ -2,23 +2,23 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: seaway-controller
+  name: seaway-operator
   namespace: seaway-system
   labels:
-    app: seaway-controller 
+    app: seaway-operator
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: seaway-controller
+      app: seaway-operator
   template:
     metadata:
       labels:
-        app: seaway-controller
+        app: seaway-operator
     spec:
       serviceAccountName: seaway-system
       containers:
-        - name: controller
+        - name: operator
           image: docker.io/ctxsh/seaway:latest
           imagePullPolicy: IfNotPresent
           securityContext:

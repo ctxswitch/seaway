@@ -119,7 +119,7 @@ func (c *Command) RunE(cmd *cobra.Command, _ []string) error {
 	err = c.install(ctx, raw, []v1beta1.ManifestWaitCondition{
 		{
 			Kind: "Deployment",
-			Name: "seaway-controller",
+			Name: "seaway-operator",
 			For:  "ready",
 		},
 	})
@@ -182,7 +182,7 @@ func (c *Command) modifyController(raw []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	resource, ok := krusty.GetResource("Deployment", "seaway-controller")
+	resource, ok := krusty.GetResource("Deployment", "seaway-operator")
 	if !ok {
 		return nil, fmt.Errorf("seaway controller deployment not found")
 	}

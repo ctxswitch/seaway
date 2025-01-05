@@ -60,13 +60,13 @@ func (s *ObserverTestSuite) TestStateObserver_observe() {
 		},
 	}
 
+	// TODO: integrate builder namespace into tests.
+
 	err := observer.observe(ctx, observed)
 	s.NoError(err)
 	s.NotNil(observed.Env)
-	s.NotNil(observed.Config)
 	s.NotNil(observed.StorageCredentials)
 
-	s.Nil(observed.EnvCredentials)
 	s.Nil(observed.Job)
 	s.Nil(observed.Deployment)
 	s.Nil(observed.Service)
@@ -82,7 +82,6 @@ func (s *ObserverTestSuite) TestStateObserver_observe() {
 	err = observer.observe(ctx, observed)
 	s.NoError(err)
 
-	s.NotNil(observed.EnvCredentials)
 	s.NotNil(observed.Job)
 	s.NotNil(observed.Deployment)
 	s.NotNil(observed.Service)

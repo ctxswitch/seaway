@@ -54,8 +54,6 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 	scheme.AddKnownTypes(SchemeGroupVersion,
 		&Environment{},
 		&EnvironmentList{},
-		&EnvironmentConfig{},
-		&EnvironmentConfigList{},
 	)
 
 	metav1.AddToGroupVersion(scheme, SchemeGroupVersion)

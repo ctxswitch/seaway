@@ -1,15 +1,12 @@
 apiVersion: v1
 kind: Service
 metadata:
-  labels:
-    app: seaway
   name: seaway-webhook-service
   namespace: seaway-system
 spec:
-  type: ClusterIP
+  type: NodePort
   ports:
     - port: 443
       protocol: TCP
       targetPort: 9443
-  selector:
-    app: seaway-operator
+      nodePort: 30100

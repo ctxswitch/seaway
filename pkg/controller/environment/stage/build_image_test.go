@@ -2,6 +2,7 @@ package stage
 
 import (
 	"context"
+	"path/filepath"
 	"testing"
 
 	"ctx.sh/seaway/pkg/apis/seaway.ctx.sh/v1beta1"
@@ -15,13 +16,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-var envCredentials = corev1.Secret{
-	ObjectMeta: metav1.ObjectMeta{
-		Name:      "test-build-credentials",
-		Namespace: "default",
-	},
-}
-
 func TestBuildImage_NoChange(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -29,16 +23,20 @@ func TestBuildImage_NoChange(t *testing.T) {
 	h := mock.NewTestHarness()
 	log.IntoContext(ctx, h.Logger())
 
-	mc := mock.NewClient().WithFixtureDirectory(fixtures).WithLogger(h.Logger())
+	mc := mock.NewClient().
+		WithFixtureDirectory(filepath.Join("..", "..", "..", "..", "fixtures")).
+		WithLogger(h.Logger())
+
 	defer mc.Reset()
+
+	mc.ApplyFixtureOrDie("shared", "required.yaml")
 
 	collection := collector.Collection{
 		Observed: &collector.ObservedState{
-			EnvCredentials: &envCredentials,
 			Job: &batchv1.Job{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-build",
-					Namespace: "default",
+					Namespace: "seaway-system",
 					Annotations: map[string]string{
 						"seaway.ctx.sh/revision": "1",
 					},
@@ -58,11 +56,10 @@ func TestBuildImage_NoChange(t *testing.T) {
 			},
 		},
 		Desired: &collector.DesiredState{
-			EnvCredentials: &envCredentials,
 			Job: &batchv1.Job{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-build",
-					Namespace: "default",
+					Namespace: "seaway-system",
 					Annotations: map[string]string{
 						"seaway.ctx.sh/revision": "1",
 					},
@@ -101,12 +98,8 @@ func TestBuildImage_ChangeNoJob(t *testing.T) {
 	defer mc.Reset()
 
 	collection := collector.Collection{
-		Observed: &collector.ObservedState{
-			EnvCredentials: &envCredentials,
-			Job:            nil,
-		},
+		Observed: &collector.ObservedState{},
 		Desired: &collector.DesiredState{
-			EnvCredentials: &envCredentials,
 			Job: &batchv1.Job{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-build",
@@ -158,7 +151,6 @@ func TestBuildImage_JobDeletedAfterObserve(t *testing.T) {
 
 	collection := collector.Collection{
 		Observed: &collector.ObservedState{
-			EnvCredentials: &envCredentials,
 			Job: &batchv1.Job{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-build",
@@ -182,7 +174,6 @@ func TestBuildImage_JobDeletedAfterObserve(t *testing.T) {
 			},
 		},
 		Desired: &collector.DesiredState{
-			EnvCredentials: &envCredentials,
 			Job: &batchv1.Job{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-build",
@@ -235,7 +226,6 @@ func TestBuildImage_PreviousJob(t *testing.T) {
 
 	collection := collector.Collection{
 		Observed: &collector.ObservedState{
-			EnvCredentials: &envCredentials,
 			Job: &batchv1.Job{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-build",
@@ -259,7 +249,6 @@ func TestBuildImage_PreviousJob(t *testing.T) {
 			},
 		},
 		Desired: &collector.DesiredState{
-			EnvCredentials: &envCredentials,
 			Job: &batchv1.Job{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-build",

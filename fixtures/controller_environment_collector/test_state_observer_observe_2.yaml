@@ -1,14 +1,8 @@
-apiVersion: v1
-kind: Secret
-metadata:
-  name: storage-credentials
-  namespace: default
----
 apiVersion: batch/v1
 kind: Job
 metadata:
   name: test-build
-  namespace: default
+  namespace: seaway-system
 ---
 apiVersion: apps/v1
 kind: Deployment

@@ -2,31 +2,34 @@ package handlers
 
 import (
 	"context"
+	"ctx.sh/seaway/pkg/apis/seaway.ctx.sh/v1beta1"
+	"ctx.sh/seaway/pkg/util"
 	"encoding/json"
 	"fmt"
+	"github.com/minio/minio-go/v7"
+	"github.com/minio/minio-go/v7/pkg/credentials"
 	"io"
 	"mime/multipart"
 	"net/http"
 	"net/url"
 	"os"
-	"strings"
-
-	"ctx.sh/seaway/pkg/apis/seaway.ctx.sh/v1beta1"
-	"github.com/minio/minio-go/v7"
-	"github.com/minio/minio-go/v7/pkg/credentials"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 // +kubebuilder:skip
 type UploadOptions struct {
-	Client    client.Client
-	Namespace string
+	Client        client.Client
+	Namespace     string
+	StorageURL    string
+	StorageBucket string
+	StoragePrefix string
+	StorageRegion string
 }
 
 // +kubebuilder:skip
 type Upload struct {
-	namespace string
+	options *UploadOptions
 	client.Client
 }
 
@@ -36,8 +39,8 @@ func NewUploadHandler(opts *UploadOptions) http.Handler {
 	}
 
 	upload := &Upload{
-		namespace: opts.Namespace,
-		Client:    opts.Client,
+		options: opts,
+		Client:  opts.Client,
 	}
 
 	return http.HandlerFunc(upload.ServeHTTP)
@@ -58,23 +61,7 @@ func (h *Upload) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		h.respond(w, minio.UploadInfo{}, fmt.Errorf("config was not specified"))
 	}
 
-	parts := strings.Split(config, "/")
-	if len(parts) == 1 {
-		parts = append([]string{h.namespace}, parts...)
-	}
-
 	logger.Info("Uploading file", "name", name, "namespace", namespace, "etag", etag, "config", config)
-
-	var envConfig v1beta1.EnvironmentConfig
-	err := h.Get(r.Context(), client.ObjectKey{
-		Name:      parts[1],
-		Namespace: parts[0],
-	}, &envConfig)
-	if err != nil {
-		logger.Error(err, "Error retrieving the seaway config", "name", name, "namespace", namespace, "etag", etag)
-		h.respond(w, minio.UploadInfo{}, err)
-		return
-	}
 
 	file, _, err := r.FormFile("archive")
 	if err != nil {
@@ -83,7 +70,7 @@ func (h *Upload) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	info, err := h.store(ctx, envConfig.Spec.EnvironmentConfigStorageSpec, file, name, namespace)
+	info, err := h.store(ctx, file, name, namespace)
 	if err != nil {
 		logger.Error(err, "Error storing the file", "name", name, "namespace", namespace, "etag", etag)
 		h.respond(w, minio.UploadInfo{}, err)
@@ -100,7 +87,7 @@ func (h *Upload) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	h.respond(w, info, nil)
 }
 
-func (h *Upload) store(ctx context.Context, storage v1beta1.EnvironmentConfigStorageSpec, file multipart.File, name, namespace string) (minio.UploadInfo, error) {
+func (h *Upload) store(ctx context.Context, file multipart.File, name, namespace string) (minio.UploadInfo, error) {
 	defer file.Close()
 
 	data, err := io.ReadAll(file)
@@ -118,11 +105,12 @@ func (h *Upload) store(ctx context.Context, storage v1beta1.EnvironmentConfigSto
 
 	// TODO: Support more providers than the environment providers.  There's
 	// others like IAM, STS, etc.  We could also add a secrets provider as well.
-	u, err := url.Parse(storage.Endpoint)
+	u, err := url.Parse(h.options.StorageURL)
 	if err != nil {
 		return minio.UploadInfo{}, err
 	}
 
+	// TODO: Chicken/egg
 	store, err := minio.New(u.Host, &minio.Options{
 		Creds: credentials.NewChainCredentials([]credentials.Provider{
 			// Requires MINIO_ACCESS_KEY and MINIO_SECRET_KEY.
@@ -130,12 +118,13 @@ func (h *Upload) store(ctx context.Context, storage v1beta1.EnvironmentConfigSto
 			// Requires AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY.
 			&credentials.EnvAWS{},
 		}),
+		Region: h.options.StorageRegion,
 	})
 	if err != nil {
 		return minio.UploadInfo{}, err
 	}
 
-	err = h.makeBucketIfNotExists(ctx, store, storage.Bucket)
+	err = h.makeBucketIfNotExists(ctx, store, h.options.StorageBucket)
 	if err != nil {
 		return minio.UploadInfo{}, err
 	}
@@ -147,8 +136,8 @@ func (h *Upload) store(ctx context.Context, storage v1beta1.EnvironmentConfigSto
 	archive := tmp.Name()
 
 	// Upload to minio.
-	key := storage.GetArchiveKey(name, namespace)
-	info, err := store.FPutObject(ctx, storage.Bucket, key, archive, minio.PutObjectOptions{})
+	archiveKey := util.ArchiveKey(h.options.StoragePrefix, namespace, name)
+	info, err := store.FPutObject(ctx, h.options.StorageBucket, archiveKey, archive, minio.PutObjectOptions{})
 	if err != nil {
 		return minio.UploadInfo{}, err
 	}

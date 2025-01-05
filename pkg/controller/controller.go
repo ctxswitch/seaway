@@ -19,15 +19,27 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
-type Options struct{}
+type Options struct {
+	RegistryURL           string
+	RegistryNodePort      uint32
+	StorageURL            string
+	StorageBucket         string
+	StoragePrefix         string
+	StorageRegion         string
+	StorageForcePathStyle bool
+}
 
 type Controller struct{}
 
 // SetupWithManager sets up any known controllers.
-func SetupWithManager(mgr ctrl.Manager, opts *Options) (err error) {
-	if err = environment.SetupWithManager(mgr); err != nil {
-		return
-	}
-
-	return
+func SetupWithManager(mgr ctrl.Manager, opts *Options) error {
+	return environment.SetupWithManager(mgr, &environment.Options{
+		RegistryURL:           opts.RegistryURL,
+		RegistryNodePort:      opts.RegistryNodePort,
+		StorageURL:            opts.StorageURL,
+		StorageBucket:         opts.StorageBucket,
+		StoragePrefix:         opts.StoragePrefix,
+		StorageRegion:         opts.StorageRegion,
+		StorageForcePathStyle: opts.StorageForcePathStyle,
+	})
 }

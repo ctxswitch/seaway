@@ -17,13 +17,9 @@ type BuildImageVerify struct {
 }
 
 func NewBuildImageVerify(client client.Client, collection *collector.Collection) *BuildImageVerify {
-	config := collection.Observed.Config.Spec.EnvironmentConfigRegistrySpec
-	reg := registry.NewClient(registry.NewHTTPClient()).WithRegistry(config.URL)
-
 	return &BuildImageVerify{
 		observed: collection.Observed,
 		desired:  collection.Desired,
-		registry: reg,
 		Client:   client,
 	}
 }

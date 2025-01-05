@@ -33,9 +33,6 @@ spec:
         image: registry:2
         ports:
         - containerPort: 5000
-        envFrom:
-        - secretRef:
-            name: registry-credentials
         env:
         - name: REGISTRY_HTTP_ADDR
           value: :5000
@@ -61,3 +58,7 @@ spec:
           value: "true"
         - name: REGISTRY_STORAGE_REDIRECT_DISABLE
           value: "true"
+        - name: REGISTRY_STORAGE_S3_ACCESSKEY
+          value: "anonymous"
+        - name: REGISTRY_STORAGE_S3_SECRETKEY
+          value: "anonymous"
