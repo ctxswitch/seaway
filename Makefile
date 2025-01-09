@@ -7,6 +7,8 @@ endif
 
 LOCALDEV_CLUSTER ?= "seaway"
 
+export PATH := ./bin:$(PATH)
+
 CONTROLLER_TOOLS_VERSION ?= v0.16.1
 KUSTOMIZE_VERSION ?= v5.4.2
 GOLANGCI_LINT_VERSION ?= v1.60.3
@@ -100,6 +102,10 @@ install: $(KUSTOMIZE) generate
 uninstall:
 	@kubectl delete -k config/overlays/$(ENV)
 	@kubectl delete -k config/seaway/overlays/$(ENV)
+
+.PHONY: buf
+buf: $(BUF) $(PROTOC_GEN_GO) $(PROTOC_GEN_CONNECT_GO)
+	rm -rf pkg/gen && $(BUF) generate
 
 ###
 ### Tests/Utils
