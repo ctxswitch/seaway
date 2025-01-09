@@ -67,10 +67,9 @@ func (s *Service) Upload(ctx context.Context, stream *connect.ClientStream[seawa
 
 		switch payload := stream.Msg().GetPayload().(type) {
 		case *seawayv1beta1.UploadRequest_ArtifactInfo:
-			key, err := s.processArtifactInfo(payload.ArtifactInfo)
-			if err != nil {
-				return nil, connect.NewError(connect.CodeInvalidArgument, err)
-			}
+			name := payload.ArtifactInfo.Name
+			namespace := payload.ArtifactInfo.Namespace
+			key := util.ArchiveKey(s.options.StoragePrefix, name, namespace)
 			// Start the streaming put operation.
 			go store.Put(ctx, key)
 		case *seawayv1beta1.UploadRequest_Chunk:
@@ -102,9 +101,4 @@ func (s *Service) Upload(ctx context.Context, stream *connect.ClientStream[seawa
 		Etag:    info.ETag,
 		Message: "ok",
 	}), nil
-}
-
-func (s *Service) processArtifactInfo(info *seawayv1beta1.ArtifactInfo) (string, error) {
-	key := util.ArchiveKey(s.options.StoragePrefix, info.Namespace, info.Name)
-	return key, nil
 }

@@ -119,14 +119,8 @@ func doSync(ctx context.Context, client *kube.KubectlCmd, name string, env v1bet
 		Transport: &http2.Transport{
 			AllowHTTP: true,
 			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: true,
+				InsecureSkipVerify: true, //nolint:gosec
 			},
-			// DialTLS: func(network, addr string, _ *tls.Config) (net.Conn, error) {
-			// 	// If you're also using this client for non-h2c traffic, you may want
-			// 	// to delegate to tls.Dial if the network isn't TCP or the addr isn't
-			// 	// in an allowlist.
-			// 	return net.Dial(network, addr)
-			// },
 		},
 	}
 
@@ -162,20 +156,20 @@ func doSync(ctx context.Context, client *kube.KubectlCmd, name string, env v1bet
 
 	buf := make([]byte, 1024)
 	for {
-		n, err := file.Read(buf)
-		if err != nil {
+		n, rerr := file.Read(buf)
+		if rerr != nil {
 			if err == io.EOF {
 				break
 			}
 			console.Fatal("Unable to read the archive: %s", err)
 		}
 
-		err = stream.Send(&seawayv1beta1.UploadRequest{
+		serr := stream.Send(&seawayv1beta1.UploadRequest{
 			Payload: &seawayv1beta1.UploadRequest_Chunk{
 				Chunk: buf[:n],
 			},
 		})
-		if err != nil {
+		if serr != nil {
 			console.Fatal("Unable to send the archive: %s", err)
 		}
 	}

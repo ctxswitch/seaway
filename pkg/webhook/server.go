@@ -20,7 +20,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 )
 
-var DefaultPort = 9443
+const (
+	DefaultPort = 9443
+)
 
 type Options struct {
 	Host         string
@@ -122,7 +124,7 @@ func (s *DefaultServer) Start(ctx context.Context) error {
 
 	cfg := &tls.Config{ //nolint:gosec
 		NextProtos:         []string{"h2"},
-		InsecureSkipVerify: true,
+		InsecureSkipVerify: true, //nolint:gosec
 	}
 
 	for _, op := range s.Options.TLSOpts {
@@ -234,7 +236,7 @@ func (s *DefaultServer) StartedChecker() healthz.Checker {
 	}
 }
 
-// WebhookMux returns the servers WebhookMux
+// WebhookMux returns the servers WebhookMux.
 func (s *DefaultServer) WebhookMux() *http.ServeMux {
 	return s.webhookMux
 }
