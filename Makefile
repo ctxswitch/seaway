@@ -11,6 +11,9 @@ CONTROLLER_TOOLS_VERSION ?= v0.16.1
 KUSTOMIZE_VERSION ?= v5.4.2
 GOLANGCI_LINT_VERSION ?= v1.60.3
 ADDLICENSE_VERSION ?= v1.0.0
+BUF_VERSION ?= latest
+PROTOC_GEN_GO_VERSION ?= latest
+PROTOC_GEN_CONNECT_GO_VERSION ?= latest
 
 KUBECTL ?= kubectl
 LOCALBIN ?= $(shell pwd)/bin
@@ -21,6 +24,9 @@ KUSTOMIZE ?= $(LOCALBIN)/kustomize
 CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen
 GOLANGCI_LINT = $(LOCALBIN)/golangci-lint
 ADDLICENSE = $(LOCALBIN)/addlicense
+BUF = $(LOCALBIN)/buf
+PROTOC_GEN_GO = $(LOCALBIN)/protoc-gen-go
+PROTOC_GEN_CONNECT_GO = $(LOCALBIN)/protoc-gen-connect-go
 
 CRD_OPTIONS ?= "crd:maxDescLen=0,generateEmbeddedObjectMeta=true"
 RBAC_OPTIONS ?= "rbac:roleName=seaway-system-role"
@@ -146,7 +152,7 @@ $(SEACTL_RELEASE_TARGET):
 ###
 ### Individual dep installs were copied out of kubebuilder testdata makefiles.
 ###
-deps: $(CONTROLLER_GEN) $(KUSTOMIZE) $(GOLANGCI_LINT) $(ADDLICENSE)
+deps: $(CONTROLLER_GEN) $(KUSTOMIZE) $(GOLANGCI_LINT) $(ADDLICENSE) $(BUF) $(PROTOC_GEN_GO) $(PROTOC_GEN_CONNECT_GO)
 
 $(LOCALBIN):
 	@mkdir -p $(LOCALBIN)
@@ -166,6 +172,18 @@ $(GOLANGCI_LINT): $(LOCALBIN)
 $(ADDLICENSE): $(LOCALBIN)
 	@test -s $(ADDLICENSE) || \
   GOBIN=$(LOCALBIN) go install github.com/google/addlicense@$(ADDLICENSE_VERSION)
+
+$(BUF): $(LOCALBIN)
+	@test -s $(BUF) || \
+	GOBIN=$(LOCALBIN) go install github.com/bufbuild/buf/cmd/buf@$(BUF_VERSION)
+
+$(PROTOC_GEN_GO): $(LOCALBIN)
+	@test -s $(PROTOC_GEN_GO) || \
+	GOBIN=$(LOCALBIN) go install google.golang.org/protobuf/cmd/protoc-gen-go@$(PROTOC_GEN_GO_VERSION)
+
+$(PROTOC_GEN_CONNECT_GO): $(LOCALBIN)
+	@test -s $(PROTOC_GEN_CONNECT_GO) || \
+	GOBIN=$(LOCALBIN) go install connectrpc.com/connect/cmd/protoc-gen-connect-go@$(PROTOC_GEN_CONNECT_GO_VERSION)
 
 .PHONY: clean
 clean:
