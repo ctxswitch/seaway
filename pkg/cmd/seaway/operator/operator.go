@@ -17,7 +17,7 @@ package operator
 import (
 	"crypto/tls"
 	"ctx.sh/seaway/pkg/apis/seaway.ctx.sh/v1beta1"
-	"ctx.sh/seaway/pkg/apis/seaway.ctx.sh/v1beta1/handlers"
+	"ctx.sh/seaway/pkg/apis/seaway.ctx.sh/v1beta1/handlers/service/healthz"
 	"ctx.sh/seaway/pkg/apis/seaway.ctx.sh/v1beta1/handlers/service/upload"
 	"ctx.sh/seaway/pkg/controller"
 	"ctx.sh/seaway/pkg/webhook"
@@ -104,8 +104,6 @@ func (c *Command) RunE(cmd *cobra.Command, args []string) error {
 		os.Exit(1)
 	}
 
-	hookServer.Register("/ping", handlers.NewPingHandler())
-
 	if err = upload.RegisterWithWebhook(hookServer, &upload.Options{
 		Client:        mgr.GetClient(),
 		StorageURL:    c.StorageURL,
@@ -115,6 +113,10 @@ func (c *Command) RunE(cmd *cobra.Command, args []string) error {
 	}); err != nil {
 		log.Error(err, "unable to register upload service with webhook")
 		os.Exit(1)
+	}
+
+	if err = healthz.RegisterWithWebhook(hookServer, &healthz.Options{}); err != nil {
+		log.Error(err, "unable to register healthz service with webhook")
 	}
 
 	if err = (&v1beta1.Environment{}).SetupWebhookWithManager(mgr); err != nil {
