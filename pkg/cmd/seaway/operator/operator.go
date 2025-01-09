@@ -16,11 +16,11 @@ package operator
 
 import (
 	"crypto/tls"
-	"os"
-
 	"ctx.sh/seaway/pkg/apis/seaway.ctx.sh/v1beta1"
 	"ctx.sh/seaway/pkg/apis/seaway.ctx.sh/v1beta1/handlers"
+	"ctx.sh/seaway/pkg/apis/seaway.ctx.sh/v1beta1/handlers/service/upload"
 	"ctx.sh/seaway/pkg/controller"
+	"ctx.sh/seaway/pkg/webhook"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap/zapcore"
 	appsv1 "k8s.io/api/apps/v1"
@@ -28,9 +28,10 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"os"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	// "sigs.k8s.io/controller-runtime/pkg/webhook".
 )
 
 type Command struct {
@@ -103,15 +104,18 @@ func (c *Command) RunE(cmd *cobra.Command, args []string) error {
 		os.Exit(1)
 	}
 
-	hookServer.Register("/upload", handlers.NewUploadHandler(&handlers.UploadOptions{
+	hookServer.Register("/ping", handlers.NewPingHandler())
+
+	if err = upload.RegisterWithWebhook(hookServer, &upload.Options{
 		Client:        mgr.GetClient(),
 		StorageURL:    c.StorageURL,
 		StorageBucket: c.StorageBucket,
 		StoragePrefix: c.StoragePrefix,
 		StorageRegion: c.StorageRegion,
-	}))
-
-	hookServer.Register("/ping", handlers.NewPingHandler())
+	}); err != nil {
+		log.Error(err, "unable to register upload service with webhook")
+		os.Exit(1)
+	}
 
 	if err = (&v1beta1.Environment{}).SetupWebhookWithManager(mgr); err != nil {
 		log.Error(err, "unable to create webhook", "webhook", "Environment")

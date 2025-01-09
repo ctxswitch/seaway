@@ -19,10 +19,15 @@ import (
 	"compress/gzip"
 	"context"
 	"crypto/md5" //nolint:gosec
+	"crypto/tls"
 	"ctx.sh/seaway/pkg/cmd/util"
+	seawayv1beta1 "ctx.sh/seaway/pkg/gen/seaway/v1beta1"
+	"ctx.sh/seaway/pkg/gen/seaway/v1beta1/seawayv1beta1connect"
 	"fmt"
+	"golang.org/x/net/http2"
 	"io"
 	"io/fs"
+	"net/http"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -55,7 +60,7 @@ type Command struct {
 func (c *Command) RunE(cmd *cobra.Command, args []string) error { //nolint:funlen,gocognit
 	kubeContext := cmd.Root().Flags().Lookup("context").Value.String()
 
-	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	ctx, cancel := signal.NotifyContext(cmd.Context(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
 
 	if len(args) != 1 {
@@ -110,24 +115,72 @@ func doSync(ctx context.Context, client *kube.KubectlCmd, name string, env v1bet
 		console.Fatal("Unable to calculate the archive checksum: %s", err)
 	}
 
-	upload := v1beta1.NewClient(env.Endpoint + "/upload")
-	resp, err := upload.Upload(ctx, archive, map[string]string{
-		"name":      name,
-		"namespace": env.Namespace,
-		"etag":      etag,
-		"config":    env.Name,
+	hc := &http.Client{
+		Transport: &http2.Transport{
+			AllowHTTP: true,
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: true, //nolint:gosec
+			},
+		},
+	}
+
+	sclient := seawayv1beta1connect.NewSeawayServiceClient(hc, env.Endpoint)
+	stream := sclient.Upload(ctx)
+	if err != nil {
+		console.Fatal("Unable to connect to the server: %s", err)
+	}
+
+	err = stream.Send(&seawayv1beta1.UploadRequest{
+		Payload: &seawayv1beta1.UploadRequest_ArtifactInfo{
+			ArtifactInfo: &seawayv1beta1.ArtifactInfo{
+				Name:      name,
+				Namespace: env.Namespace,
+				Etag:      etag,
+			},
+		},
 	})
 	if err != nil {
-		console.Fatal("Unable to upload the archive: %v", err)
+		console.Fatal("Unable to send the artifact info: %s", err)
 	}
 
-	if resp.Code != 200 {
-		console.Fatal("Upload failed: %s", resp.Error)
+	// TODO: make the chunk size configurable.
+	// TODO: implement a parallel upload. I'll need to track the chunk
+	// positions and make sure to reconstruct them on the server.
+	file, err := os.Open(archive)
+	if err != nil {
+		console.Fatal("Unable to open the archive: %s", err)
+	}
+	defer func() {
+		_ = file.Close()
+	}()
+
+	buf := make([]byte, 1024)
+	for {
+		n, rerr := file.Read(buf)
+		if rerr != nil {
+			if err == io.EOF {
+				break
+			}
+			console.Fatal("Unable to read the archive: %s", err)
+		}
+
+		serr := stream.Send(&seawayv1beta1.UploadRequest{
+			Payload: &seawayv1beta1.UploadRequest_Chunk{
+				Chunk: buf[:n],
+			},
+		})
+		if serr != nil {
+			console.Fatal("Unable to send the archive: %s", err)
+		}
 	}
 
-	// console.Notice("Source: %s", archive)
-	console.ListNotice("Size: %d", resp.Size)
-	console.ListNotice("Revision: %s", resp.ETag)
+	resp, err := stream.CloseAndReceive()
+	if err != nil {
+		console.Fatal("Unable to close the connection: %s", err)
+	}
+
+	console.ListNotice("Size: %d", resp.Msg.Size)
+	console.ListNotice("Revision: %s", resp.Msg.Etag)
 
 	console.Info("Deploying")
 
@@ -142,7 +195,7 @@ func doSync(ctx context.Context, client *kube.KubectlCmd, name string, env v1bet
 
 	op, err := client.CreateOrUpdate(ctx, obj, func() error {
 		env.EnvironmentSpec.DeepCopyInto(&obj.Spec)
-		obj.Spec.Revision = resp.ETag
+		obj.Spec.Revision = resp.Msg.Etag
 		obj.Spec.Config = env.Name
 		return nil
 	})

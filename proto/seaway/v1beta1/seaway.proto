@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+package seaway.v1beta1;
+
+option go_package = "ctx.sh/seaway/pkg/gen/seaway/v1beta1;seawayv1beta1";
+
+message UploadRequest {
+  oneof payload {
+    ArtifactInfo artifact_info = 1;
+    bytes chunk = 2;
+  }
+}
+
+message ArtifactInfo {
+  string name = 1;
+  string namespace = 2;
+  string etag = 3;
+}
+
+message UploadResponse {
+  string key = 1;
+  string etag = 2;
+  int64 size = 3;
+  string message = 4;
+  int64 error_code = 5;
+}
+
+service SeawayService {
+  rpc Upload(stream UploadRequest) returns (UploadResponse) {}
+}
