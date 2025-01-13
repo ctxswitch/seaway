@@ -1,4 +1,4 @@
-package upload
+package seaway
 
 import (
 	"context"
@@ -83,11 +83,11 @@ func (s *Store) Err() error {
 }
 
 func (s *Store) Close() {
-	s.writer.Close()
+	_ = s.writer.Close()
 }
 
 func (s *Store) CloseWithError(err error) {
-	s.writer.CloseWithError(err)
+	_ = s.writer.CloseWithError(err)
 }
 
 func (s *Store) getStore() (*minio.Client, error) {

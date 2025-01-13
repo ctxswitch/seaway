@@ -1,44 +1,13 @@
-package upload
+package seaway
 
 import (
+	"connectrpc.com/connect"
 	"context"
 	seawayv1beta1 "ctx.sh/seaway/pkg/gen/seaway/v1beta1"
-	"ctx.sh/seaway/pkg/gen/seaway/v1beta1/seawayv1beta1connect"
 	"ctx.sh/seaway/pkg/util"
 	"fmt"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
-
-	"connectrpc.com/connect"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
-
-// +kubebuilder:skip
-type Options struct {
-	Client        client.Client
-	Namespace     string
-	StorageURL    string
-	StorageBucket string
-	StoragePrefix string
-	StorageRegion string
-}
-
-// +kubebuilder:skip
-type Service struct {
-	options *Options
-	// TODO: Mutex for uploading artifacts...
-}
-
-func RegisterWithWebhook(wh webhook.Server, opts *Options) error {
-	service := &Service{
-		options: opts,
-	}
-
-	path, handler := seawayv1beta1connect.NewSeawayServiceHandler(service)
-	wh.Register(path, handler)
-
-	return nil
-}
 
 func (s *Service) Upload(ctx context.Context, stream *connect.ClientStream[seawayv1beta1.UploadRequest]) (*connect.Response[seawayv1beta1.UploadResponse], error) {
 	// TODO: semephore to ensure we aren't uploading the same artifact at the same time.
@@ -79,7 +48,7 @@ func (s *Service) Upload(ctx context.Context, stream *connect.ClientStream[seawa
 				return nil, connect.NewError(connect.CodeInternal, err)
 			}
 		default:
-			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("expected chunk, got %T", payload))
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("expected info or chunk, got %T", payload))
 		}
 	}
 	if err := stream.Err(); err != nil {

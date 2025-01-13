@@ -129,7 +129,7 @@ license: $(ADDLICENSE)
 .PHONY: run
 run:
 	$(eval POD := $(shell kubectl get pods -n seaway-system -l app=seaway-operator -o=custom-columns=:metadata.name --no-headers))
-	kubectl exec -it -n seaway-system pod/$(POD) -- bash -c "go run pkg/cmd/seaway/*.go operator --log-level=5"
+	kubectl exec -it -n seaway-system pod/$(POD) -- bash -c "go run pkg/cmd/seaway/*.go operator --log-level=6"
 
 .PHONY: exec
 exec:

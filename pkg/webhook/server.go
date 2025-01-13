@@ -176,6 +176,9 @@ func (s *DefaultServer) Start(ctx context.Context) error {
 		MaxHeaderBytes:    1 << 20,
 		IdleTimeout:       90 * time.Second, // matches http.DefaultTransport keep-alive timeout
 		ReadHeaderTimeout: 32 * time.Second,
+		BaseContext: func(listener net.Listener) context.Context {
+			return ctx
+		},
 	}
 
 	idleConnsClosed := make(chan struct{})

@@ -44,6 +44,11 @@ func (e *Environment) IsDeployed() bool {
 	return e.Status.DeployedRevision == e.GetRevision()
 }
 
+// IsInitializing returns true if the environment is in the initialization stage
+func (e *Environment) IsInitializing() bool {
+	return e.Status.Stage == EnvironmentStageInitialize
+}
+
 // Returns true if we are in any stage except failure and deployed.
 // func (e *Environment) IsDeploying() bool {
 // 	return !e.HasFailed() && e.Status.Stage != EnvironmentStageDeployed
@@ -74,5 +79,29 @@ func (e *Environment) GetControllerReference() metav1.OwnerReference {
 		UID:                e.GetUID(),
 		Controller:         ptr.To(true),
 		BlockOwnerDeletion: ptr.To(false),
+	}
+}
+
+// GetStageString returns the string message for the EnvironmentStage
+func (e *Environment) GetStageString() string {
+	if e.Status.Stage == EnvironmentStageInitialize {
+		return "Initializing"
+	}
+
+	return string(e.Status.Stage)
+}
+
+// GetStatusString returns a string representation of the environment status
+func (e *Environment) GetStatusString() string {
+	if e.IsDeployed() {
+		return "deployed"
+	} else if e.IsFailing() {
+		return "failing"
+	} else if e.HasFailed() {
+		return "failed"
+	} else if e.IsInitializing() {
+		return "initializing"
+	} else {
+		return "deploying"
 	}
 }

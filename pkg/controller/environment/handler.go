@@ -3,6 +3,7 @@ package environment
 import (
 	"context"
 	"ctx.sh/seaway/pkg/registry"
+	"ctx.sh/seaway/pkg/tracker"
 	"reflect"
 	"time"
 
@@ -19,11 +20,11 @@ type Handler struct {
 	client      client.Client
 	collection  *collector.Collection
 	registryURL string
+	tracker     *tracker.Tracker
 }
 
 func (h *Handler) reconcile(ctx context.Context) (ctrl.Result, error) {
 	logger := log.FromContext(ctx).WithValues("revision", h.collection.Observed.Env.Spec.Revision)
-	// ctx = log.IntoContext(ctx, logger)
 
 	logger.V(5).Info("handling reconciliation for revision")
 
@@ -33,6 +34,10 @@ func (h *Handler) reconcile(ctx context.Context) (ctrl.Result, error) {
 	}
 
 	env := h.collection.Observed.Env
+	// TODO(rob): Not sure that I like this.  I'm tracking the env when it comes in and then
+	// 	again after an update.  Seems wasteful, but because of how this is structured right
+	//  now it's required.
+	h.tracker.Track(ctx, env)
 
 	switch {
 	case env.HasDeviated():
@@ -47,14 +52,14 @@ func (h *Handler) reconcile(ctx context.Context) (ctrl.Result, error) {
 	}
 
 	status := env.Status.DeepCopy()
-	stage := status.Stage
 
 	// TODO: Think about retry also need to wrap a timeout from the last status update.
-	s := h.getStage(stage)
+	s := h.getStage(status.Stage)
 	next, err := s.Do(ctx, status)
 	status.Stage = next
 
 	h.updateStatus(ctx, env, status)
+	h.tracker.Track(ctx, env)
 
 	if err != nil {
 		logger.Error(err, "unable to reconcile environment", "next", next, "status", status)
