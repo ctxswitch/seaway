@@ -16,6 +16,7 @@ package environment
 
 import (
 	"context"
+	"ctx.sh/seaway/pkg/tracker"
 
 	"ctx.sh/seaway/pkg/apis/seaway.ctx.sh/v1beta1"
 	"ctx.sh/seaway/pkg/controller/environment/collector"
@@ -35,6 +36,7 @@ type Options struct {
 	StoragePrefix         string
 	StorageRegion         string
 	StorageForcePathStyle bool
+	Tracker               *tracker.Tracker
 }
 
 type Controller struct {
@@ -44,7 +46,7 @@ type Controller struct {
 	client.Client
 }
 
-func SetupWithManager(mgr ctrl.Manager, opts *Options) (err error) {
+func SetupWithManager(mgr ctrl.Manager, opts *Options) error {
 	c := &Controller{
 		Options:  opts,
 		Scheme:   mgr.GetScheme(),
@@ -105,6 +107,7 @@ func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		collection:  &collection,
 		client:      c.Client,
 		registryURL: c.Options.RegistryURL,
+		tracker:     c.Options.Tracker,
 	}
 
 	return handler.reconcile(ctx)

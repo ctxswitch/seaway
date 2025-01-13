@@ -168,6 +168,7 @@ type EnvironmentSpec struct {
 	// Build is the build spec for the environment.
 	// +optional
 	Build *EnvironmentBuild `json:"build" yaml:"build"`
+	// TODO: why did I name this config?  Do I use it?
 	// Config
 	// +optional
 	Config string `json:"config" yaml:"config"`

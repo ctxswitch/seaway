@@ -17,6 +17,7 @@ package sync
 import (
 	"archive/tar"
 	"compress/gzip"
+	"connectrpc.com/connect"
 	"context"
 	"crypto/md5" //nolint:gosec
 	"crypto/tls"
@@ -27,6 +28,7 @@ import (
 	"golang.org/x/net/http2"
 	"io"
 	"io/fs"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"net/http"
 	"os"
 	"os/signal"
@@ -45,6 +47,15 @@ import (
 
 const (
 	DefaultTimeout = 10 * time.Minute
+)
+
+var (
+	DefaultBackoff = wait.Backoff{ //nolint:gochecknoglobals
+		Steps:    10,
+		Duration: 200 * time.Millisecond,
+		Factor:   2.0,
+		Cap:      5 * time.Minute,
+	}
 )
 
 type Command struct {
@@ -73,6 +84,8 @@ func (c *Command) RunE(cmd *cobra.Command, args []string) error { //nolint:funle
 		console.Fatal("Unable to load manifest")
 	}
 
+	// TODO: I'm passing the wrong name around.  I will need to make a name with
+	// 	the manifest name and environment name.
 	env, err := manifest.GetEnvironment(args[0])
 	if err != nil {
 		console.Fatal("Build context '%s' not found in the manifest", args[0])
@@ -116,6 +129,11 @@ func doSync(ctx context.Context, client *kube.KubectlCmd, name string, env v1bet
 	}
 
 	hc := &http.Client{
+		// TODO: timeout is passed to the server and is used in relation to the request
+		//  context.  We can configure this as part of the manifest.  The problem is that
+		// 	when the server cancels we quietly exit instead of announcing that we timed
+		//  out.  Note that the timeout is enforced between responses/requests (on Receive).
+		// Timeout: 30 * time.Seconds
 		Transport: &http2.Transport{
 			AllowHTTP: true,
 			TLSClientConfig: &tls.Config{
@@ -127,7 +145,7 @@ func doSync(ctx context.Context, client *kube.KubectlCmd, name string, env v1bet
 	sclient := seawayv1beta1connect.NewSeawayServiceClient(hc, env.Endpoint)
 	stream := sclient.Upload(ctx)
 	if err != nil {
-		console.Fatal("Unable to connect to the server: %s", err)
+		return err
 	}
 
 	err = stream.Send(&seawayv1beta1.UploadRequest{
@@ -158,10 +176,10 @@ func doSync(ctx context.Context, client *kube.KubectlCmd, name string, env v1bet
 	for {
 		n, rerr := file.Read(buf)
 		if rerr != nil {
-			if err == io.EOF {
+			if rerr == io.EOF {
 				break
 			}
-			console.Fatal("Unable to read the archive: %s", err)
+			console.Fatal("Unable to read the archive: %v", rerr)
 		}
 
 		serr := stream.Send(&seawayv1beta1.UploadRequest{
@@ -213,44 +231,40 @@ func doSync(ctx context.Context, client *kube.KubectlCmd, name string, env v1bet
 		console.ListNotice("Environment created")
 	}
 
-	// TODO: timeout should be configurable
-	ctx, cancel := context.WithTimeout(ctx, DefaultTimeout)
-	defer cancel()
+	track, err := sclient.EnvironmentTracker(ctx, connect.NewRequest(&seawayv1beta1.EnvironmentRequest{
+		Namespace: env.Namespace,
+		Name:      name,
+	}))
+	if err != nil {
+		console.Fatal("Unable to connect to server: %s", err.Error())
+	}
 
-	status := ""
-
-	ticker := time.NewTicker(1 * time.Second)
-	defer ticker.Stop()
+	// TODO: set up a client timeout.  We should probably pass it to the server for
+	// 	an adjustable timeout on that end.
 
 	for {
-		select {
-		case <-ctx.Done():
-			console.Warn("Cancelled: %s", ctx.Err())
-			return nil
-		case <-ticker.C:
-			err = client.Get(ctx, obj, metav1.GetOptions{})
-			if err != nil {
-				console.Fatal("Unable to get the environment: %s", err)
-			}
+		more := track.Receive()
+		if !more {
+			// TODO: if we aren't deployed, keep on trying - the server has shut down.
+			break
+		}
 
-			// TODO: fix me.  don't convert.
-			if status != string(obj.Status.Stage) {
-				status = string(obj.Status.Stage)
-				switch {
-				case obj.IsFailing():
-					console.ListWarning(status)
-				case obj.HasFailed():
-					console.ListFailed(status)
-					return nil
-				case obj.IsDeployed():
-					console.ListSuccess(status)
-					return nil
-				default:
-					console.ListNotice(status)
-				}
-			}
+		info := track.Msg()
+		switch info.Status {
+		case "deployed":
+			console.ListSuccess(info.Stage)
+			return nil
+		case "failing":
+			console.ListWarning(info.Stage)
+		case "failed":
+			console.ListFailed(info.Stage)
+			return nil
+		default:
+			console.ListNotice(info.Stage)
 		}
 	}
+
+	return nil
 }
 
 // create builds the tar/gzip archive that will be uploaded to the object storage.

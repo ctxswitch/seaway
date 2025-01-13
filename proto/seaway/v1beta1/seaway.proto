@@ -25,6 +25,20 @@ message UploadResponse {
   int64 error_code = 5;
 }
 
+message EnvironmentRequest {
+  string etag = 1;
+  string kind = 2;
+  string name = 3;
+  string namespace = 4;
+}
+
+message EnvironmentResponse {
+  string status = 1;
+  string stage = 2;
+}
+
 service SeawayService {
   rpc Upload(stream UploadRequest) returns (UploadResponse) {}
+  rpc Environment(EnvironmentRequest) returns (EnvironmentResponse) {}
+  rpc EnvironmentTracker(EnvironmentRequest) returns (stream EnvironmentResponse) {}
 }

@@ -16,6 +16,7 @@ package controller
 
 import (
 	"ctx.sh/seaway/pkg/controller/environment"
+	"ctx.sh/seaway/pkg/tracker"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
@@ -27,6 +28,7 @@ type Options struct {
 	StoragePrefix         string
 	StorageRegion         string
 	StorageForcePathStyle bool
+	Tracker               *tracker.Tracker
 }
 
 type Controller struct{}
@@ -41,5 +43,6 @@ func SetupWithManager(mgr ctrl.Manager, opts *Options) error {
 		StoragePrefix:         opts.StoragePrefix,
 		StorageRegion:         opts.StorageRegion,
 		StorageForcePathStyle: opts.StorageForcePathStyle,
+		Tracker:               opts.Tracker,
 	})
 }

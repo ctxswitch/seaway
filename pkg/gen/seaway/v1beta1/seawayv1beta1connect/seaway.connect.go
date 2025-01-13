@@ -35,17 +35,27 @@ const (
 const (
 	// SeawayServiceUploadProcedure is the fully-qualified name of the SeawayService's Upload RPC.
 	SeawayServiceUploadProcedure = "/seaway.v1beta1.SeawayService/Upload"
+	// SeawayServiceEnvironmentProcedure is the fully-qualified name of the SeawayService's Environment
+	// RPC.
+	SeawayServiceEnvironmentProcedure = "/seaway.v1beta1.SeawayService/Environment"
+	// SeawayServiceEnvironmentTrackerProcedure is the fully-qualified name of the SeawayService's
+	// EnvironmentTracker RPC.
+	SeawayServiceEnvironmentTrackerProcedure = "/seaway.v1beta1.SeawayService/EnvironmentTracker"
 )
 
 // These variables are the protoreflect.Descriptor objects for the RPCs defined in this package.
 var (
-	seawayServiceServiceDescriptor      = v1beta1.File_seaway_v1beta1_seaway_proto.Services().ByName("SeawayService")
-	seawayServiceUploadMethodDescriptor = seawayServiceServiceDescriptor.Methods().ByName("Upload")
+	seawayServiceServiceDescriptor                  = v1beta1.File_seaway_v1beta1_seaway_proto.Services().ByName("SeawayService")
+	seawayServiceUploadMethodDescriptor             = seawayServiceServiceDescriptor.Methods().ByName("Upload")
+	seawayServiceEnvironmentMethodDescriptor        = seawayServiceServiceDescriptor.Methods().ByName("Environment")
+	seawayServiceEnvironmentTrackerMethodDescriptor = seawayServiceServiceDescriptor.Methods().ByName("EnvironmentTracker")
 )
 
 // SeawayServiceClient is a client for the seaway.v1beta1.SeawayService service.
 type SeawayServiceClient interface {
 	Upload(context.Context) *connect.ClientStreamForClient[v1beta1.UploadRequest, v1beta1.UploadResponse]
+	Environment(context.Context, *connect.Request[v1beta1.EnvironmentRequest]) (*connect.Response[v1beta1.EnvironmentResponse], error)
+	EnvironmentTracker(context.Context, *connect.Request[v1beta1.EnvironmentRequest]) (*connect.ServerStreamForClient[v1beta1.EnvironmentResponse], error)
 }
 
 // NewSeawayServiceClient constructs a client for the seaway.v1beta1.SeawayService service. By
@@ -64,12 +74,26 @@ func NewSeawayServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 			connect.WithSchema(seawayServiceUploadMethodDescriptor),
 			connect.WithClientOptions(opts...),
 		),
+		environment: connect.NewClient[v1beta1.EnvironmentRequest, v1beta1.EnvironmentResponse](
+			httpClient,
+			baseURL+SeawayServiceEnvironmentProcedure,
+			connect.WithSchema(seawayServiceEnvironmentMethodDescriptor),
+			connect.WithClientOptions(opts...),
+		),
+		environmentTracker: connect.NewClient[v1beta1.EnvironmentRequest, v1beta1.EnvironmentResponse](
+			httpClient,
+			baseURL+SeawayServiceEnvironmentTrackerProcedure,
+			connect.WithSchema(seawayServiceEnvironmentTrackerMethodDescriptor),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // seawayServiceClient implements SeawayServiceClient.
 type seawayServiceClient struct {
-	upload *connect.Client[v1beta1.UploadRequest, v1beta1.UploadResponse]
+	upload             *connect.Client[v1beta1.UploadRequest, v1beta1.UploadResponse]
+	environment        *connect.Client[v1beta1.EnvironmentRequest, v1beta1.EnvironmentResponse]
+	environmentTracker *connect.Client[v1beta1.EnvironmentRequest, v1beta1.EnvironmentResponse]
 }
 
 // Upload calls seaway.v1beta1.SeawayService.Upload.
@@ -77,9 +101,21 @@ func (c *seawayServiceClient) Upload(ctx context.Context) *connect.ClientStreamF
 	return c.upload.CallClientStream(ctx)
 }
 
+// Environment calls seaway.v1beta1.SeawayService.Environment.
+func (c *seawayServiceClient) Environment(ctx context.Context, req *connect.Request[v1beta1.EnvironmentRequest]) (*connect.Response[v1beta1.EnvironmentResponse], error) {
+	return c.environment.CallUnary(ctx, req)
+}
+
+// EnvironmentTracker calls seaway.v1beta1.SeawayService.EnvironmentTracker.
+func (c *seawayServiceClient) EnvironmentTracker(ctx context.Context, req *connect.Request[v1beta1.EnvironmentRequest]) (*connect.ServerStreamForClient[v1beta1.EnvironmentResponse], error) {
+	return c.environmentTracker.CallServerStream(ctx, req)
+}
+
 // SeawayServiceHandler is an implementation of the seaway.v1beta1.SeawayService service.
 type SeawayServiceHandler interface {
 	Upload(context.Context, *connect.ClientStream[v1beta1.UploadRequest]) (*connect.Response[v1beta1.UploadResponse], error)
+	Environment(context.Context, *connect.Request[v1beta1.EnvironmentRequest]) (*connect.Response[v1beta1.EnvironmentResponse], error)
+	EnvironmentTracker(context.Context, *connect.Request[v1beta1.EnvironmentRequest], *connect.ServerStream[v1beta1.EnvironmentResponse]) error
 }
 
 // NewSeawayServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -94,10 +130,26 @@ func NewSeawayServiceHandler(svc SeawayServiceHandler, opts ...connect.HandlerOp
 		connect.WithSchema(seawayServiceUploadMethodDescriptor),
 		connect.WithHandlerOptions(opts...),
 	)
+	seawayServiceEnvironmentHandler := connect.NewUnaryHandler(
+		SeawayServiceEnvironmentProcedure,
+		svc.Environment,
+		connect.WithSchema(seawayServiceEnvironmentMethodDescriptor),
+		connect.WithHandlerOptions(opts...),
+	)
+	seawayServiceEnvironmentTrackerHandler := connect.NewServerStreamHandler(
+		SeawayServiceEnvironmentTrackerProcedure,
+		svc.EnvironmentTracker,
+		connect.WithSchema(seawayServiceEnvironmentTrackerMethodDescriptor),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/seaway.v1beta1.SeawayService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case SeawayServiceUploadProcedure:
 			seawayServiceUploadHandler.ServeHTTP(w, r)
+		case SeawayServiceEnvironmentProcedure:
+			seawayServiceEnvironmentHandler.ServeHTTP(w, r)
+		case SeawayServiceEnvironmentTrackerProcedure:
+			seawayServiceEnvironmentTrackerHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -109,4 +161,12 @@ type UnimplementedSeawayServiceHandler struct{}
 
 func (UnimplementedSeawayServiceHandler) Upload(context.Context, *connect.ClientStream[v1beta1.UploadRequest]) (*connect.Response[v1beta1.UploadResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("seaway.v1beta1.SeawayService.Upload is not implemented"))
+}
+
+func (UnimplementedSeawayServiceHandler) Environment(context.Context, *connect.Request[v1beta1.EnvironmentRequest]) (*connect.Response[v1beta1.EnvironmentResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("seaway.v1beta1.SeawayService.Environment is not implemented"))
+}
+
+func (UnimplementedSeawayServiceHandler) EnvironmentTracker(context.Context, *connect.Request[v1beta1.EnvironmentRequest], *connect.ServerStream[v1beta1.EnvironmentResponse]) error {
+	return connect.NewError(connect.CodeUnimplemented, errors.New("seaway.v1beta1.SeawayService.EnvironmentTracker is not implemented"))
 }
