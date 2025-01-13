@@ -59,7 +59,7 @@ func TestTracker_Track(t *testing.T) {
 		Namespace: "default",
 	}])
 
-	// Track udpated environment
+	// Track updated environment
 	env = &v1beta1.Environment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test",

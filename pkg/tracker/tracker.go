@@ -56,7 +56,7 @@ func (t *Tracker) Track(ctx context.Context, env *v1beta1.Environment) {
 func (t *Tracker) Get(namespace, name string) (TrackingInfo, bool) {
 	t.Lock()
 	defer t.Unlock()
-	
+
 	if info, ok := t.envs[types.NamespacedName{Namespace: namespace, Name: name}]; ok {
 		return *info, true
 	}
