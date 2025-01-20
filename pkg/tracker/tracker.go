@@ -76,3 +76,15 @@ func (t *Tracker) HasChanged(namespace, name string) bool {
 
 	return info.Stage != info.LastStage
 }
+
+func (t *Tracker) IsDeployed(namespace, name string) bool {
+	t.Lock()
+	defer t.Unlock()
+
+	info, ok := t.envs[types.NamespacedName{Namespace: namespace, Name: name}]
+	if !ok {
+		return false
+	}
+
+	return info.Status == "deployed"
+}
