@@ -57,6 +57,26 @@ func (s *Store) Put(ctx context.Context, key string) {
 	})
 }
 
+func (s *Store) EnsureBucket(ctx context.Context, bucket string) error {
+	store, err := s.getStore()
+	if err != nil {
+		return err
+	}
+
+	ok, err := store.BucketExists(ctx, bucket)
+	if err != nil {
+		return err
+	}
+
+	if ok {
+		return nil
+	}
+
+	return store.MakeBucket(ctx, bucket, minio.MakeBucketOptions{
+		Region: s.options.Region,
+	})
+}
+
 func (s *Store) Info() minio.UploadInfo {
 	return s.info
 }
