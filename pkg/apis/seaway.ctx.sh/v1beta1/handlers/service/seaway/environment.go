@@ -89,7 +89,10 @@ func (s *Service) send(
 	}
 	logger.V(6).Info("info", "info", info)
 
-	if (track.HasChanged(namespace, name)) && info.Status != "initializing" {
+	changed := track.HasChanged(namespace, name)
+	deployed := track.IsDeployed(namespace, name)
+	
+	if (changed || deployed) && info.Status != "initializing" {
 		logger.V(6).Info("sending", "info", info)
 		err := stream.Send(&seawayv1beta1.EnvironmentResponse{
 			Stage:  info.Stage,
