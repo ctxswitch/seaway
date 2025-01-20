@@ -5,6 +5,7 @@ import (
 	"context"
 	seawayv1beta1 "ctx.sh/seaway/pkg/gen/seaway/v1beta1"
 	"ctx.sh/seaway/pkg/util"
+	"errors"
 	"fmt"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
@@ -27,6 +28,13 @@ func (s *Service) Upload(ctx context.Context, stream *connect.ClientStream[seawa
 		Bucket:   s.options.StorageBucket,
 		Endpoint: s.options.StorageURL,
 	})
+
+	err := store.EnsureBucket(ctx, s.options.StorageBucket)
+	if err != nil {
+		logger.Error(err, "failed to ensure bucket exists")
+		werr := errors.New("unable to find or create bucket")
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.Join(werr, err))
+	}
 
 	for {
 		if more := stream.Receive(); !more {
