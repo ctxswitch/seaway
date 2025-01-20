@@ -91,7 +91,11 @@ func (s *Service) send(
 
 	changed := track.HasChanged(namespace, name)
 	deployed := track.IsDeployed(namespace, name)
-	
+
+	// TODO: clean up the initializing logic here.  it's not very intuitive what
+	//   this is doing and why it is needed.  For reference there was a state at the
+	//   beginning of a deployment stream where we would duplicate sending a status
+	//   update when in initializing.
 	if (changed || deployed) && info.Status != "initializing" {
 		logger.V(6).Info("sending", "info", info)
 		err := stream.Send(&seawayv1beta1.EnvironmentResponse{
