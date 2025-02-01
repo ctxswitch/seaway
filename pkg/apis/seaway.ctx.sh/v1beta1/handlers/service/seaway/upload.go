@@ -1,12 +1,13 @@
 package seaway
 
 import (
-	"connectrpc.com/connect"
 	"context"
-	seawayv1beta1 "ctx.sh/seaway/pkg/gen/seaway/v1beta1"
-	"ctx.sh/seaway/pkg/util"
 	"errors"
 	"fmt"
+
+	"connectrpc.com/connect"
+	seawayv1beta1 "ctx.sh/seaway/pkg/gen/seaway/v1beta1"
+	"ctx.sh/seaway/pkg/util"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 

@@ -15,6 +15,8 @@
 package client
 
 import (
+	"strings"
+
 	corev1 "k8s.io/api/core/v1"
 	apierr "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -23,7 +25,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
-	"strings"
 )
 
 // ObjectKeyFromObject is a helper that returns an ObjectKey for the given

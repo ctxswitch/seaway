@@ -16,6 +16,8 @@ package operator
 
 import (
 	"crypto/tls"
+	"os"
+
 	"ctx.sh/seaway/pkg/apis/seaway.ctx.sh/v1beta1"
 	"ctx.sh/seaway/pkg/apis/seaway.ctx.sh/v1beta1/handlers/service/healthz"
 	"ctx.sh/seaway/pkg/apis/seaway.ctx.sh/v1beta1/handlers/service/seaway"
@@ -29,7 +31,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"os"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 )

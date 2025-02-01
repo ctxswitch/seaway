@@ -2,8 +2,9 @@ package stage
 
 import (
 	"context"
-	corev1 "k8s.io/api/core/v1"
 	"testing"
+
+	corev1 "k8s.io/api/core/v1"
 
 	"ctx.sh/seaway/pkg/apis/seaway.ctx.sh/v1beta1"
 	"ctx.sh/seaway/pkg/controller/environment/collector"

@@ -2,11 +2,12 @@ package seaway
 
 import (
 	"context"
-	"github.com/minio/minio-go/v7"
-	"github.com/minio/minio-go/v7/pkg/credentials"
 	"io"
 	"net/url"
 	"sync"
+
+	"github.com/minio/minio-go/v7"
+	"github.com/minio/minio-go/v7/pkg/credentials"
 )
 
 type StoreOptions struct {
