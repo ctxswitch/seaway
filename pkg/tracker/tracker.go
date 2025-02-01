@@ -2,9 +2,10 @@ package tracker
 
 import (
 	"context"
+	"sync"
+
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/record"
-	"sync"
 
 	"ctx.sh/seaway/pkg/apis/seaway.ctx.sh/v1beta1"
 	"k8s.io/apimachinery/pkg/types"
