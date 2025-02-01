@@ -5,12 +5,13 @@
 package seawayv1beta1connect
 
 import (
-	connect "connectrpc.com/connect"
 	context "context"
-	v1beta1 "ctx.sh/seaway/pkg/gen/seaway/v1beta1"
 	errors "errors"
 	http "net/http"
 	strings "strings"
+
+	connect "connectrpc.com/connect"
+	v1beta1 "ctx.sh/seaway/pkg/gen/seaway/v1beta1"
 )
 
 // This is a compile-time assertion to ensure that this generated file and the connect package are

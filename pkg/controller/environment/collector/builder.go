@@ -1,11 +1,12 @@
 package collector
 
 import (
-	"ctx.sh/seaway/pkg/apis/seaway.ctx.sh/v1beta1"
-	"ctx.sh/seaway/pkg/util"
 	"fmt"
 	"net/url"
 	"strconv"
+
+	"ctx.sh/seaway/pkg/apis/seaway.ctx.sh/v1beta1"
+	"ctx.sh/seaway/pkg/util"
 
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"

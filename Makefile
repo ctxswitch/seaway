@@ -12,6 +12,7 @@ export PATH := ./bin:$(PATH)
 CONTROLLER_TOOLS_VERSION ?= v0.16.1
 KUSTOMIZE_VERSION ?= v5.4.2
 GOLANGCI_LINT_VERSION ?= v1.60.3
+GOIMPORTS_VERSION ?= latest
 ADDLICENSE_VERSION ?= v1.0.0
 BUF_VERSION ?= latest
 PROTOC_GEN_GO_VERSION ?= latest
@@ -25,6 +26,7 @@ SEACTL_BIN ?= seactl
 KUSTOMIZE ?= $(LOCALBIN)/kustomize
 CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen
 GOLANGCI_LINT = $(LOCALBIN)/golangci-lint
+GOIMPORTS = $(LOCALBIN)/goimports
 ADDLICENSE = $(LOCALBIN)/addlicense
 BUF = $(LOCALBIN)/buf
 PROTOC_GEN_GO = $(LOCALBIN)/protoc-gen-go
@@ -119,8 +121,9 @@ lint: $(GOLANGCI_LINT)
 	@$(GOLANGCI_LINT) run
 
 .PHONY: lint-fix
-lint-fix: $(GOLANGCI_LINT)
+lint-fix: $(GOLANGCI_LINT) $(GOIMPORTS)
 	@$(GOLANGCI_LINT) run --fix
+	@$(GOIMPORTS) -w .
 
 .PHONY: license
 license: $(ADDLICENSE)
@@ -174,6 +177,10 @@ $(KUSTOMIZE):
 $(GOLANGCI_LINT): $(LOCALBIN)
 	@test -s $(GOLANGCI_LINT) || \
 	GOBIN=$(LOCALBIN) go install github.com/golangci/golangci-lint/cmd/golangci-lint@${GOLANGCI_LINT_VERSION}
+
+$(GOIMPORTS): $(LOCALBIN)
+	@test -s $(GOIMPORTS) || \
+	GOBIN=$(LOCALBIN) go install golang.org/x/tools/cmd/goimports@${GOIMPORTS_VERSION}
 
 $(ADDLICENSE): $(LOCALBIN)
 	@test -s $(ADDLICENSE) || \

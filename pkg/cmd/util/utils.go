@@ -2,20 +2,21 @@ package util
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
+	"strings"
+	"time"
+
 	"ctx.sh/seaway/pkg/apis/seaway.ctx.sh/v1beta1"
 	"ctx.sh/seaway/pkg/console"
 	kube "ctx.sh/seaway/pkg/kube/client"
 	"ctx.sh/seaway/pkg/util/kustomize"
-	"encoding/json"
-	"fmt"
 	jsonpatch "gopkg.in/evanphx/json-patch.v4"
 	apierr "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/wait"
 	watchtools "k8s.io/client-go/tools/watch"
-	"strings"
-	"time"
 )
 
 var (

@@ -2,11 +2,12 @@ package tracker
 
 import (
 	"context"
+	"testing"
+
 	"ctx.sh/seaway/pkg/apis/seaway.ctx.sh/v1beta1"
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"testing"
 )
 
 func TestTracker_Track(t *testing.T) {

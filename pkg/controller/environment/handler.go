@@ -2,10 +2,11 @@ package environment
 
 import (
 	"context"
-	"ctx.sh/seaway/pkg/registry"
-	"ctx.sh/seaway/pkg/tracker"
 	"reflect"
 	"time"
+
+	"ctx.sh/seaway/pkg/registry"
+	"ctx.sh/seaway/pkg/tracker"
 
 	"ctx.sh/seaway/pkg/apis/seaway.ctx.sh/v1beta1"
 	"ctx.sh/seaway/pkg/controller/environment/collector"

@@ -1,13 +1,14 @@
 package seaway
 
 import (
-	"connectrpc.com/connect"
 	"context"
+	"errors"
+	"time"
+
+	"connectrpc.com/connect"
 	seawayv1beta1 "ctx.sh/seaway/pkg/gen/seaway/v1beta1"
 	seawayv1beta1connect "ctx.sh/seaway/pkg/gen/seaway/v1beta1/seawayv1beta1connect"
-	"errors"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-	"time"
 )
 
 // TODO: Now that we are looking at streaming status, I can consolidate some of the
