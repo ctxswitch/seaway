@@ -2,10 +2,11 @@ package tracker
 
 import (
 	"context"
+	"sync"
+
 	"ctx.sh/seaway/pkg/apis/seaway.ctx.sh/v1beta1"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sync"
 )
 
 type TrackingInfo struct {

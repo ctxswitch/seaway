@@ -2,16 +2,17 @@ package install
 
 import (
 	"context"
+	"fmt"
+	"os/signal"
+	"syscall"
+
 	"ctx.sh/seaway/pkg/apis/seaway.ctx.sh/v1beta1"
 	"ctx.sh/seaway/pkg/cmd/util"
 	"ctx.sh/seaway/pkg/console"
 	kube "ctx.sh/seaway/pkg/kube/client"
 	"ctx.sh/seaway/pkg/util/kustomize"
-	"fmt"
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"os/signal"
-	"syscall"
 )
 
 type Command struct {

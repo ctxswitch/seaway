@@ -16,16 +16,17 @@ package clean
 
 import (
 	"context"
+	"fmt"
+	"os/signal"
+	"syscall"
+
 	"ctx.sh/seaway/pkg/apis/seaway.ctx.sh/v1beta1"
 	"ctx.sh/seaway/pkg/cmd/util"
 	"ctx.sh/seaway/pkg/console"
 	kube "ctx.sh/seaway/pkg/kube/client"
-	"fmt"
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"os/signal"
-	"syscall"
 )
 
 type Command struct {
