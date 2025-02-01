@@ -33,6 +33,8 @@ type Options struct {
 
 type Controller struct{}
 
+// +kubebuilder:rbac:groups=core,resources=events,verbs=get;create;update;patch
+
 // SetupWithManager sets up any known controllers.
 func SetupWithManager(mgr ctrl.Manager, opts *Options) error {
 	return environment.SetupWithManager(mgr, &environment.Options{

@@ -76,8 +76,6 @@ func (c *Command) RunE(cmd *cobra.Command, args []string) error {
 	ctx := ctrl.SetupSignalHandler()
 	ctrl.SetLogger(log)
 
-	track := tracker.New()
-
 	hookServer := webhook.NewServer(webhook.Options{
 		Port:    9443,
 		CertDir: c.Certs,
@@ -106,6 +104,8 @@ func (c *Command) RunE(cmd *cobra.Command, args []string) error {
 		log.Error(err, "unable to initialize manager")
 		os.Exit(1)
 	}
+
+	track := tracker.New(mgr.GetEventRecorderFor("seaway-controller"))
 
 	if err = controller.SetupWithManager(mgr, &controller.Options{
 		RegistryURL:           c.RegistryURL,
