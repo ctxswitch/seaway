@@ -4,9 +4,16 @@ import (
 	"context"
 	"sync"
 
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/tools/record"
+
 	"ctx.sh/seaway/pkg/apis/seaway.ctx.sh/v1beta1"
 	"k8s.io/apimachinery/pkg/types"
-	ctrl "sigs.k8s.io/controller-runtime"
+)
+
+const (
+	Tracking      = "Tracking"
+	Transitioning = "Transitioning"
 )
 
 type TrackingInfo struct {
@@ -16,22 +23,21 @@ type TrackingInfo struct {
 }
 
 type Tracker struct {
-	envs map[types.NamespacedName]*TrackingInfo
-
+	envs     map[types.NamespacedName]*TrackingInfo
+	recorder record.EventRecorder
 	sync.Mutex
 }
 
-func New() *Tracker {
+func New(recorder record.EventRecorder) *Tracker {
 	return &Tracker{
-		envs: make(map[types.NamespacedName]*TrackingInfo),
+		envs:     make(map[types.NamespacedName]*TrackingInfo),
+		recorder: recorder,
 	}
 }
 
 func (t *Tracker) Track(ctx context.Context, env *v1beta1.Environment) {
 	t.Lock()
 	defer t.Unlock()
-
-	logger := ctrl.LoggerFrom(ctx, "component", "tracker")
 
 	nn := types.NamespacedName{
 		Namespace: env.Namespace,
@@ -44,14 +50,16 @@ func (t *Tracker) Track(ctx context.Context, env *v1beta1.Environment) {
 			LastStage: env.GetStageString(),
 		}
 
-		logger.V(6).Info("created tracker", "tracker", t.envs[nn])
+		t.recorder.Event(env, corev1.EventTypeNormal, Tracking, t.envs[nn].Stage)
 	}
 
 	t.envs[nn].Status = env.GetStatusString()
 	t.envs[nn].LastStage = t.envs[nn].Stage
 	t.envs[nn].Stage = env.GetStageString()
 
-	logger.V(6).Info("updated tracker", "tracker", t.envs[nn])
+	if t.envs[nn].Stage != t.envs[nn].LastStage {
+		t.recorder.Event(env, corev1.EventTypeNormal, Transitioning, t.envs[nn].Stage)
+	}
 }
 
 func (t *Tracker) Get(namespace, name string) (TrackingInfo, bool) {

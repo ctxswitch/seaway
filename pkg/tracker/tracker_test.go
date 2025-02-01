@@ -4,6 +4,8 @@ import (
 	"context"
 	"testing"
 
+	"k8s.io/client-go/tools/record"
+
 	"ctx.sh/seaway/pkg/apis/seaway.ctx.sh/v1beta1"
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -11,7 +13,7 @@ import (
 )
 
 func TestTracker_Track(t *testing.T) {
-	tracker := New()
+	tracker := New(record.NewFakeRecorder(1000))
 	assert.Empty(t, tracker.envs)
 
 	// Track new environment
