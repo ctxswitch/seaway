@@ -30,6 +30,8 @@ import (
 	"syscall"
 	"time"
 
+	"k8s.io/apimachinery/pkg/api/errors"
+
 	"connectrpc.com/connect"
 	"ctx.sh/seaway/pkg/cmd/util"
 	seawayv1beta1 "ctx.sh/seaway/pkg/gen/seaway/v1beta1"
@@ -42,7 +44,6 @@ import (
 	kube "ctx.sh/seaway/pkg/kube/client"
 	"github.com/spf13/cobra"
 
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -201,17 +202,18 @@ func doSync(ctx context.Context, client *kube.KubectlCmd, name string, env v1bet
 	console.ListNotice("Size: %d", resp.Msg.Size)
 	console.ListNotice("Revision: %s", resp.Msg.Etag)
 
-	console.Info("Deploying")
-
-	obj := util.GetEnvironment(name, env.Namespace)
-
 	if force {
+		obj := util.GetEnvironment(name, env.Namespace)
 		derr := client.Delete(ctx, obj, metav1.DeleteOptions{})
 		if err != nil && !errors.IsNotFound(derr) {
-			console.Fatal("error deleting environment: %s", derr.Error())
+			console.Fatal("Error deleting environment: %s", derr.Error())
+		} else {
+			console.Info("Removing existing environment")
 		}
 	}
 
+	console.Info("Deploying")
+	obj := util.GetEnvironment(name, env.Namespace)
 	op, err := client.CreateOrUpdate(ctx, obj, func() error {
 		env.EnvironmentSpec.DeepCopyInto(&obj.Spec)
 		obj.Spec.Revision = resp.Msg.Etag
