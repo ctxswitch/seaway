@@ -7,6 +7,8 @@ import (
 	"strings"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
+
 	"ctx.sh/seaway/pkg/apis/seaway.ctx.sh/v1beta1"
 	"ctx.sh/seaway/pkg/console"
 	kube "ctx.sh/seaway/pkg/kube/client"
@@ -146,4 +148,16 @@ func GetEnvironment(name, namespace string) *v1beta1.Environment {
 	env.SetGroupVersionKind(v1beta1.SchemeGroupVersion.WithKind("Environment"))
 
 	return env
+}
+
+// GetNamespace returns a new namespace object.
+func GetNamespace(name string) *corev1.Namespace {
+	ns := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
+	}
+	ns.SetGroupVersionKind(corev1.SchemeGroupVersion.WithKind("Namespace"))
+
+	return ns
 }
