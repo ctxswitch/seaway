@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	corev1 "k8s.io/api/core/v1"
 	"strings"
 	"time"
 
@@ -146,4 +147,16 @@ func GetEnvironment(name, namespace string) *v1beta1.Environment {
 	env.SetGroupVersionKind(v1beta1.SchemeGroupVersion.WithKind("Environment"))
 
 	return env
+}
+
+// GetNamespace returns a new namespace object
+func GetNamespace(name string) *corev1.Namespace {
+	ns := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
+	}
+	ns.SetGroupVersionKind(corev1.SchemeGroupVersion.WithKind("Namespace"))
+
+	return ns
 }

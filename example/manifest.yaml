@@ -6,7 +6,7 @@ defaultEnvironment: local
 environments:
   - name: local
     replicas: 3
-    namespace: default
+    namespace: seaway-example
     vars:
       env:
         - name: ENV

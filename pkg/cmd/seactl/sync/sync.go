@@ -212,9 +212,28 @@ func doSync(ctx context.Context, client *kube.KubectlCmd, name string, env v1bet
 		}
 	}
 
+	// Create namespace if it does not exist
+	ns := util.GetNamespace(env.Namespace)
+	op, err := client.CreateOrUpdate(ctx, ns, func() error {
+		// TODO: we can set some labels here later.
+		// TODO: figure out what we want to do to clean up.  This will need to
+		//   be seperate from the environment (maybe some sort of a gc process
+		//   in the controller).  Will need to figure out how to determine whether
+		//   or not we've created it so we don't remove namespaces that we don't
+		//   manage.
+		return nil
+	})
+	if err != nil {
+		console.Fatal("Unable to create namespace: %s", err.Error())
+	}
+	switch op {
+	case kube.OperationResultCreated:
+		console.Info("Environment created")
+	}
+
 	console.Info("Deploying")
 	obj := util.GetEnvironment(name, env.Namespace)
-	op, err := client.CreateOrUpdate(ctx, obj, func() error {
+	op, err = client.CreateOrUpdate(ctx, obj, func() error {
 		env.EnvironmentSpec.DeepCopyInto(&obj.Spec)
 		obj.Spec.Revision = resp.Msg.Etag
 		obj.Spec.Config = env.Name
