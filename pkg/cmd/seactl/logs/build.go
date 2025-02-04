@@ -40,11 +40,6 @@ func (l *BuildLogs) RunE(cmd *cobra.Command, args []string) error {
 		console.Fatal("Unable to load manifest")
 	}
 
-	env, err := manifest.GetEnvironment(args[0])
-	if err != nil {
-		console.Fatal("Build environment '%s' not found in the manifest", args[0])
-	}
-
 	streamer, err := client.NewLogStreamer(kubeContext, corev1.PodLogOptions{
 		Follow:     l.follow,
 		TailLines:  &l.tail,
@@ -56,7 +51,7 @@ func (l *BuildLogs) RunE(cmd *cobra.Command, args []string) error {
 	}
 
 	labels := fmt.Sprintf("app=%s,group=build", manifest.Name)
-	err = streamer.PodLogs(ctx, env.Namespace, labels)
+	err = streamer.PodLogs(ctx, v1beta1.DefaultControllerNamespace, labels)
 	if err != nil && err != context.Canceled {
 		console.Fatal(err.Error())
 	}
