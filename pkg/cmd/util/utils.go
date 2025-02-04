@@ -4,9 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	corev1 "k8s.io/api/core/v1"
 	"strings"
 	"time"
+
+	corev1 "k8s.io/api/core/v1"
 
 	"ctx.sh/seaway/pkg/apis/seaway.ctx.sh/v1beta1"
 	"ctx.sh/seaway/pkg/console"
@@ -149,7 +150,7 @@ func GetEnvironment(name, namespace string) *v1beta1.Environment {
 	return env
 }
 
-// GetNamespace returns a new namespace object
+// GetNamespace returns a new namespace object.
 func GetNamespace(name string) *corev1.Namespace {
 	ns := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{

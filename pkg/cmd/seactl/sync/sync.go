@@ -217,7 +217,7 @@ func doSync(ctx context.Context, client *kube.KubectlCmd, name string, env v1bet
 	op, err := client.CreateOrUpdate(ctx, ns, func() error {
 		// TODO: we can set some labels here later.
 		// TODO: figure out what we want to do to clean up.  This will need to
-		//   be seperate from the environment (maybe some sort of a gc process
+		//   be separate from the environment (maybe some sort of a gc process
 		//   in the controller).  Will need to figure out how to determine whether
 		//   or not we've created it so we don't remove namespaces that we don't
 		//   manage.
@@ -226,7 +226,7 @@ func doSync(ctx context.Context, client *kube.KubectlCmd, name string, env v1bet
 	if err != nil {
 		console.Fatal("Unable to create namespace: %s", err.Error())
 	}
-	switch op {
+	switch op { // nolint:gocritic
 	case kube.OperationResultCreated:
 		console.Info("Environment created")
 	}
