@@ -16,9 +16,9 @@ require (
 	google.golang.org/protobuf v1.36.8
 	gopkg.in/evanphx/json-patch.v4 v4.12.0
 	gopkg.in/yaml.v3 v3.0.1
-	k8s.io/api v0.34.0
-	k8s.io/apimachinery v0.34.0
-	k8s.io/client-go v0.34.0
+	k8s.io/api v0.34.1
+	k8s.io/apimachinery v0.34.1
+	k8s.io/client-go v0.34.1
 	k8s.io/kubectl v0.34.0
 	k8s.io/utils v0.0.0-20250604170112-4c0f3b243397
 	sigs.k8s.io/controller-runtime v0.19.1
