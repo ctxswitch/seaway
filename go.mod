@@ -5,7 +5,7 @@ go 1.24.0
 toolchain go1.24.1
 
 require (
-	connectrpc.com/connect v1.18.1
+	connectrpc.com/connect v1.19.1
 	github.com/go-logr/logr v1.4.3
 	github.com/minio/minio-go/v7 v7.0.95
 	github.com/spf13/cobra v1.10.1
